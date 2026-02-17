@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080810;--surface:#10101e;--surface2:#18182a;--border:#252538;
+  --accent:#7c6ff7;--accent-glow:rgba(124,111,247,.18);
+  --green:#00e5a0;--green-glow:rgba(0,229,160,.13);
+  --amber:#ffb547;--danger:#ff5566;
+  --text:#eeeeff;--muted:#7777aa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 10% 10%,rgba(124,111,247,.1) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 90% 90%,rgba(0,229,160,.07) 0%,transparent 60%);pointer-events:none;z-index:0;}
+.hidden{display:none!important;}
+
+/* LOGIN */
+#screen-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;position:relative;z-index:1;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:52px 44px;width:100%;max-width:420px;box-shadow:0 40px 100px rgba(0,0,0,.6);}
+.brand{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1.5px;margin-bottom:6px;}
+.brand em{color:var(--accent);font-style:normal;}
+.brand-sub{color:var(--muted);font-size:14px;margin-bottom:40px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.field input,.field select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow);}
+.field select option{background:var(--surface2);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:14px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s;letter-spacing:.02em;}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.btn-primary{background:var(--accent);color:#fff;padding:16px 28px;font-size:15px;width:100%;}
+.btn-primary:hover:not(:disabled){background:#9089ff;transform:translateY(-2px);box-shadow:0 12px 32px rgba(124,111,247,.4);}
+.btn-sm{padding:10px 20px;font-size:13px;width:auto;}
+.btn-ghost{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);padding:9px 18px;font-size:13px;width:auto;font-family:'DM Sans',sans-serif;font-weight:500;}
+.btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--accent);}
+.err-box{background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.3);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--danger);margin-top:14px;display:none;}
+
+/* APP */
+#screen-app{display:none;position:relative;z-index:1;min-height:100vh;}
+
+/* NAV */
+nav{background:rgba(16,16,30,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px;}
+.nav-brand em{color:var(--accent);font-style:normal;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-user{font-size:13px;color:var(--muted);}
+.nav-user strong{color:var(--text);}
+.nav-role{background:var(--accent-glow);border:1px solid rgba(124,111,247,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;}
+
+/* LAYOUT */
+.app-body{display:flex;min-height:calc(100vh - 62px);}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 12px;position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;}
+.sb-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;padding:0 12px;margin:20px 0 8px;}
+.sb-section:first-child{margin-top:0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;border:none;background:transparent;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.nav-item:hover{color:var(--text);background:var(--surface2);}
+.nav-item.active{color:var(--accent);background:var(--accent-glow);}
+.icon{font-size:16px;width:20px;text-align:center;}
+.main{flex:1;padding:28px 24px;overflow-x:hidden;}
+.panel{display:none;}
+.panel.active{display:block;}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.page-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+
+/* CLOCK */
+.clock-hero{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:40px 32px;text-align:center;margin-bottom:24px;position:relative;overflow:hidden;}
+.clock-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,111,247,.07) 0%,transparent 70%);pointer-events:none;}
+.live-time{font-family:'Syne',sans-serif;font-size:clamp(52px,10vw,88px);font-weight:800;letter-spacing:-4px;line-height:1;margin-bottom:8px;}
+.live-date{color:var(--muted);font-size:15px;margin-bottom:32px;}
+.status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:100px;font-size:13px;font-weight:500;margin-bottom:28px;}
+.status-pill.in{background:var(--green-glow);border:1px solid rgba(0,229,160,.3);color:var(--green);}
+.status-pill.out{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+.dot.pulse{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.4);}}
+.clock-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.btn-ci{background:var(--green);color:#080810;padding:18px 52px;font-size:16px;border-radius:16px;}
+.btn-ci:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,229,160,.3);background:#00ffb3;}
+.btn-co{background:var(--surface2);color:var(--text);border:1.5px solid var(--border);padding:18px 52px;font-size:16px;border-radius:16px;}
+.btn-co:hover:not(:disabled){transform:translateY(-2px);border-color:var(--danger);color:var(--danger);}
+.clock-since{margin-top:20px;font-size:14px;color:var(--muted);}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 20px;}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;letter-spacing:-1.5px;}
+.c-green{color:var(--green);}.c-purple{color:var(--accent);}.c-amber{color:var(--amber);}
+
+/* TABLE */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:24px;}
+.table-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);}
+.table-ttl{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:12px 20px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;background:var(--surface2);border-bottom:1px solid var(--border);}
+td{padding:14px 20px;font-size:14px;border-bottom:1px solid rgba(37,37,56,.6);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(124,111,247,.03);}
+.badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.badge-active{background:rgba(0,229,160,.12);color:var(--green);}
+.badge-completed{background:rgba(124,111,247,.12);color:var(--accent);}
+.badge-approved{background:rgba(0,229,160,.12);color:var(--green);}
+.badge-rejected{background:rgba(255,85,102,.12);color:var(--danger);}
+.badge-employee{background:rgba(124,111,247,.12);color:var(--accent);}
+.badge-farmer{background:rgba(255,181,71,.12);color:var(--amber);}
+.badge-manager{background:rgba(0,229,160,.12);color:var(--green);}
+
+/* WORKERS */
+.workers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
+.worker-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;align-items:center;gap:16px;}
+.avatar{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:18px;flex-shrink:0;color:#fff;}
+.avatar-sm{width:32px;height:32px;border-radius:9px;font-size:13px;}
+.worker-info{flex:1;}
+.worker-name{font-weight:500;font-size:15px;margin-bottom:4px;}
+.online-dot{width:10px;height:10px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.online-dot.on{background:var(--green);}
+
+/* FORM CARD */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:24px;}
+.form-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* PAY CALC */
+.pay-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.pay-results{margin-top:24px;border-top:1px solid var(--border);padding-top:20px;}
+.pay-result-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(37,37,56,.5);}
+.pay-result-item:last-child{border-bottom:none;}
+.pay-worker{display:flex;align-items:center;gap:12px;}
+.pay-amount{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--green);}
+.pay-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* MISC */
+.empty{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:spin .65s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 24px;font-size:14px;z-index:9999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 20px 50px rgba(0,0,0,.5);pointer-events:none;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+#toast.ok{border-color:rgba(0,229,160,.35);color:var(--green);}
+#toast.err{border-color:rgba(255,85,102,.35);color:var(--danger);}
+
+/* MOBILE */
+@media(max-width:700px){
+  .sidebar{display:none;}
+  .mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:8px 0 14px;justify-content:space-around;}
+  .mtab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:4px 10px;}
+  .mtab .icon{font-size:20px;}
+  .mtab.active{color:var(--accent);}
+  .main{padding:20px 16px 88px;}
+  .form-row,.pay-row{grid-template-columns:1fr;}
+  .clock-btns .btn{padding:16px 32px;}
+  .live-time{letter-spacing:-2px;}
+  nav .nav-user{display:none;}
+}
+@media(min-width:701px){.mobile-nav{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-card">
+    <div class="brand">Work<em>Track</em></div>
+    <p class="brand-sub">Sign in to track your time</p>
+    <div class="field"><label>Username</label><input id="l-nick" type="text" placeholder="your username" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
+    <div class="err-box" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app">
+  <nav>
+    <div class="nav-brand">Work<em>Track</em></div>
+    <div class="nav-right">
+      <div class="nav-user">Hello, <strong id="nav-name"></strong></div>
+      <div class="nav-role" id="nav-role"></div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-section">My Work</div>
+      <button class="nav-item active" id="si-clock" onclick="go('clock')"><span class="icon">⏱</span>Time Clock</button>
+      <button class="nav-item" id="si-hours" onclick="go('hours')"><span class="icon">📋</span>My Hours</button>
+      <button class="nav-item" id="si-earnings" onclick="go('earnings')"><span class="icon">💵</span>My Earnings</button>
+      <div class="sb-section admin-only hidden">Management</div>
+      <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
+      <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
+      <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
+    </aside>
+
+    <main class="main">
+
+      <!-- CLOCK -->
+      <div class="panel active" id="panel-clock">
+        <div class="page-title">Time Clock</div>
+        <div class="page-sub">Track your working hours</div>
+        <div class="clock-hero">
+          <div class="live-time" id="live-time">00:00:00</div>
+          <div class="live-date" id="live-date"></div>
+          <div class="status-pill out" id="status-pill">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-txt">Not clocked in</span>
+          </div>
+          <div class="clock-btns">
+            <button class="btn btn-ci" id="btn-ci" onclick="clockIn()">Clock In</button>
+            <button class="btn btn-co" id="btn-co" onclick="clockOut()" disabled>Clock Out</button>
+          </div>
+          <div class="clock-since" id="clock-since"></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat"><div class="stat-label">Today</div><div class="stat-val c-green" id="st-today">—</div></div>
+          <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-purple" id="st-week">—</div></div>
+          <div class="stat"><div class="stat-label">This Month</div><div class="stat-val" id="st-month">—</div></div>
+        </div>
+      </div>
+
+      <!-- MY HOURS -->
+      <div class="panel" id="panel-hours">
+        <div class="page-title">My Hours</div>
+        <div class="page-sub">Your complete time history</div>
+        <div class="table-card">
+          <div class="table-hdr"><div class="table-ttl">Time Entries</div></div>
+          <table><thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+          <tbody id="my-entries-body"><tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- MY EARNINGS -->
+      <div class="panel" id="panel-earnings">
+        <div class="page-title">My Earnings</div>
+        <div class="page-sub">Your calculated payment records</div>
+        <div class="table-card">
+          <div class="table-hdr"><div class="table-ttl">Payment Records</div></div>
+          <table><thead><tr><th>Period</th><th>Hours Worked</th><th>Amount</th></tr></thead>
+          <tbody id="my-pay-body"><tr><td colspan="3"><div class="empty"><div class="empty-icon">💵</div><p>No payments yet</p></div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- WORKERS -->
+      <div class="panel" id="panel-workers">
+        <div class="page-title">Workers</div>
+        <div class="page-sub">Manage your team</div>
+        <div class="form-card">
+          <div class="form-card-title">➕ Add New Worker</div>
+          <div class="form-row">
+            <div class="field"><label>Username</label><input id="r-nick" type="text" placeholder="e.g. john_doe"></div>
+            <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Password</label><input id="r-pass" type="password" placeholder="Min 8 characters"></div>
+            <div class="field"><label>Role</label>
+              <select id="r-role"><option value="employee">Employee</option><option value="farmer">Farmer</option><option value="manager">Manager</option></select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-reg" onclick="registerWorker()" style="margin-top:8px">Add Worker</button>
+          <div class="err-box" id="reg-err"></div>
+        </div>
+        <div class="table-ttl" style="margin-bottom:16px">All Workers</div>
+        <div class="workers-grid" id="workers-grid"><div class="empty"><span class="spinner"></span></div></div>
+      </div>
+
+      <!-- ALL HOURS -->
+      <div class="panel" id="panel-allhours">
+        <div class="page-title">All Hours</div>
+        <div class="page-sub">Every team member's time entries</div>
+        <div class="table-card">
+          <div class="table-hdr"><div class="table-ttl">All Time Entries</div></div>
+          <table><thead><tr><th>Worker</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+          <tbody id="all-entries-body"><tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>Loading...</p></div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- PAY CALCULATOR -->
+      <div class="panel" id="panel-payments">
+        <div class="page-title">Pay Calculator</div>
+        <div class="page-sub">See exactly how much each worker earns — then enter it in your payment program</div>
+        <div class="form-card">
+          <div class="form-card-title">💰 Calculate Payments</div>
+          <div class="pay-row">
+            <div class="field"><label>Period Start</label><input id="pay-start" type="date"></div>
+            <div class="field"><label>Period End</label><input id="pay-end" type="date"></div>
+            <div class="field"><label>Total Amount (€)</label><input id="pay-total" type="number" placeholder="e.g. 10000" min="0"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-calc" onclick="calcPayments()">Calculate</button>
+          <div class="err-box" id="pay-err"></div>
+          <div class="pay-results hidden" id="pay-results">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px">Results</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Copy these amounts into your payment program</div>
+            <div id="pay-list"></div>
+            <div style="margin-top:16px;padding:14px 16px;background:var(--surface2);border-radius:12px;font-size:12px;color:var(--muted);">
+              ℹ️ These are calculated amounts only. No money has been sent. Use your separate payment program to pay workers.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav" id="mobile-nav">
+    <button class="mtab active" id="mt-clock" onclick="go('clock')"><span class="icon">⏱</span>Clock</button>
+    <button class="mtab" id="mt-hours" onclick="go('hours')"><span class="icon">📋</span>Hours</button>
+    <button class="mtab" id="mt-earnings" onclick="go('earnings')"><span class="icon">💵</span>Earnings</button>
+    <button class="mtab admin-only hidden" id="mt-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
+    <button class="mtab admin-only hidden" id="mt-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calc</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
+let token = localStorage.getItem('wt_token');
+let user  = JSON.parse(localStorage.getItem('wt_user') || 'null');
+
+// BOOT
+window.onload = () => {
+  tickClock(); setInterval(tickClock, 1000);
+  setDefaultDates();
+  if (token && user) showApp();
+};
+
+function tickClock() {
+  const n = new Date();
+  const el = document.getElementById('live-time');
+  if (el) el.textContent = n.toLocaleTimeString('en-US',{hour12:false});
+  const de = document.getElementById('live-date');
+  if (de) de.textContent = n.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  clearTimeout(t._t); t._t = setTimeout(() => t.className='', 3200);
+}
+
+function hdr() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+function fmtDate(s) { return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fmtTime(s) { return new Date(s).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
+function loadRow(n) { return `<tr><td colspan="${n}" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>`; }
+function emptyRow(n, icon, msg) { return `<tr><td colspan="${n}"><div class="empty"><div class="empty-icon">${icon}</div><p>${msg}</p></div></td></tr>`; }
+
+// LOGIN
+async function login() {
+  const nick = document.getElementById('l-nick').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('btn-login');
+  if (!nick||!pass) { showErr(errEl,'Please fill in both fields'); return; }
+  btn.innerHTML='<span class="spinner"></span> Signing in...'; btn.disabled=true; errEl.style.display='none';
+  try {
+    const r = await fetch(`${API}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass})});
+    const d = await r.json();
+    if (d.success) {
+      token=d.accessToken; user=d.user;
+      localStorage.setItem('wt_token',token);
+      localStorage.setItem('wt_user',JSON.stringify(user));
+      showApp();
+    } else { showErr(errEl, d.error||'Wrong username or password'); }
+  } catch(e) { showErr(errEl,'Cannot connect to server'); }
+  btn.innerHTML='Sign In'; btn.disabled=false;
+}
+
+function logout() {
+  token=null; user=null;
+  localStorage.removeItem('wt_token'); localStorage.removeItem('wt_user');
+  document.getElementById('screen-app').style.display='none';
+  document.getElementById('screen-login').style.display='flex';
+}
+
+function showApp() {
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-app').style.display='block';
+  document.getElementById('nav-name').textContent=user.nickname;
+  document.getElementById('nav-role').textContent=user.role;
+  if (['manager','owner'].includes(user.role)) {
+    document.querySelectorAll('.admin-only').forEach(el=>el.classList.remove('hidden'));
+  }
+  loadClockStatus(); loadStats();
+}
+
+// NAV
+function go(panel) {
+  document.querySelectorAll('.nav-item,.mtab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const si=document.getElementById(`si-${panel}`); if(si) si.classList.add('active');
+  const mt=document.getElementById(`mt-${panel}`); if(mt) mt.classList.add('active');
+  document.getElementById(`panel-${panel}`).classList.add('active');
+  if(panel==='hours') loadMyEntries();
+  if(panel==='earnings') loadMyPayments();
+  if(panel==='workers') loadWorkers();
+  if(panel==='allhours') loadAllEntries();
+  if(panel==='payments') setDefaultDates();
+}
+
+// CLOCK STATUS
+async function loadClockStatus() {
+  try {
+    const r = await fetch(`${API}/api/time-entries/my-entries?status=active&limit=1`,{headers:hdr()});
+    const d = await r.json();
+    if (d.success && d.entries?.length && d.entries[0].status==='active') {
+      setClocked(true, new Date(d.entries[0].clock_in));
+    }
+  } catch(e) {}
+}
+
+function setClocked(on, since=null) {
+  const pill=document.getElementById('status-pill');
+  const dot=document.getElementById('status-dot');
+  const txt=document.getElementById('status-txt');
+  const ci=document.getElementById('btn-ci');
+  const co=document.getElementById('btn-co');
+  const info=document.getElementById('clock-since');
+  if (on) {
+    pill.className='status-pill in'; dot.className='dot pulse';
+    txt.textContent='Currently clocked in';
+    ci.disabled=true; co.disabled=false;
+    info.textContent=since?`Started at ${since.toLocaleTimeString()}`:'';
+  } else {
+    pill.className='status-pill out'; dot.className='dot';
+    txt.textContent='Not clocked in';
+    ci.disabled=false; co.disabled=true;
+    info.textContent='';
+  }
+}
+
+async function clockIn() {
+  const btn=document.getElementById('btn-ci');
+  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+  try {
+    const r=await fetch(`${API}/api/time-entries/clock-in`,{method:'POST',headers:hdr()});
+    const d=await r.json();
+    if(d.success){setClocked(true,new Date());toast('✅ Clocked in!');loadStats();}
+    else{toast(d.error||'Failed','err');btn.disabled=false;}
+  } catch(e){toast('Connection error','err');btn.disabled=false;}
+  btn.innerHTML='Clock In';
+}
+
+async function clockOut() {
+  const btn=document.getElementById('btn-co');
+  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+  try {
+    const r=await fetch(`${API}/api/time-entries/clock-out`,{method:'POST',headers:hdr()});
+    const d=await r.json();
+    if(d.success){setClocked(false);toast('👋 Clocked out!');loadStats();}
+    else{toast(d.error||'Failed','err');btn.disabled=false;}
+  } catch(e){toast('Connection error','err');btn.disabled=false;}
+  btn.innerHTML='Clock Out';
+}
+
+async function loadStats() {
+  try {
+    const r=await fetch(`${API}/api/time-entries/my-entries?limit=200`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.success) return;
+    const now=new Date();
+    const todayStr=now.toDateString();
+    const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());
+    const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+    let today=0,week=0,month=0;
+    (d.entries||[]).forEach(e=>{
+      if(!e.total_hours) return;
+      const h=Number(e.total_hours); const dt=new Date(e.clock_in);
+      if(dt.toDateString()===todayStr) today+=h;
+      if(dt>=weekStart) week+=h;
+      if(dt>=monthStart) month+=h;
+    });
+    document.getElementById('st-today').textContent=today.toFixed(1)+'h';
+    document.getElementById('st-week').textContent=week.toFixed(1)+'h';
+    document.getElementById('st-month').textContent=month.toFixed(1)+'h';
+  } catch(e){}
+}
+
+async function loadMyEntries() {
+  const tb=document.getElementById('my-entries-body');
+  tb.innerHTML=loadRow(5);
+  try {
+    const r=await fetch(`${API}/api/time-entries/my-entries?limit=100`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(5,'📭','No time entries yet');return;}
+    tb.innerHTML=d.entries.map(e=>`<tr>
+      <td>${fmtDate(e.clock_in)}</td>
+      <td>${fmtTime(e.clock_in)}</td>
+      <td>${e.clock_out?fmtTime(e.clock_out):'—'}</td>
+      <td>${e.total_hours?Number(e.total_hours).toFixed(2)+'h':'—'}</td>
+      <td><span class="badge badge-${e.status}">${e.status}</span></td>
+    </tr>`).join('');
+  } catch(e){tb.innerHTML=emptyRow(5,'❌','Failed to load');}
+}
+
+async function loadMyPayments() {
+  const tb=document.getElementById('my-pay-body');
+  tb.innerHTML=loadRow(3);
+  try {
+    const r=await fetch(`${API}/api/payments/my-payments`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.success||!d.payments?.length){tb.innerHTML=emptyRow(3,'💵','No payments recorded yet');return;}
+    tb.innerHTML=d.payments.map(p=>`<tr>
+      <td>${fmtDate(p.period_start)} – ${fmtDate(p.period_end)}</td>
+      <td>${Number(p.total_hours).toFixed(1)}h</td>
+      <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--green)">€${Number(p.amount).toFixed(2)}</td>
+    </tr>`).join('');
+  } catch(e){tb.innerHTML=emptyRow(3,'❌','Failed to load');}
+}
+
+async function loadWorkers() {
+  const grid=document.getElementById('workers-grid');
+  grid.innerHTML='<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const r=await fetch(`${API}/api/users`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.success||!d.users?.length){grid.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>';return;}
+    grid.innerHTML=d.users.map(u=>`
+      <div class="worker-card">
+        <div class="avatar">${u.nickname[0].toUpperCase()}</div>
+        <div class="worker-info">
+          <div class="worker-name">${u.nickname}</div>
+          <div style="margin-top:4px"><span class="badge badge-${u.role}">${u.role}</span></div>
+        </div>
+        <div class="online-dot ${u.is_active?'on':''}"></div>
+      </div>`).join('');
+  } catch(e){grid.innerHTML='<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>';}
+}
+
+async function registerWorker() {
+  const nick=document.getElementById('r-nick').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const pass=document.getElementById('r-pass').value;
+  const role=document.getElementById('r-role').value;
+  const errEl=document.getElementById('reg-err');
+  const btn=document.getElementById('btn-reg');
+  if(!nick||!pass){showErr(errEl,'Username and password are required');return;}
+  if(pass.length<8){showErr(errEl,'Password must be at least 8 characters');return;}
+  btn.innerHTML='<span class="spinner"></span> Adding...'; btn.disabled=true; errEl.style.display='none';
+  try {
+    const r=await fetch(`${API}/api/auth/register`,{method:'POST',headers:hdr(),body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role})});
+    const d=await r.json();
+    if(d.success){
+      toast(`✅ ${nick} added!`);
+      document.getElementById('r-nick').value='';
+      document.getElementById('r-email').value='';
+      document.getElementById('r-pass').value='';
+      // Auto-activate
+      if(d.user?.id) await fetch(`${API}/api/users/${d.user.id}/activate`,{method:'POST',headers:hdr()});
+      loadWorkers();
+    } else { showErr(errEl, d.error||'Failed to add worker'); }
+  } catch(e){showErr(errEl,'Connection error');}
+  btn.innerHTML='Add Worker'; btn.disabled=false;
+}
+
+async function loadAllEntries() {
+  const tb=document.getElementById('all-entries-body');
+  tb.innerHTML=loadRow(6);
+  try {
+    const r=await fetch(`${API}/api/time-entries?limit=200`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(6,'📭','No entries yet');return;}
+    tb.innerHTML=d.entries.map(e=>`<tr>
+      <td><strong>${e.nickname||'—'}</strong></td>
+      <td>${fmtDate(e.clock_in)}</td>
+      <td>${fmtTime(e.clock_in)}</td>
+      <td>${e.clock_out?fmtTime(e.clock_out):'—'}</td>
+      <td>${e.total_hours?Number(e.total_hours).toFixed(2)+'h':'—'}</td>
+      <td><span class="badge badge-${e.status}">${e.status}</span></td>
+    </tr>`).join('');
+  } catch(e){tb.innerHTML=emptyRow(6,'❌','Failed to load');}
+}
+
+function setDefaultDates() {
+  const now=new Date();
+  const s=document.getElementById('pay-start');
+  const e=document.getElementById('pay-end');
+  if(s&&!s.value) s.value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];
+  if(e&&!e.value) e.value=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().split('T')[0];
+}
+
+async function calcPayments() {
+  const start=document.getElementById('pay-start').value;
+  const end=document.getElementById('pay-end').value;
+  const total=parseFloat(document.getElementById('pay-total').value);
+  const errEl=document.getElementById('pay-err');
+  const btn=document.getElementById('btn-calc');
+  if(!start||!end||!total||total<=0){showErr(errEl,'Please fill in all fields');return;}
+  btn.innerHTML='<span class="spinner"></span> Calculating...'; btn.disabled=true; errEl.style.display='none';
+  try {
+    const r=await fetch(`${API}/api/payments/calculate`,{method:'POST',headers:hdr(),body:JSON.stringify({periodStart:start,periodEnd:end,totalAmount:total})});
+    const d=await r.json();
+    if(d.success&&d.payments){
+      const list=document.getElementById('pay-list');
+      const wrap=document.getElementById('pay-results');
+      wrap.classList.remove('hidden');
+      list.innerHTML=d.payments.map(p=>`
+        <div class="pay-result-item">
+          <div class="pay-worker">
+            <div class="avatar avatar-sm">${(p.nickname||'?')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-weight:500">${p.nickname||'Unknown'}</div>
+              <div class="pay-meta">${Number(p.total_hours).toFixed(1)}h · <span class="badge badge-${p.role}">${p.role}</span></div>
+            </div>
+          </div>
+          <div class="pay-amount">€${Number(p.amount).toFixed(2)}</div>
+        </div>`).join('');
+      toast('✅ Calculation done!');
+    } else { showErr(errEl, d.error||'Calculation failed'); }
+  } catch(e){showErr(errEl,'Connection error');}
+  btn.innerHTML='Calculate'; btn.disabled=false;
+}
+</script>
+</body>
+</html>
