@@ -351,6 +351,45 @@ const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
 let token = localStorage.getItem('wt_token');
 let user  = JSON.parse(localStorage.getItem('wt_user') || 'null');
 
+function authTab(tab) {
+  const isSignin = tab === 'signin';
+  document.getElementById('form-signin').style.display = isSignin ? 'block' : 'none';
+  document.getElementById('form-register').style.display = isSignin ? 'none' : 'block';
+  const tsi = document.getElementById('tab-signin');
+  const treg = document.getElementById('tab-register');
+  tsi.style.background = isSignin ? 'var(--accent)' : 'transparent';
+  tsi.style.color = isSignin ? '#fff' : 'var(--muted)';
+  treg.style.background = isSignin ? 'transparent' : 'var(--accent)';
+  treg.style.color = isSignin ? 'var(--muted)' : '#fff';
+}
+
+async function registerSelf() {
+  const nick = document.getElementById('reg-nick').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const email = document.getElementById('reg-email').value.trim();
+  const role = document.getElementById('reg-role').value;
+  const errEl = document.getElementById('reg-err-login');
+  const btn = document.getElementById('btn-reg');
+  if (!nick||!pass) { showErr(errEl,'Username and password are required'); return; }
+  if (pass.length<8) { showErr(errEl,'Password must be at least 8 characters'); return; }
+  btn.innerHTML='<span class="spinner"></span> Creating...'; btn.disabled=true; errEl.style.display='none';
+  try {
+    const r = await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role})});
+    const d = await r.json();
+    if (d.success) {
+      authTab('signin');
+      const el = document.getElementById('login-err');
+      el.style.display='block';
+      el.style.background='rgba(0,229,160,.1)';
+      el.style.borderColor='rgba(0,229,160,.3)';
+      el.style.color='var(--green)';
+      el.textContent='✅ Account created! Ask your manager to activate it, then sign in.';
+      document.getElementById('l-nick').value = nick;
+    } else { showErr(errEl, d.error||'Registration failed'); }
+  } catch(e) { showErr(errEl,'Cannot connect to server'); }
+  btn.innerHTML='Create Account'; btn.disabled=false;
+}
+
 // BOOT
 window.onload = () => {
   tickClock(); setInterval(tickClock, 1000);
