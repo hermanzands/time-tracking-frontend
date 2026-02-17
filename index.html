@@ -1107,7 +1107,7 @@ async function registerWorker() {
       }
       loadWorkers();
     } else {
-      showErr(errEl, d.error || 'Failed to add worker. Try removing spaces from the name.');
+      showErr(errEl, d.error || 'Failed to add worker');
     }
   } catch (e) {
     showErr(errEl, 'Connection error');
