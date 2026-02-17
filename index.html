@@ -493,6 +493,52 @@ function togglePwd(inputId, btn) {
 }
 
 // === AUTH ===
+
+function showForgotPassword() {
+  document.getElementById('form-signin').classList.add('hidden');
+  document.getElementById('form-register').classList.add('hidden');
+  document.getElementById('form-forgot').classList.remove('hidden');
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+}
+
+async function requestPasswordReset() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-err');
+  const btn = document.getElementById('btn-forgot');
+  if (!email) {
+    showErr(errEl, 'Please enter your email');
+    return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Sending...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/request-reset', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email})
+    });
+    const d = await r.json();
+    authTab('signin');
+    const el = document.getElementById('login-err');
+    el.style.display = 'block';
+    el.style.background = 'rgba(0,229,160,.1)';
+    el.style.borderColor = 'rgba(0,229,160,.3)';
+    el.style.color = 'var(--green)';
+    el.textContent = '✅ If an account exists with that email, a password reset link has been sent.';
+  } catch (e) {
+    authTab('signin');
+    const el = document.getElementById('login-err');
+    el.style.display = 'block';
+    el.style.background = 'rgba(0,229,160,.1)';
+    el.style.borderColor = 'rgba(0,229,160,.3)';
+    el.style.color = 'var(--green)';
+    el.textContent = '✅ If an account exists with that email, a password reset link has been sent.';
+  }
+  btn.innerHTML = 'Send Reset Email';
+  btn.disabled = false;
+}
+
 function authTab(tab) {
   document.getElementById('form-signin').classList.toggle('hidden', tab !== 'signin');
   document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
@@ -955,10 +1001,10 @@ async function changePassword() {
     return;
   }
   try {
-    const r = await fetch(API + '/api/users/' + user.id + '/password', {
+    const r = await fetch(API + '/api/auth/change-password', {
       method: 'PATCH',
       headers: hdr(),
-      body: JSON.stringify({currentPassword: current, newPassword: newPwd})
+      body: JSON.stringify({current_password: current, new_password: newPwd})
     });
     const d = await r.json();
     if (d.success) {
@@ -1062,7 +1108,7 @@ async function registerWorker() {
       }
       loadWorkers();
     } else {
-      showErr(errEl, d.error || 'Failed to add worker');
+      showErr(errEl, d.error || 'Failed to add worker. Try removing spaces from the name.');
     }
   } catch (e) {
     showErr(errEl, 'Connection error');
@@ -1157,7 +1203,8 @@ async function loadAllEntries() {
       const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_');
       const safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       
-      html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(' + "'" + pid + "'" + ')">';
+      html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
+
       html += '<td colspan="5" style="padding:14px 20px;">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
       html += '<div style="display:flex;align-items:center;gap:12px;">';
