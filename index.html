@@ -165,11 +165,39 @@ tr:hover td{background:rgba(124,111,247,.03);}
 <div id="screen-login">
   <div class="login-card">
     <div class="brand">Work<em>Track</em></div>
-    <p class="brand-sub">Sign in to track your time</p>
-    <div class="field"><label>Username</label><input id="l-nick" type="text" placeholder="your username" autocomplete="username"></div>
-    <div class="field"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
-    <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
-    <div class="err-box" id="login-err"></div>
+    <p class="brand-sub" id="auth-sub">Sign in to track your time</p>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:28px;">
+      <button id="tab-signin" onclick="authTab('signin')" style="flex:1;padding:10px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:var(--accent);color:#fff;transition:all .2s;">Sign In</button>
+      <button id="tab-register" onclick="authTab('register')" style="flex:1;padding:10px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:transparent;color:var(--muted);transition:all .2s;">Register</button>
+    </div>
+
+    <!-- SIGN IN FORM -->
+    <div id="form-signin">
+      <div class="field"><label>Username</label><input id="l-nick" type="text" placeholder="your username" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+      <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
+      <div class="err-box" id="login-err"></div>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="form-register" style="display:none">
+      <div class="field"><label>Username</label><input id="reg-nick" type="text" placeholder="choose a username"></div>
+      <div class="field"><label>Password</label><input id="reg-pass" type="password" placeholder="min 8 characters"></div>
+      <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
+      <div class="field"><label>Role</label>
+        <select id="reg-role">
+          <option value="employee">Employee</option>
+          <option value="farmer">Farmer</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
+      <div class="err-box" id="reg-err-login"></div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">
+        ⚠️ Your account needs manager approval before you can log in
+      </div>
+    </div>
   </div>
 </div>
 
