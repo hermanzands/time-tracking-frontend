@@ -176,7 +176,10 @@ tr:hover td{background:rgba(124,111,247,.03);}
     <!-- SIGN IN FORM -->
     <div id="form-signin">
       <div class="field"><label>Username</label><input id="l-nick" type="text" placeholder="your username" autocomplete="username"></div>
-      <div class="field"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+      <div class="field"><label>Password</label><div style="position:relative">
+      <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 48px 14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;">
+      <button onclick="togglePwd('l-pass',this)" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;">👁</button>
+    </div></div>
       <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
       <div class="err-box" id="login-err"></div>
     </div>
@@ -184,14 +187,8 @@ tr:hover td{background:rgba(124,111,247,.03);}
     <!-- REGISTER FORM -->
     <div id="form-register" style="display:none">
       <div class="field"><label>Username</label><input id="reg-nick" type="text" placeholder="choose a username"></div>
-      <div class="field"><label>Password</label><input id="reg-pass" type="password" placeholder="min 8 characters"></div>
+      <div class="field"><label>Password</label><input id="reg-pass" type="password" placeholder="choose a password"></div>
       <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
-      <div class="field"><label>Role</label>
-        <select id="reg-role">
-          <option value="employee">Employee</option>
-          <option value="farmer">Farmer</option>
-        </select>
-      </div>
       <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
       <div class="err-box" id="reg-err-login"></div>
       <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">
@@ -280,7 +277,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="form-card">
           <div class="form-card-title">➕ Add New Worker</div>
           <div class="form-row">
-            <div class="field"><label>Username</label><input id="r-nick" type="text" placeholder="e.g. john_doe"></div>
+            <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
             <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
           </div>
           <div class="form-row">
@@ -302,7 +299,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="page-sub">Every team member's time entries</div>
         <div class="table-card">
           <div class="table-hdr"><div class="table-ttl">All Time Entries</div></div>
-          <table><thead><tr><th>Worker</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+          <table><thead><tr><th>Worker</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
           <tbody id="all-entries-body"><tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>Loading...</p></div></td></tr></tbody></table>
         </div>
       </div>
@@ -351,6 +348,12 @@ const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
 let token = localStorage.getItem('wt_token');
 let user  = JSON.parse(localStorage.getItem('wt_user') || 'null');
 
+function togglePwd(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
 function authTab(tab) {
   const isSignin = tab === 'signin';
   document.getElementById('form-signin').style.display = isSignin ? 'block' : 'none';
@@ -371,10 +374,9 @@ async function registerSelf() {
   const errEl = document.getElementById('reg-err-login');
   const btn = document.getElementById('btn-reg');
   if (!nick||!pass) { showErr(errEl,'Username and password are required'); return; }
-  if (pass.length<8) { showErr(errEl,'Password must be at least 8 characters'); return; }
   btn.innerHTML='<span class="spinner"></span> Creating...'; btn.disabled=true; errEl.style.display='none';
   try {
-    const r = await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role})});
+    const r = await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role:'employee'})});
     const d = await r.json();
     if (d.success) {
       authTab('signin');
@@ -589,13 +591,24 @@ async function loadWorkers() {
     const d=await r.json();
     if(!d.success||!d.users?.length){grid.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>';return;}
     grid.innerHTML=d.users.map(u=>`
-      <div class="worker-card">
-        <div class="avatar">${u.nickname[0].toUpperCase()}</div>
-        <div class="worker-info">
-          <div class="worker-name">${u.nickname}</div>
-          <div style="margin-top:4px"><span class="badge badge-${u.role}">${u.role}</span></div>
+      <div class="worker-card" style="flex-direction:column;align-items:flex-start;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;width:100%;">
+          <div class="avatar">${u.nickname[0].toUpperCase()}</div>
+          <div class="worker-info">
+            <div class="worker-name">${u.nickname}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${u.email||'No email'}</div>
+          </div>
+          <div class="online-dot ${u.is_active?'on':''}" title="${u.is_active?'Active':'Inactive'}"></div>
         </div>
-        <div class="online-dot ${u.is_active?'on':''}"></div>
+        <div style="display:flex;align-items:center;gap:8px;width:100%;">
+          <select onchange="updateRole('${u.id}',this.value)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;">
+            <option value="employee" ${u.role==='employee'?'selected':''}>Employee</option>
+            <option value="farmer" ${u.role==='farmer'?'selected':''}>Farmer</option>
+            <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
+            <option value="owner" ${u.role==='owner'?'selected':''}>Owner</option>
+          </select>
+          ${!u.is_active?`<button onclick="activateWorker('${u.id}')" style="background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.3);border-radius:10px;padding:8px 12px;color:var(--green);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Activate</button>`:''}
+        </div>
       </div>`).join('');
   } catch(e){grid.innerHTML='<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>';}
 }
@@ -608,7 +621,6 @@ async function registerWorker() {
   const errEl=document.getElementById('reg-err');
   const btn=document.getElementById('btn-reg');
   if(!nick||!pass){showErr(errEl,'Username and password are required');return;}
-  if(pass.length<8){showErr(errEl,'Password must be at least 8 characters');return;}
   btn.innerHTML='<span class="spinner"></span> Adding...'; btn.disabled=true; errEl.style.display='none';
   try {
     const r=await fetch(`${API}/api/auth/register`,{method:'POST',headers:hdr(),body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role})});
@@ -626,6 +638,24 @@ async function registerWorker() {
   btn.innerHTML='Add Worker'; btn.disabled=false;
 }
 
+async function updateRole(userId, newRole) {
+  try {
+    const r = await fetch(`${API}/api/users/${userId}/role`,{method:'PATCH',headers:hdr(),body:JSON.stringify({role:newRole})});
+    const d = await r.json();
+    if(d.success){ toast('✅ Role updated!'); }
+    else { toast(d.error||'Failed to update role','err'); loadWorkers(); }
+  } catch(e){ toast('Connection error','err'); loadWorkers(); }
+}
+
+async function activateWorker(userId) {
+  try {
+    const r = await fetch(`${API}/api/users/${userId}/activate`,{method:'POST',headers:hdr()});
+    const d = await r.json();
+    if(d.success){ toast('✅ Worker activated!'); loadWorkers(); }
+    else { toast(d.error||'Failed','err'); }
+  } catch(e){ toast('Connection error','err'); }
+}
+
 async function loadAllEntries() {
   const tb=document.getElementById('all-entries-body');
   tb.innerHTML=loadRow(6);
@@ -633,14 +663,36 @@ async function loadAllEntries() {
     const r=await fetch(`${API}/api/time-entries?limit=200`,{headers:hdr()});
     const d=await r.json();
     if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(6,'📭','No entries yet');return;}
-    tb.innerHTML=d.entries.map(e=>`<tr>
-      <td><strong>${e.nickname||'—'}</strong></td>
-      <td>${fmtDate(e.clock_in)}</td>
-      <td>${fmtTime(e.clock_in)}</td>
-      <td>${e.clock_out?fmtTime(e.clock_out):'—'}</td>
-      <td>${e.total_hours?Number(e.total_hours).toFixed(2)+'h':'—'}</td>
-      <td><span class="badge badge-${e.status}">${e.status}</span></td>
-    </tr>`).join('');
+    // Group by date
+    const grouped = {};
+    d.entries.forEach(e => {
+      const dateKey = fmtDate(e.clock_in);
+      if(!grouped[dateKey]) grouped[dateKey]=[];
+      grouped[dateKey].push(e);
+    });
+    let rows = '';
+    Object.entries(grouped).forEach(([date, entries]) => {
+      const totalHrs = entries.reduce((sum,e)=>sum+(e.total_hours?Number(e.total_hours):0),0);
+      rows += `<tr style="background:var(--surface2);">
+        <td colspan="6" style="padding:10px 20px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;">
+          📅 ${date} &nbsp;·&nbsp; ${entries.length} entries &nbsp;·&nbsp; ${totalHrs.toFixed(1)}h total
+        </td>
+      </tr>`;
+      entries.forEach(e => {
+        const hrs = e.total_hours ? Number(e.total_hours).toFixed(2) : null;
+        rows += `<tr>
+          <td><div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0">${(e.nickname||'?')[0].toUpperCase()}</div>
+            <strong>${e.nickname||'—'}</strong>
+          </div></td>
+          <td>${fmtTime(e.clock_in)}</td>
+          <td>${e.clock_out?fmtTime(e.clock_out):'<span style="color:var(--green);font-weight:600">Active</span>'}</td>
+          <td style="font-family:'Oxanium',sans-serif;font-weight:600">${hrs?hrs+'h':'—'}</td>
+          <td><span class="badge badge-${e.status}">${e.status}</span></td>
+        </tr>`;
+      });
+    });
+    tb.innerHTML = rows;
   } catch(e){tb.innerHTML=emptyRow(6,'❌','Failed to load');}
 }
 
@@ -661,13 +713,15 @@ async function calcPayments() {
   if(!start||!end||!total||total<=0){showErr(errEl,'Please fill in all fields');return;}
   btn.innerHTML='<span class="spinner"></span> Calculating...'; btn.disabled=true; errEl.style.display='none';
   try {
-    const r=await fetch(`${API}/api/payments/calculate`,{method:'POST',headers:hdr(),body:JSON.stringify({periodStart:start,periodEnd:end,totalAmount:total})});
+    const r=await fetch(`${API}/api/payments/process`,{method:'POST',headers:hdr(),body:JSON.stringify({periodStart:start,periodEnd:end,totalAmount:total})});
     const d=await r.json();
-    if(d.success&&d.payments){
+    console.log('Payment response:', JSON.stringify(d));
+    const payData = d.payments||d.distributions||d.results||d.data||[];
+    if(d.success&&payData.length>0){
       const list=document.getElementById('pay-list');
       const wrap=document.getElementById('pay-results');
       wrap.classList.remove('hidden');
-      list.innerHTML=d.payments.map(p=>`
+      list.innerHTML=payData.map(p=>`
         <div class="pay-result-item">
           <div class="pay-worker">
             <div class="avatar avatar-sm">${(p.nickname||'?')[0].toUpperCase()}</div>
