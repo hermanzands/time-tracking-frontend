@@ -183,7 +183,18 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
       <div class="err-box" id="login-err"></div>
       <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
-        <a href="#" onclick="alert('Contact your manager to reset your password');return false;" style="color:var(--accent);text-decoration:none;">Forgot password?</a>
+        <a href="#" onclick="showForgotPassword();return false;" style="color:var(--accent);text-decoration:none;">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div id="form-forgot" style="display:none">
+      <div class="field"><label>Username</label><input id="forgot-nick" type="text" placeholder="your username"></div>
+      <div class="field"><label>Email</label><input id="forgot-email" type="email" placeholder="your email"></div>
+      <button class="btn btn-primary" id="btn-forgot" onclick="resetPassword()">Reset Password</button>
+      <div class="err-box" id="forgot-err"></div>
+      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
+        <a href="#" onclick="authTab('signin');return false;" style="color:var(--accent);text-decoration:none;">← Back to sign in</a>
       </div>
     </div>
 
@@ -410,14 +421,49 @@ function togglePwd(inputId, btn) {
 
 function authTab(tab) {
   const isSignin = tab === 'signin';
+  const isRegister = tab === 'register';
   document.getElementById('form-signin').style.display = isSignin ? 'block' : 'none';
-  document.getElementById('form-register').style.display = isSignin ? 'none' : 'block';
+  document.getElementById('form-register').style.display = isRegister ? 'block' : 'none';
+  document.getElementById('form-forgot').style.display = 'none';
   const tsi = document.getElementById('tab-signin');
   const treg = document.getElementById('tab-register');
   tsi.style.background = isSignin ? 'var(--accent)' : 'transparent';
   tsi.style.color = isSignin ? '#fff' : 'var(--muted)';
-  treg.style.background = isSignin ? 'transparent' : 'var(--accent)';
-  treg.style.color = isSignin ? 'var(--muted)' : '#fff';
+  treg.style.background = isRegister ? 'var(--accent)' : 'transparent';
+  treg.style.color = isRegister ? 'var(--muted)' : '#fff';
+}
+
+function showForgotPassword() {
+  document.getElementById('form-signin').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.getElementById('form-forgot').style.display = 'block';
+  document.getElementById('tab-signin').style.background = 'transparent';
+  document.getElementById('tab-signin').style.color = 'var(--muted)';
+  document.getElementById('tab-register').style.background = 'transparent';
+  document.getElementById('tab-register').style.color = 'var(--muted)';
+}
+
+async function resetPassword() {
+  const nick = document.getElementById('forgot-nick').value.trim();
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-err');
+  const btn = document.getElementById('btn-forgot');
+  if(!nick||!email){ showErr(errEl,'Please fill in both fields'); return; }
+  btn.innerHTML='<span class="spinner"></span> Sending...'; btn.disabled=true; errEl.style.display='none';
+  try {
+    const r = await fetch(\`\${API}/api/auth/forgot-password\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,email})});
+    const d = await r.json();
+    if(d.success || d.message){
+      authTab('signin');
+      const el = document.getElementById('login-err');
+      el.style.display='block';
+      el.style.background='rgba(0,229,160,.1)';
+      el.style.borderColor='rgba(0,229,160,.3)';
+      el.style.color='var(--green)';
+      el.textContent='✅ If an account exists with that username and email, a password reset link has been sent.';
+    } else { showErr(errEl, d.error||'Failed to send reset link'); }
+  } catch(e) { showErr(errEl,'Connection error'); }
+  btn.innerHTML='Reset Password'; btn.disabled=false;
 }
 
 async function registerSelf() {
@@ -841,24 +887,26 @@ async function calcPayments() {
       const list=document.getElementById('pay-list');
       const wrap=document.getElementById('pay-results');
       wrap.classList.remove('hidden');
-      list.innerHTML=payData.map(p=>{
+      const payHTML = [];
+      payData.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
-        const pct = p.percentage ? ` · ${p.percentage.toFixed(1)}%` : '';
-        return `
+        const pct = p.percentage ? \` · \${p.percentage.toFixed(1)}%\` : '';
+        payHTML.push(\`
         <div class="pay-result-item">
           <div class="pay-worker">
             <div class="avatar avatar-sm" style="position:relative;overflow:hidden;">
-              <span style="position:relative;z-index:1">${(p.nickname||'?')[0].toUpperCase()}</span>
-              <img class="pay-av-${safeId}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
+              <span style="position:relative;z-index:1">\${(p.nickname||'?')[0].toUpperCase()}</span>
+              <img class="pay-av-\${safeId}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
             </div>
             <div>
-              <div style="font-weight:500">${p.nickname||'Unknown'}</div>
-              <div class="pay-meta">${Number(p.total_hours||0).toFixed(1)}h · <span class="badge badge-${p.role}">${p.role}</span>${pct}</div>
+              <div style="font-weight:500">\${p.nickname||'Unknown'}</div>
+              <div class="pay-meta">\${Number(p.total_hours||0).toFixed(1)}h · <span class="badge badge-\${p.role}">\${p.role}</span>\${pct}</div>
             </div>
           </div>
-          <div class="pay-amount">€${Number(p.amount).toFixed(2)}</div>
-        </div>`;
-      }).join('');
+          <div class="pay-amount">€\${Number(p.amount).toFixed(2)}</div>
+        </div>\`);
+      });
+      list.innerHTML = payHTML.join('');
       
       // Load avatars for payment results
       payData.forEach(p => {
