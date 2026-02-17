@@ -1289,7 +1289,38 @@ async function calcPayments() {
       body: JSON.stringify({period_start: start, period_end: end, total_amount: total})
     });
     const d = await r.json();
-    if (d.success && d.distributions && d.distributions.length > 0) {
+    if (d.success && d.distributions) {
+      // Get all farmers from workers list
+      const workersRes = await fetch(API + '/api/users', {headers: hdr()});
+      const workersData = await workersRes.json();
+      const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
+      
+      // Add farmers with 20% even if they didn't work
+      const farmerPool = total * 0.20;
+      const farmersInDistribution = d.distributions.filter(p => p.role === 'farmer');
+      
+      // Add missing farmers with 0 hours but 20% share
+      allFarmers.forEach(farmer => {
+        const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id);
+        if (!alreadyIncluded && allFarmers.length > 0) {
+          d.distributions.push({
+            user_id: farmer.id,
+            nickname: farmer.nickname,
+            role: 'farmer',
+            total_hours: 0,
+            amount: farmerPool / allFarmers.length,
+            percentage: 20 / allFarmers.length
+          });
+        }
+      });
+      
+      // Sort: farmers first, then others
+      d.distributions.sort((a, b) => {
+        if (a.role === 'farmer' && b.role !== 'farmer') return -1;
+        if (a.role !== 'farmer' && b.role === 'farmer') return 1;
+        return 0;
+      });
+      
       const list = document.getElementById('pay-list');
       const wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
