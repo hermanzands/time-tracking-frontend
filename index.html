@@ -170,6 +170,27 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .notif-item:hover{background:rgba(124,111,247,.05);}
 .notif-item:last-child{border-bottom:none;}
 .notif-item.unread{background:rgba(124,111,247,.08);}
+
+/* MANAGEMENT CHAT */
+.chat-panel{position:fixed;bottom:24px;right:24px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;display:flex;flex-direction:column;max-height:500px;transition:all .3s;}
+.chat-panel.minimized{max-height:56px;}
+.chat-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.chat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;max-height:320px;}
+.chat-msg{margin-bottom:14px;animation:slideIn .2s;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.chat-msg-me{text-align:right;}
+.chat-msg-other{text-align:left;}
+.chat-bubble{display:inline-block;max-width:80%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.4;word-wrap:break-word;}
+.chat-msg-me .chat-bubble{background:var(--accent);color:#fff;}
+.chat-msg-other .chat-bubble{background:var(--surface2);color:var(--text);}
+.chat-meta{font-size:10px;color:var(--muted);margin-top:4px;}
+.chat-input-wrap{padding:12px;border-top:1px solid var(--border);}
+.chat-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;resize:none;outline:none;}
+.chat-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.chat-badge{background:var(--danger);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.online-status-dot{width:8px;height:8px;border-radius:50%;background:var(--border);display:inline-block;margin-right:6px;}
+.online-status-dot.online{background:var(--green);box-shadow:0 0 8px rgba(0,229,160,.5);}
 </style>
 </head>
 <body>
@@ -425,6 +446,24 @@ tr:hover td{background:rgba(124,111,247,.03);}
     </main>
   </div>
 </div>
+
+
+  <!-- MANAGEMENT CHAT (only for managers/owners) -->
+  <div id="chat-panel" class="chat-panel admin-only hidden minimized">
+    <div class="chat-header" onclick="toggleChat()">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="chat-title">💬 Management Chat</div>
+        <div id="chat-badge" class="chat-badge hidden">0</div>
+      </div>
+      <span id="chat-arrow" style="color:var(--muted);font-size:18px;">▼</span>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No messages yet</div>
+    </div>
+    <div class="chat-input-wrap">
+      <textarea id="chat-input" class="chat-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+    </div>
+  </div>
 
 <div id="toast"></div>
 
@@ -748,9 +787,11 @@ function showApp() {
   loadNotifications();
   if (['manager', 'owner'].includes(user.role)) {
     document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+    initChat(); // Initialize chat for managers/owners
   }
   loadClockStatus();
   loadStats();
+  sendHeartbeat(); // Start online status tracking
 }
 
 function go(panel) {
@@ -1040,7 +1081,8 @@ async function loadWorkers() {
       html += '<img class="avatar-img av-' + safeId + '">';
       html += '</div>';
       html += '<div class="worker-info"><div class="worker-name">' + u.nickname + '</div></div>';
-      html += '<div class="online-dot ' + (u.is_active ? 'on' : '') + '" title="' + (u.is_active ? 'Active' : 'Inactive') + '"></div>';
+      const isOnline = onlineUsers.has(u.id);
+      html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '" title="' + (isOnline ? 'Online Now' : 'Offline') + '"></div>';
       html += '</div>';
       html += '<div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
@@ -1435,6 +1477,185 @@ function updateNotifBadge(count) {
     } else {
       badge.classList.add('hidden');
     }
+  }
+}
+
+
+// === ONLINE STATUS & CHAT ===
+let chatOpen = false;
+let onlineUsers = new Set();
+let lastMessageId = null;
+let chatPollInterval = null;
+
+// Send heartbeat every 30 seconds to show we're online
+setInterval(sendHeartbeat, 30000);
+sendHeartbeat(); // Send immediately on load
+
+async function sendHeartbeat() {
+  if (!token || !user) return;
+  try {
+    await fetch(API + '/api/users/heartbeat', {
+      method: 'POST',
+      headers: hdr()
+    });
+    updateOnlineUsers(); // Also fetch who's online
+  } catch (e) {}
+}
+
+async function updateOnlineUsers() {
+  if (!token) return;
+  try {
+    const r = await fetch(API + '/api/users/online', {headers: hdr()});
+    const d = await r.json();
+    if (d.success && d.online_users) {
+      onlineUsers = new Set(d.online_users.map(u => u.id));
+      updateWorkerOnlineStatus();
+    }
+  } catch (e) {}
+}
+
+function updateWorkerOnlineStatus() {
+  // Update green dots in Workers tab
+  document.querySelectorAll('.online-dot').forEach(dot => {
+    const card = dot.closest('.worker-card');
+    if (card) {
+      const workerNameEl = card.querySelector('.worker-name');
+      if (workerNameEl) {
+        // Find user ID from the card's buttons
+        const roleSelect = card.querySelector('select');
+        if (roleSelect) {
+          const onchange = roleSelect.getAttribute('onchange');
+          const match = onchange?.match(/updateRole\('([^']+)'/);
+          if (match) {
+            const userId = match[1];
+            if (onlineUsers.has(userId)) {
+              dot.classList.add('on');
+            } else {
+              dot.classList.remove('on');
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// CHAT FUNCTIONS
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const arrow = document.getElementById('chat-arrow');
+  chatOpen = !chatOpen;
+  
+  if (chatOpen) {
+    panel.classList.remove('minimized');
+    arrow.textContent = '▼';
+    loadChatMessages();
+    if (!chatPollInterval) {
+      chatPollInterval = setInterval(loadChatMessages, 5000); // Poll every 5 seconds
+    }
+    // Clear badge
+    document.getElementById('chat-badge').classList.add('hidden');
+  } else {
+    panel.classList.add('minimized');
+    arrow.textContent = '▲';
+    if (chatPollInterval) {
+      clearInterval(chatPollInterval);
+      chatPollInterval = null;
+    }
+  }
+}
+
+async function loadChatMessages() {
+  if (!['manager', 'owner'].includes(user.role)) return;
+  
+  try {
+    const r = await fetch(API + '/api/users/chat/messages?limit=50', {headers: hdr()});
+    const d = await r.json();
+    
+    if (d.success && d.messages) {
+      renderChatMessages(d.messages);
+      
+      // Update badge if there are new messages and chat is closed
+      if (!chatOpen && d.messages.length > 0) {
+        const latestId = d.messages[d.messages.length - 1].id;
+        if (lastMessageId && latestId !== lastMessageId) {
+          // New message arrived
+          const badge = document.getElementById('chat-badge');
+          badge.classList.remove('hidden');
+          const currentCount = parseInt(badge.textContent || '0');
+          badge.textContent = (currentCount + 1).toString();
+        }
+        lastMessageId = latestId;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load chat:', e);
+  }
+}
+
+function renderChatMessages(messages) {
+  const container = document.getElementById('chat-messages');
+  
+  if (messages.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No messages yet</div>';
+    return;
+  }
+  
+  let html = '';
+  messages.forEach(msg => {
+    const isMe = msg.user_id === user.id;
+    const time = new Date(msg.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+    const msgClass = isMe ? 'chat-msg-me' : 'chat-msg-other';
+    
+    html += '<div class="chat-msg ' + msgClass + '">';
+    html += '<div class="chat-bubble">' + escapeHtml(msg.message) + '</div>';
+    html += '<div class="chat-meta">' + (isMe ? 'You' : msg.nickname) + ' • ' + time + '</div>';
+    html += '</div>';
+  });
+  
+  container.innerHTML = html;
+  
+  // Auto-scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  
+  if (!message) return;
+  
+  try {
+    const r = await fetch(API + '/api/users/chat/send', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({message: message})
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      input.value = '';
+      loadChatMessages(); // Refresh messages
+    } else {
+      toast(d.error || 'Failed to send', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Start chat polling when app loads (if manager/owner)
+function initChat() {
+  if (['manager', 'owner'].includes(user.role)) {
+    document.getElementById('chat-panel').classList.remove('hidden');
+    loadChatMessages(); // Load initial messages
+    setInterval(loadChatMessages, 10000); // Check for new messages every 10 seconds even when minimized
   }
 }
 
