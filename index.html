@@ -209,6 +209,20 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .modal-btn-confirm:hover{background:#ff3355;transform:translateY(-1px);box-shadow:0 4px 12px rgba(255,85,102,.3);}
 .modal-btn-primary{background:var(--accent);color:#080810;}
 .modal-btn-primary:hover{background:var(--accent-bright);transform:translateY(-1px);box-shadow:0 4px 12px var(--accent-glow);}
+
+/* CLOCKED IN WIDGET */
+.clocked-in-widget{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;}
+.clocked-in-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.clocked-in-list{display:flex;flex-direction:column;gap:8px;}
+.clocked-in-item{display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:10px;}
+.clocked-in-avatar{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#080810;}
+.clocked-in-info{flex:1;}
+.clocked-in-name{font-weight:600;font-size:14px;}
+.clocked-in-time{font-size:12px;color:var(--muted);margin-top:2px;}
+.clocked-in-badge{background:var(--green);color:#080810;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;}
+.clocked-in-pulse{width:6px;height:6px;background:#080810;border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.clocked-in-empty{text-align:center;padding:30px;color:var(--muted);font-size:13px;}
 </style>
 </head>
 <body>
@@ -497,7 +511,20 @@ tr:hover td{background:rgba(124,111,247,.03);}
     </div>
   </div>
 
-<div id="toast"></div>
+
+      <!-- Currently Clocked In Widget (for managers/owners) -->
+      <div id="clocked-in-widget" class="clocked-in-widget admin-only" style="display:none;">
+        <div class="clocked-in-title">
+          <span>👷</span>
+          <span>Currently Clocked In</span>
+          <span id="clocked-in-count" style="background:var(--green);color:#080810;padding:2px 8px;border-radius:6px;font-size:12px;margin-left:auto;">0</span>
+        </div>
+        <div id="clocked-in-list" class="clocked-in-list">
+          <div class="clocked-in-empty">No one is clocked in right now</div>
+        </div>
+      </div>
+
+  <div id="toast"></div>
 
 <script>
 const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
@@ -1788,6 +1815,87 @@ document.addEventListener('keydown', (e) => {
     closeModal();
   }
 });
+
+
+// === CURRENTLY CLOCKED IN ===
+async function loadClockedInUsers() {
+  if (!user || !['manager', 'owner'].includes(user.role)) return;
+  
+  try {
+    const r = await fetch(API + '/api/time-entries/active', {headers: hdr()});
+    if (!r.ok) return;
+    const d = await r.json();
+    
+    if (d.success && d.entries) {
+      renderClockedInUsers(d.entries);
+    }
+  } catch (e) {
+    console.error('Failed to load clocked in users:', e);
+  }
+}
+
+function renderClockedInUsers(entries) {
+  const widget = document.getElementById('clocked-in-widget');
+  const list = document.getElementById('clocked-in-list');
+  const count = document.getElementById('clocked-in-count');
+  
+  if (!widget || !list || !count) return;
+  
+  // Show widget for managers/owners
+  if (['manager', 'owner'].includes(user.role)) {
+    widget.classList.remove('hidden');
+  }
+  
+  count.textContent = entries.length;
+  
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="clocked-in-empty">No one is clocked in right now</div>';
+    return;
+  }
+  
+  let html = '';
+  entries.forEach(entry => {
+    const clockedInTime = new Date(entry.clock_in);
+    const now = new Date();
+    const hours = Math.floor((now - clockedInTime) / 1000 / 60 / 60);
+    const minutes = Math.floor(((now - clockedInTime) / 1000 / 60) % 60);
+    const duration = hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm';
+    
+    const initial = (entry.nickname || '?')[0].toUpperCase();
+    const userId = entry.user_id ? entry.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+    
+    html += '<div class="clocked-in-item">';
+    html += '<div class="clocked-in-avatar avatar-sm">';
+    html += '<span class="avatar-letter">' + initial + '</span>';
+    html += '<img class="avatar-img clocked-av-' + userId + '">';
+    html += '</div>';
+    html += '<div class="clocked-in-info">';
+    html += '<div class="clocked-in-name">' + (entry.nickname || 'Unknown') + '</div>';
+    html += '<div class="clocked-in-time">Since ' + fmtTime(entry.clock_in) + ' • ' + duration + '</div>';
+    html += '</div>';
+    html += '<div class="clocked-in-badge"><span class="clocked-in-pulse"></span>Active</div>';
+    html += '</div>';
+  });
+  
+  list.innerHTML = html;
+  
+  // Load avatars
+  entries.forEach(entry => {
+    if (entry.user_id) {
+      const saved = localStorage.getItem('avatar_' + entry.user_id);
+      if (saved) {
+        const imgs = document.querySelectorAll('.clocked-av-' + entry.user_id.replace(/[^a-zA-Z0-9]/g, '_'));
+        imgs.forEach(img => {
+          img.src = saved;
+          img.style.display = 'block';
+        });
+      }
+    }
+  });
+}
+
+// Refresh clocked-in list every 30 seconds
+setInterval(loadClockedInUsers, 30000);
 
 </script>
 </body>
