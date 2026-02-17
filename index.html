@@ -62,7 +62,7 @@ nav{background:rgba(16,16,30,.92);backdrop-filter:blur(20px);border-bottom:1px s
 .main{flex:1;padding:28px 24px;overflow-x:hidden;}
 .panel{display:none;}
 .panel.active{display:block;}
-.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.page-title{font-family:'Oxanium',sans-serif;font-size:26px;font-weight:800;letter-spacing:1px;margin-bottom:4px;}
 .page-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
 
 /* CLOCK */
@@ -203,7 +203,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
   <nav>
     <div class="nav-brand">Work<em>Track</em></div>
     <div class="nav-right">
-      <div class="nav-user">Hello, <strong id="nav-name"></strong></div>
+      <div class="nav-user" style="cursor:pointer;" onclick="go('profile')" title="View profile">Hello, <strong id="nav-name"></strong></div>
       <div class="nav-role" id="nav-role"></div>
       <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
     </div>
@@ -216,7 +216,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <button class="nav-item active" id="si-clock" onclick="go('clock')"><span class="icon">⏱</span>Time Clock</button>
       <button class="nav-item" id="si-hours" onclick="go('hours')"><span class="icon">📋</span>My Hours</button>
       <button class="nav-item" id="si-earnings" onclick="go('earnings')"><span class="icon">💵</span>My Earnings</button>
-      <button class="nav-item" id="si-profile" onclick="go('profile')"><span class="icon">👤</span>My Profile</button>
+      
       <div class="sb-section admin-only hidden">Management</div>
       <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
@@ -322,6 +322,9 @@ tr:hover td{background:rgba(124,111,247,.03);}
               <span style="font-size:20px">📷</span>
             </div>
           </div>
+          <button onclick="removeAvatar();event.stopPropagation();" style="margin-top:8px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);border-radius:8px;padding:6px 12px;color:var(--danger);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+            Remove Picture
+          </div>
           <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px" id="profile-name"></div>
           <div style="color:var(--muted);font-size:13px;margin-top:4px" id="profile-role"></div>
@@ -383,7 +386,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
     <button class="mtab active" id="mt-clock" onclick="go('clock')"><span class="icon">⏱</span>Clock</button>
     <button class="mtab" id="mt-hours" onclick="go('hours')"><span class="icon">📋</span>Hours</button>
     <button class="mtab" id="mt-earnings" onclick="go('earnings')"><span class="icon">💵</span>Earnings</button>
-    <button class="mtab" id="mt-profile" onclick="go('profile')"><span class="icon">👤</span>Profile</button>
+    
     <button class="mtab admin-only hidden" id="mt-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
     <button class="mtab admin-only hidden" id="mt-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calc</button>
   </div>
@@ -650,7 +653,10 @@ async function loadWorkers() {
     grid.innerHTML=d.users.map(u=>`
       <div class="worker-card" style="flex-direction:column;align-items:flex-start;gap:12px;">
         <div style="display:flex;align-items:center;gap:12px;width:100%;">
-          <div class="avatar">${u.nickname[0].toUpperCase()}</div>
+          <div class="avatar" style="position:relative;overflow:hidden;">
+            <span style="position:relative;z-index:1">${u.nickname[0].toUpperCase()}</span>
+            <img id="w-av-${u.id}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
+          </div>
           <div class="worker-info">
             <div class="worker-name">${u.nickname}</div>
           </div>
@@ -707,6 +713,15 @@ async function updateRole(userId, newRole) {
   } catch(e){ toast('Connection error','err'); }
 }
 
+async function deleteWorker(userId) {
+  try {
+    const r = await fetch(`${API}/api/users/${userId}`,{method:'DELETE',headers:hdr()});
+    const d = await r.json();
+    if(d.success){ toast('🗑️ Worker deleted'); loadWorkers(); }
+    else { toast(d.error||'Failed to delete','err'); }
+  } catch(e){ toast('Connection error','err'); }
+}
+
 async function activateWorker(userId) {
   try {
     const r = await fetch(`${API}/api/users/${userId}/activate`,{method:'POST',headers:hdr()});
@@ -716,7 +731,7 @@ async function activateWorker(userId) {
   } catch(e){ toast('Connection error','err'); }
 }
 
-function togglePerson(pid) {
+window.togglePerson = function(pid) {
   const tbody = document.getElementById(pid);
   const arr = document.getElementById('arr_'+pid);
   if(!tbody) return;
@@ -747,7 +762,10 @@ async function loadAllEntries() {
         <td colspan="5" style="padding:14px 20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;">${name[0].toUpperCase()}</div>
+              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;position:relative;overflow:hidden;">
+                <span style="position:relative;z-index:1">${name[0].toUpperCase()}</span>
+                <img class="person-av person-av-${name.replace(/[^a-z0-9]/gi,'_')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
+              </div>
               <div>
                 <div style="font-weight:600;font-size:15px">${name}</div>
                 <div style="font-size:12px;color:var(--muted);margin-top:2px">${entries.length} entries · ${toHm(totalHrs)} total</div>
@@ -771,6 +789,18 @@ async function loadAllEntries() {
       rows += `</tbody>`;
     });
     tb.innerHTML = rows;
+    // Load avatars for each person
+    Object.keys(byPerson).forEach(name => {
+      const entries = byPerson[name];
+      if(entries.length>0) {
+        const userId = entries[0].user_id;
+        const saved = localStorage.getItem('avatar_'+userId);
+        if(saved) {
+          const imgs = document.querySelectorAll('.person-av-'+name.replace(/[^a-z0-9]/gi,'_'));
+          imgs.forEach(img => { img.src = saved; img.style.display = 'block'; });
+        }
+      }
+    });
   } catch(e){tb.innerHTML=emptyRow(6,'❌','Failed to load');}
 }
 
@@ -794,8 +824,9 @@ async function calcPayments() {
     const r=await fetch(`${API}/api/payments/process`,{method:'POST',headers:hdr(),body:JSON.stringify({period_start:start,period_end:end,total_amount:total})});
     const d=await r.json();
     console.log('Payment response:', JSON.stringify(d));
-    const payData = d.payments||d.distributions||d.results||d.data||[];
-    if(d.success&&payData.length>0){
+    console.log('Full response:', d);
+    const payData = Array.isArray(d) ? d : (d.distributions || d.payments || d.results || d.data || []);
+    if((d.success&&payData.length>0) || (Array.isArray(d)&&d.length>0)){
       const list=document.getElementById('pay-list');
       const wrap=document.getElementById('pay-results');
       wrap.classList.remove('hidden');
@@ -831,6 +862,14 @@ function loadProfile() {
   // Update nav avatar if exists
   const navAvatar = document.getElementById('avatar-letter');
   if(navAvatar) navAvatar.textContent = user.nickname[0].toUpperCase();
+}
+
+function removeAvatar() {
+  if(!user) return;
+  localStorage.removeItem('avatar_'+user.id);
+  document.getElementById('avatar-img').style.display = 'none';
+  document.getElementById('avatar-img').src = '';
+  toast('🗑️ Profile picture removed');
 }
 
 function uploadAvatar(input) {
