@@ -161,6 +161,15 @@ tr:hover td{background:rgba(124,111,247,.03);}
   .clock-btns .btn{padding:16px 32px;}
   nav .nav-user{display:none;}
 }
+
+.notif-dropdown{position:absolute;top:60px;right:24px;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;max-height:500px;overflow:hidden;display:flex;flex-direction:column;}
+.notif-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.notif-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.notif-list{overflow-y:auto;max-height:400px;}
+.notif-item{padding:14px 20px;border-bottom:1px solid rgba(37,37,56,.5);cursor:pointer;transition:background .15s;}
+.notif-item:hover{background:rgba(124,111,247,.05);}
+.notif-item:last-child{border-bottom:none;}
+.notif-item.unread{background:rgba(124,111,247,.08);}
 </style>
 </head>
 <body>
@@ -225,7 +234,24 @@ tr:hover td{background:rgba(124,111,247,.03);}
   <nav>
     <div class="nav-brand">Work<em>Track</em></div>
     <div class="nav-right">
-      <div style="display:flex;align-items:center;gap:16px;"><div class="nav-user" onclick="go('profile')" title="View profile">Hello, <strong id="nav-name"></strong></div><div style="position:relative;cursor:pointer;" onclick="go('earnings')" title="View payments"><span style="font-size:20px;">🔔</span><span id="notif-badge" class="hidden" style="position:absolute;top:-4px;right:-6px;background:var(--danger);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">0</span></div></div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="nav-user" onclick="go('profile')" title="View profile">Hello, <strong id="nav-name"></strong></div>
+        <div style="position:relative;" id="notif-bell">
+          <div style="cursor:pointer;" onclick="toggleNotifications()" title="Notifications">
+            <span style="font-size:20px;">🔔</span>
+            <span id="notif-badge" class="hidden" style="position:absolute;top:-4px;right:-6px;background:var(--danger);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">0</span>
+          </div>
+          <div id="notif-dropdown" class="notif-dropdown hidden">
+            <div class="notif-header">
+              <div class="notif-title">Notifications</div>
+              <button onclick="markAllRead()" class="btn-ghost" style="padding:4px 12px;font-size:11px;">Mark all read</button>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No notifications</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="nav-role" id="nav-role"></div>
       <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
     </div>
@@ -603,11 +629,77 @@ async function resetPassword() {
 }
 
 // === APP ===
+
+// NOTIFICATION SYSTEM
+let notifications = [];
+let notifDropdownOpen = false;
+
+function toggleNotifications() {
+  const dropdown = document.getElementById('notif-dropdown');
+  notifDropdownOpen = !notifDropdownOpen;
+  if (notifDropdownOpen) {
+    dropdown.classList.remove('hidden');
+    loadNotifications();
+  } else {
+    dropdown.classList.add('hidden');
+  }
+}
+
+async function loadNotifications() {
+  try {
+    const r = await fetch(API + '/api/payments/my-payments?limit=10', {headers: hdr()});
+    const d = await r.json();
+    if (d.success && d.payments) {
+      notifications = d.payments;
+      renderNotifications();
+      const unreadCount = notifications.length; // Treat all as unread for now
+      updateNotifBadge(unreadCount);
+    }
+  } catch (e) {}
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notif-list');
+  if (notifications.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No payments yet</div>';
+    return;
+  }
+  
+  let html = '';
+  notifications.slice(0, 10).forEach(n => {
+    html += '<div class="notif-item" onclick="viewPayment(); event.stopPropagation();">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
+    html += '<div style="font-size:20px;">💰</div>';
+    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;">Payment Received</div>';
+    html += '<div style="font-size:11px;color:var(--muted);">' + fmtDate(n.period_start) + ' – ' + fmtDate(n.period_end) + '</div></div>';
+    html += '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>';
+    html += '</div>';
+    html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green);font-size:15px;">€' + (Number(n.amount) || 0).toFixed(2) + '</div>';
+    html += '</div>';
+  });
+  
+  list.innerHTML = html;
+}
+
+function viewPayment() {
+  document.getElementById('notif-dropdown').classList.add('hidden');
+  notifDropdownOpen = false;
+  go('earnings');
+}
+
+function markAllRead() {
+  updateNotifBadge(0);
+  toast('✅ Marked all as read');
+  document.getElementById('notif-dropdown').classList.add('hidden');
+  notifDropdownOpen = false;
+}
+
 function showApp() {
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
   document.getElementById('nav-name').textContent = user.nickname;
   document.getElementById('nav-role').textContent = user.role;
+  loadNotifications();
   if (['manager', 'owner'].includes(user.role)) {
     document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
   }
@@ -781,12 +873,12 @@ async function loadMyPayments() {
       html += '<tr>';
       html += '<td>' + fmtDate(p.period_start) + ' – ' + fmtDate(p.period_end) + '</td>';
       html += '<td>' + Number(p.total_hours).toFixed(1) + 'h</td>';
-      html += '<td style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green)">€' + Number(p.amount).toFixed(2) + '</td>';
-      html += '<td><button onclick="deletePayment(\'' + p.id + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 12px;font-size:12px;">🗑 Remove</button></td>';
+      html += '<td style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green)">€' + (Number(p.amount) || 0).toFixed(2) + '</td>';
+      html += '<td><button onclick="deletePayment(\'' + p.id + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 12px;font-size:12px;">🗑️</button></td>';
       html += '</tr>';
     });
     tb.innerHTML = html;
-    updateNotifBadge(d.payments.length);
+    loadNotifications(); // Refresh notification count
   } catch (e) {
     tb.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
   }
@@ -915,7 +1007,7 @@ async function loadWorkers() {
         html += '<button onclick="activateWorker(\'' + u.id + '\')" class="btn-ghost" style="background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.3);color:var(--green);white-space:nowrap;">Activate</button>';
       }
       if (u.id !== user.id) {
-        html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + u.nickname + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑</button>';
+        html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + u.nickname + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>';
       }
       html += '</div></div>';
     });
@@ -939,16 +1031,17 @@ async function loadWorkers() {
 }
 
 async function registerWorker() {
-  const nick = document.getElementById('r-nick').value.trim();
+  const displayName = document.getElementById('r-nick').value.trim();
   const email = document.getElementById('r-email').value.trim();
   const pass = document.getElementById('r-pass').value;
   const role = document.getElementById('r-role').value;
   const errEl = document.getElementById('reg-err');
   const btn = document.getElementById('btn-add-worker');
-  if (!nick || !pass) {
+  if (!displayName || !pass) {
     showErr(errEl, 'Name and password are required');
     return;
   }
+  const username = displayName.toLowerCase().replace(/\s+/g, '_');
   btn.innerHTML = '<span class="spinner"></span> Adding...';
   btn.disabled = true;
   errEl.style.display = 'none';
@@ -956,11 +1049,11 @@ async function registerWorker() {
     const r = await fetch(API + '/api/auth/register', {
       method: 'POST',
       headers: hdr(),
-      body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, role: role})
+      body: JSON.stringify({nickname: username, password: pass, email: email || undefined, role: role})
     });
     const d = await r.json();
     if (d.success) {
-      toast('✅ ' + nick + ' added!');
+      toast('✅ ' + displayName + ' added!');
       document.getElementById('r-nick').value = '';
       document.getElementById('r-email').value = '';
       document.getElementById('r-pass').value = '';
@@ -1168,7 +1261,7 @@ async function calcPayments() {
         html += '<div><div style="font-weight:500">' + (p.nickname || 'Unknown') + '</div>';
         html += '<div class="pay-meta">' + Number(p.total_hours || 0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div>';
         html += '</div></div>';
-        html += '<div class="pay-amount">€' + Number(p.amount).toFixed(2) + '</div>';
+        html += '<div class="pay-amount">€' + (Number(p.amount) || 0).toFixed(2) + '</div>';
         html += '</div>';
       });
       list.innerHTML = html;
@@ -1211,7 +1304,7 @@ async function processPayments() {
     showErr(errEl, 'Please calculate first');
     return;
   }
-  if (!confirm('Process payments for this period? This will save payment records and notify workers.')) return;
+  // Process without confirmation
   btn.innerHTML = '<span class="spinner"></span> Processing...';
   btn.disabled = true;
   errEl.style.display = 'none';
