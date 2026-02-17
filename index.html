@@ -1087,7 +1087,6 @@ async function registerWorker() {
     showErr(errEl, 'Name and password are required');
     return;
   }
-  const username = displayName.toLowerCase().replace(/\s+/g, '_');
   btn.innerHTML = '<span class="spinner"></span> Adding...';
   btn.disabled = true;
   errEl.style.display = 'none';
@@ -1095,7 +1094,7 @@ async function registerWorker() {
     const r = await fetch(API + '/api/auth/register', {
       method: 'POST',
       headers: hdr(),
-      body: JSON.stringify({nickname: username, password: pass, email: email || undefined, role: role})
+      body: JSON.stringify({nickname: displayName, password: pass, email: email || undefined, role: role})
     });
     const d = await r.json();
     if (d.success) {
