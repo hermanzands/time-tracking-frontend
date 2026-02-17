@@ -191,6 +191,24 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .chat-badge{background:var(--danger);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
 .online-status-dot{width:8px;height:8px;border-radius:50%;background:var(--border);display:inline-block;margin-right:6px;}
 .online-status-dot.online{background:var(--green);box-shadow:0 0 8px rgba(0,229,160,.5);}
+
+/* CUSTOM CONFIRMATION MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:none;align-items:center;justify-content:center;animation:fadeIn .2s;}
+.modal-overlay.show{display:flex;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:slideUp .2s;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.modal-icon{font-size:48px;text-align:center;margin-bottom:16px;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;text-align:center;margin-bottom:12px;color:var(--text);}
+.modal-message{text-align:center;color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:24px;}
+.modal-buttons{display:flex;gap:12px;}
+.modal-btn{flex:1;padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.modal-btn-cancel{background:var(--surface2);color:var(--text);}
+.modal-btn-cancel:hover{background:var(--border);}
+.modal-btn-confirm{background:var(--danger);color:#fff;}
+.modal-btn-confirm:hover{background:#ff3355;transform:translateY(-1px);box-shadow:0 4px 12px rgba(255,85,102,.3);}
+.modal-btn-primary{background:var(--accent);color:#080810;}
+.modal-btn-primary:hover{background:var(--accent-bright);transform:translateY(-1px);box-shadow:0 4px 12px var(--accent-glow);}
 </style>
 </head>
 <body>
@@ -462,6 +480,20 @@ tr:hover td{background:rgba(124,111,247,.03);}
     </div>
     <div class="chat-input-wrap">
       <textarea id="chat-input" class="chat-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+    </div>
+  </div>
+
+
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal-box">
+      <div id="modal-icon" class="modal-icon"></div>
+      <div id="modal-title" class="modal-title"></div>
+      <div id="modal-message" class="modal-message"></div>
+      <div class="modal-buttons">
+        <button id="modal-cancel" class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button id="modal-confirm" class="modal-btn modal-btn-confirm" onclick="confirmModal()">Delete</button>
+      </div>
     </div>
   </div>
 
@@ -1463,7 +1495,14 @@ async function processPayments() {
 }
 
 async function deletePayment(paymentId) {
-  if (!confirm('Delete this payment record?')) return;
+  const confirmed = await showModal({
+    icon: '💰',
+    title: 'Delete Payment?',
+    message: 'This will permanently delete this payment record. This action cannot be undone.',
+    confirmText: 'Delete',
+    danger: true
+  });
+  if (!confirmed) return;
   try {
     const r = await fetch(API + '/api/payments/' + paymentId, {method: 'DELETE', headers: hdr()});
     const d = await r.json();
@@ -1700,6 +1739,55 @@ function initChat() {
     chatPanel.style.display = 'none';
   }
 }
+
+
+// === CUSTOM MODAL ===
+let modalResolve = null;
+
+function showModal(options) {
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+    
+    const overlay = document.getElementById('modal-overlay');
+    const icon = document.getElementById('modal-icon');
+    const title = document.getElementById('modal-title');
+    const message = document.getElementById('modal-message');
+    const confirmBtn = document.getElementById('modal-confirm');
+    
+    icon.textContent = options.icon || '⚠️';
+    title.textContent = options.title || 'Confirm Action';
+    message.textContent = options.message || 'Are you sure?';
+    confirmBtn.textContent = options.confirmText || 'Confirm';
+    confirmBtn.className = 'modal-btn ' + (options.danger ? 'modal-btn-confirm' : 'modal-btn-primary');
+    
+    overlay.classList.add('show');
+  });
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('show');
+  if (modalResolve) {
+    modalResolve(false);
+    modalResolve = null;
+  }
+}
+
+function confirmModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('show');
+  if (modalResolve) {
+    modalResolve(true);
+    modalResolve = null;
+  }
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('modal-overlay').classList.contains('show')) {
+    closeModal();
+  }
+});
 
 </script>
 </body>
