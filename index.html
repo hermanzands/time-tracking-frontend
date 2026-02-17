@@ -37,20 +37,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-ghost{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);padding:9px 18px;font-size:13px;width:auto;font-family:'DM Sans',sans-serif;font-weight:500;}
 .btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--accent);}
 .err-box{background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.3);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--danger);margin-top:14px;display:none;}
+.auth-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:28px;}
+.auth-tab{flex:1;padding:10px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:transparent;color:var(--muted);transition:all .2s;}
+.auth-tab.active{background:var(--accent);color:#fff;}
+.pwd-wrap{position:relative;}
+.pwd-wrap input{padding-right:48px!important;}
+.pwd-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;}
 
 /* APP */
 #screen-app{display:none;position:relative;z-index:1;min-height:100vh;}
-
-/* NAV */
 nav{background:rgba(16,16,30,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:100;}
 .nav-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px;}
 .nav-brand em{color:var(--accent);font-style:normal;}
 .nav-right{display:flex;align-items:center;gap:12px;}
-.nav-user{font-size:13px;color:var(--muted);}
+.nav-user{font-size:13px;color:var(--muted);cursor:pointer;}
+.nav-user:hover{color:var(--text);}
 .nav-user strong{color:var(--text);}
 .nav-role{background:var(--accent-glow);border:1px solid rgba(124,111,247,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;}
 
-/* LAYOUT */
 .app-body{display:flex;min-height:calc(100vh - 62px);}
 .sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 12px;position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;}
 .sb-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;padding:0 12px;margin:20px 0 8px;}
@@ -59,7 +63,8 @@ nav{background:rgba(16,16,30,.92);backdrop-filter:blur(20px);border-bottom:1px s
 .nav-item:hover{color:var(--text);background:var(--surface2);}
 .nav-item.active{color:var(--accent);background:var(--accent-glow);}
 .icon{font-size:16px;width:20px;text-align:center;}
-.main{flex:1;padding:28px 24px;overflow-x:hidden;}
+
+.main{flex:1;padding:28px 24px;overflow-x:hidden;padding-bottom:80px;}
 .panel{display:none;}
 .panel.active{display:block;}
 .page-title{font-family:'Oxanium',sans-serif;font-size:26px;font-weight:800;letter-spacing:1px;margin-bottom:4px;}
@@ -107,35 +112,40 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .badge-employee{background:rgba(124,111,247,.12);color:var(--accent);}
 .badge-farmer{background:rgba(255,181,71,.12);color:var(--amber);}
 .badge-manager{background:rgba(0,229,160,.12);color:var(--green);}
+.badge-owner{background:rgba(124,111,247,.12);color:var(--accent);}
 
-/* WORKERS */
+/* WORKERS & AVATARS */
 .workers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
-.worker-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;align-items:center;gap:16px;}
-.avatar{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:18px;flex-shrink:0;color:#fff;}
+.worker-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;}
+.worker-row{display:flex;align-items:center;gap:12px;width:100%;}
+.avatar{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:18px;flex-shrink:0;color:#fff;position:relative;overflow:hidden;}
 .avatar-sm{width:32px;height:32px;border-radius:9px;font-size:13px;}
+.avatar-letter{position:relative;z-index:1;}
+.avatar-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;}
 .worker-info{flex:1;}
 .worker-name{font-weight:500;font-size:15px;margin-bottom:4px;}
 .online-dot{width:10px;height:10px;border-radius:50%;background:var(--border);flex-shrink:0;}
 .online-dot.on{background:var(--green);}
+.worker-actions{display:flex;align-items:center;gap:8px;width:100%;}
+.worker-actions select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;}
 
-/* FORM CARD */
+/* FORM */
 .form-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:24px;}
 .form-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 
-/* PAY CALC */
+/* PAY */
 .pay-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
 .pay-results{margin-top:24px;border-top:1px solid var(--border);padding-top:20px;}
 .pay-result-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(37,37,56,.5);}
 .pay-result-item:last-child{border-bottom:none;}
 .pay-worker{display:flex;align-items:center;gap:12px;}
-.pay-amount{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--green);}
+.pay-amount{font-family:'Oxanium',sans-serif;font-size:20px;font-weight:700;color:var(--green);}
 .pay-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 
 /* MISC */
 .empty{text-align:center;padding:48px 24px;color:var(--muted);}
 .empty-icon{font-size:40px;margin-bottom:12px;}
-.empty p{font-size:14px;}
 .spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:spin .65s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 24px;font-size:14px;z-index:9999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 20px 50px rgba(0,0,0,.5);pointer-events:none;}
@@ -146,17 +156,11 @@ tr:hover td{background:rgba(124,111,247,.03);}
 /* MOBILE */
 @media(max-width:700px){
   .sidebar{display:none;}
-  .mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:8px 0 14px;justify-content:space-around;}
-  .mtab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:4px 10px;}
-  .mtab .icon{font-size:20px;}
-  .mtab.active{color:var(--accent);}
   .main{padding:20px 16px 88px;}
   .form-row,.pay-row{grid-template-columns:1fr;}
   .clock-btns .btn{padding:16px 32px;}
-  .live-time{letter-spacing:1px;}
   nav .nav-user{display:none;}
 }
-@media(min-width:701px){.mobile-nav{display:none;}}
 </style>
 </head>
 <body>
@@ -165,48 +169,52 @@ tr:hover td{background:rgba(124,111,247,.03);}
 <div id="screen-login">
   <div class="login-card">
     <div class="brand">Work<em>Track</em></div>
-    <p class="brand-sub" id="auth-sub">Sign in to track your time</p>
+    <p class="brand-sub">Sign in to track your time</p>
 
-    <!-- TABS -->
-    <div style="display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:28px;">
-      <button id="tab-signin" onclick="authTab('signin')" style="flex:1;padding:10px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:var(--accent);color:#fff;transition:all .2s;">Sign In</button>
-      <button id="tab-register" onclick="authTab('register')" style="flex:1;padding:10px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:transparent;color:var(--muted);transition:all .2s;">Register</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="authTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tab-register" onclick="authTab('register')">Register</button>
     </div>
 
-    <!-- SIGN IN FORM -->
+    <!-- SIGN IN -->
     <div id="form-signin">
       <div class="field"><label>Username</label><input id="l-nick" type="text" placeholder="your username" autocomplete="username"></div>
-      <div class="field"><label>Password</label><div style="position:relative">
-      <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 48px 14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;">
-      <button onclick="togglePwd('l-pass',this)" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;">👁</button>
-    </div></div>
+      <div class="field"><label>Password</label>
+        <div class="pwd-wrap">
+          <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+          <button class="pwd-toggle" onclick="togglePwd('l-pass',this)" type="button">👁</button>
+        </div>
+      </div>
       <button class="btn btn-primary" id="btn-login" onclick="login()">Sign In</button>
       <div class="err-box" id="login-err"></div>
-      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
+      <div style="text-align:center;margin-top:16px;font-size:13px;">
         <a href="#" onclick="showForgotPassword();return false;" style="color:var(--accent);text-decoration:none;">Forgot password?</a>
       </div>
     </div>
 
-    <!-- FORGOT PASSWORD FORM -->
-    <div id="form-forgot" style="display:none">
+    <!-- REGISTER -->
+    <div id="form-register" class="hidden">
+      <div class="field"><label>Username</label><input id="reg-nick" type="text" placeholder="choose a username"></div>
+      <div class="field"><label>Password</label>
+        <div class="pwd-wrap">
+          <input id="reg-pass" type="password" placeholder="choose a password">
+          <button class="pwd-toggle" onclick="togglePwd('reg-pass',this)" type="button">👁</button>
+        </div>
+      </div>
+      <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
+      <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
+      <div class="err-box" id="reg-err-login"></div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">⚠️ Your account needs manager approval before you can log in</div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div id="form-forgot" class="hidden">
       <div class="field"><label>Username</label><input id="forgot-nick" type="text" placeholder="your username"></div>
       <div class="field"><label>Email</label><input id="forgot-email" type="email" placeholder="your email"></div>
       <button class="btn btn-primary" id="btn-forgot" onclick="resetPassword()">Reset Password</button>
       <div class="err-box" id="forgot-err"></div>
-      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
+      <div style="text-align:center;margin-top:16px;font-size:13px;">
         <a href="#" onclick="authTab('signin');return false;" style="color:var(--accent);text-decoration:none;">← Back to sign in</a>
-      </div>
-    </div>
-
-    <!-- REGISTER FORM -->
-    <div id="form-register" style="display:none">
-      <div class="field"><label>Username</label><input id="reg-nick" type="text" placeholder="choose a username"></div>
-      <div class="field"><label>Password</label><input id="reg-pass" type="password" placeholder="choose a password"></div>
-      <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
-      <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
-      <div class="err-box" id="reg-err-login"></div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">
-        ⚠️ Your account needs manager approval before you can log in
       </div>
     </div>
   </div>
@@ -217,20 +225,18 @@ tr:hover td{background:rgba(124,111,247,.03);}
   <nav>
     <div class="nav-brand">Work<em>Track</em></div>
     <div class="nav-right">
-      <div class="nav-user" style="cursor:pointer;" onclick="go('profile')" title="View profile">Hello, <strong id="nav-name"></strong></div>
+      <div class="nav-user" onclick="go('profile')" title="View profile">Hello, <strong id="nav-name"></strong></div>
       <div class="nav-role" id="nav-role"></div>
       <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
     </div>
   </nav>
 
   <div class="app-body">
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sb-section">My Work</div>
       <button class="nav-item active" id="si-clock" onclick="go('clock')"><span class="icon">⏱</span>Time Clock</button>
       <button class="nav-item" id="si-hours" onclick="go('hours')"><span class="icon">📋</span>My Hours</button>
       <button class="nav-item" id="si-earnings" onclick="go('earnings')"><span class="icon">💵</span>My Earnings</button>
-      
       <div class="sb-section admin-only hidden">Management</div>
       <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
@@ -238,7 +244,6 @@ tr:hover td{background:rgba(124,111,247,.03);}
     </aside>
 
     <main class="main">
-
       <!-- CLOCK -->
       <div class="panel active" id="panel-clock">
         <div class="page-title">Time Clock</div>
@@ -285,6 +290,46 @@ tr:hover td{background:rgba(124,111,247,.03);}
         </div>
       </div>
 
+      <!-- PROFILE -->
+      <div class="panel" id="panel-profile">
+        <div class="page-title">My Profile</div>
+        <div class="page-sub">Manage your account settings</div>
+        <div class="form-card" style="text-align:center;padding:32px;">
+          <div id="profile-avatar" class="avatar" style="width:80px;height:80px;border-radius:22px;margin:0 auto 16px;cursor:pointer;font-size:32px;" onclick="document.getElementById('avatar-upload').click()">
+            <span class="avatar-letter" id="avatar-letter"></span>
+            <img class="avatar-img" id="avatar-img">
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:3;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">📷</div>
+          </div>
+          <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px" id="profile-name"></div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="profile-role-txt"></div>
+          <button onclick="removeAvatar()" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑 Remove Picture</button>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title">📧 Update Email</div>
+          <div class="field"><label>Email Address</label><input id="profile-email" type="email" placeholder="your@email.com"></div>
+          <button class="btn btn-primary btn-sm" onclick="updateProfile()">Save Email</button>
+          <div class="err-box" id="profile-err"></div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title">🔒 Change Password</div>
+          <div class="field"><label>Current Password</label>
+            <div class="pwd-wrap">
+              <input id="pwd-current" type="password" placeholder="Your current password">
+              <button class="pwd-toggle" onclick="togglePwd('pwd-current',this)" type="button">👁</button>
+            </div>
+          </div>
+          <div class="field"><label>New Password</label>
+            <div class="pwd-wrap">
+              <input id="pwd-new" type="password" placeholder="New password">
+              <button class="pwd-toggle" onclick="togglePwd('pwd-new',this)" type="button">👁</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="changePassword()">Change Password</button>
+          <div class="err-box" id="pwd-err"></div>
+        </div>
+      </div>
+
       <!-- WORKERS -->
       <div class="panel" id="panel-workers">
         <div class="page-title">Workers</div>
@@ -296,15 +341,21 @@ tr:hover td{background:rgba(124,111,247,.03);}
             <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
           </div>
           <div class="form-row">
-            <div class="field"><label>Password</label><div style="position:relative">
-              <input id="r-pass" type="password" placeholder="Choose a password" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 48px 14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;">
-              <button onclick="togglePwd('r-pass',this)" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;">👁</button>
-            </div></div>
+            <div class="field"><label>Password</label>
+              <div class="pwd-wrap">
+                <input id="r-pass" type="password" placeholder="Choose a password">
+                <button class="pwd-toggle" onclick="togglePwd('r-pass',this)" type="button">👁</button>
+              </div>
+            </div>
             <div class="field"><label>Role</label>
-              <select id="r-role"><option value="employee">Employee</option><option value="farmer">Farmer</option><option value="manager">Manager</option></select>
+              <select id="r-role">
+                <option value="employee">Employee</option>
+                <option value="farmer">Farmer</option>
+                <option value="manager">Manager</option>
+              </select>
             </div>
           </div>
-          <button class="btn btn-primary btn-sm" id="btn-reg" onclick="registerWorker()" style="margin-top:8px">Add Worker</button>
+          <button class="btn btn-primary btn-sm" id="btn-add-worker" onclick="registerWorker()">Add Worker</button>
           <div class="err-box" id="reg-err"></div>
         </div>
         <div class="table-ttl" style="margin-bottom:16px">All Workers</div>
@@ -318,60 +369,14 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="table-card">
           <div class="table-hdr"><div class="table-ttl">All Time Entries</div></div>
           <table><thead><tr><th>Worker</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
-          <tbody id="all-entries-body"><tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>Loading...</p></div></td></tr></tbody></table>
-        </div>
-      </div>
-
-      <!-- PROFILE -->
-      <div class="panel" id="panel-profile">
-        <div class="page-title">My Profile</div>
-        <div class="page-sub">Manage your account settings</div>
-
-        <!-- Avatar -->
-        <div class="form-card" style="text-align:center;padding:32px;">
-          <div id="profile-avatar" style="width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:#fff;margin:0 auto 16px;cursor:pointer;position:relative;overflow:hidden;" onclick="document.getElementById('avatar-upload').click()">
-            <span id="avatar-letter"></span>
-            <img id="avatar-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;">
-            <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
-              <span style="font-size:20px">📷</span>
-            </div>
-          </div>
-          <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px" id="profile-name"></div>
-          <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="profile-role"></div>
-          <button onclick="removeAvatar()" style="background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);border-radius:8px;padding:6px 12px;color:var(--danger);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-            🗑 Remove Picture
-          </button>
-        </div>
-
-        <!-- Update Email -->
-        <div class="form-card">
-          <div class="form-card-title">📧 Update Email</div>
-          <div class="field"><label>Email Address</label><input id="profile-email" type="email" placeholder="your@email.com"></div>
-          <button class="btn btn-primary btn-sm" onclick="updateProfile()">Save Email</button>
-          <div class="err-box" id="profile-err"></div>
-        </div>
-
-        <!-- Change Password -->
-        <div class="form-card">
-          <div class="form-card-title">🔒 Change Password</div>
-          <div class="field"><label>Current Password</label><div style="position:relative">
-            <input id="pwd-current" type="password" placeholder="Your current password" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 48px 14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;">
-            <button onclick="togglePwd('pwd-current',this)" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">👁</button>
-          </div></div>
-          <div class="field"><label>New Password</label><div style="position:relative">
-            <input id="pwd-new" type="password" placeholder="New password" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 48px 14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;">
-            <button onclick="togglePwd('pwd-new',this)" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">👁</button>
-          </div></div>
-          <button class="btn btn-primary btn-sm" onclick="changePassword()">Change Password</button>
-          <div class="err-box" id="pwd-err"></div>
+          <tbody id="all-entries-body"><tr><td colspan="5"><div class="empty"><span class="spinner"></span></div></td></tr></tbody></table>
         </div>
       </div>
 
       <!-- PAY CALCULATOR -->
       <div class="panel" id="panel-payments">
         <div class="page-title">Pay Calculator</div>
-        <div class="page-sub">See exactly how much each worker earns — then enter it in your payment program</div>
+        <div class="page-sub">See exactly how much each worker earns</div>
         <div class="form-card">
           <div class="form-card-title">💰 Calculate Payments</div>
           <div class="pay-row">
@@ -391,18 +396,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
           </div>
         </div>
       </div>
-
     </main>
-  </div>
-
-  <!-- MOBILE NAV -->
-  <div class="mobile-nav" id="mobile-nav">
-    <button class="mtab active" id="mt-clock" onclick="go('clock')"><span class="icon">⏱</span>Clock</button>
-    <button class="mtab" id="mt-hours" onclick="go('hours')"><span class="icon">📋</span>Hours</button>
-    <button class="mtab" id="mt-earnings" onclick="go('earnings')"><span class="icon">💵</span>Earnings</button>
-    
-    <button class="mtab admin-only hidden" id="mt-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
-    <button class="mtab admin-only hidden" id="mt-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calc</button>
   </div>
 </div>
 
@@ -411,36 +405,164 @@ tr:hover td{background:rgba(124,111,247,.03);}
 <script>
 const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
 let token = localStorage.getItem('wt_token');
-let user  = JSON.parse(localStorage.getItem('wt_user') || 'null');
+let user = JSON.parse(localStorage.getItem('wt_user') || 'null');
+
+// === BOOT ===
+window.onload = () => {
+  tickClock();
+  setInterval(tickClock, 1000);
+  setDefaultDates();
+  if (token && user) showApp();
+};
+
+// === HELPERS ===
+function tickClock() {
+  const n = new Date();
+  document.getElementById('live-time').textContent = n.toLocaleTimeString('en-US', {hour12: false});
+  document.getElementById('live-date').textContent = n.toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+}
+
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', 3200);
+}
+
+function hdr() {
+  return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token};
+}
+
+function showErr(el, msg) {
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function toHm(h) {
+  const hrs = Math.floor(h);
+  const mins = Math.round((h - hrs) * 60);
+  if (hrs === 0) return mins + 'm';
+  if (mins === 0) return hrs + 'h';
+  return hrs + 'h ' + mins + 'm';
+}
+
+function fmtDate(s) {
+  return new Date(s).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+}
+
+function fmtTime(s) {
+  return new Date(s).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+}
 
 function togglePwd(inputId, btn) {
   const inp = document.getElementById(inputId);
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁'; }
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁';
+  }
 }
 
+// === AUTH ===
 function authTab(tab) {
-  const isSignin = tab === 'signin';
-  const isRegister = tab === 'register';
-  document.getElementById('form-signin').style.display = isSignin ? 'block' : 'none';
-  document.getElementById('form-register').style.display = isRegister ? 'block' : 'none';
-  document.getElementById('form-forgot').style.display = 'none';
-  const tsi = document.getElementById('tab-signin');
-  const treg = document.getElementById('tab-register');
-  tsi.style.background = isSignin ? 'var(--accent)' : 'transparent';
-  tsi.style.color = isSignin ? '#fff' : 'var(--muted)';
-  treg.style.background = isRegister ? 'var(--accent)' : 'transparent';
-  treg.style.color = isRegister ? 'var(--muted)' : '#fff';
+  document.getElementById('form-signin').classList.toggle('hidden', tab !== 'signin');
+  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('form-forgot').classList.add('hidden');
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
 }
 
 function showForgotPassword() {
-  document.getElementById('form-signin').style.display = 'none';
-  document.getElementById('form-register').style.display = 'none';
-  document.getElementById('form-forgot').style.display = 'block';
-  document.getElementById('tab-signin').style.background = 'transparent';
-  document.getElementById('tab-signin').style.color = 'var(--muted)';
-  document.getElementById('tab-register').style.background = 'transparent';
-  document.getElementById('tab-register').style.color = 'var(--muted)';
+  document.getElementById('form-signin').classList.add('hidden');
+  document.getElementById('form-register').classList.add('hidden');
+  document.getElementById('form-forgot').classList.remove('hidden');
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+}
+
+async function login() {
+  const nick = document.getElementById('l-nick').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('btn-login');
+  if (!nick || !pass) {
+    showErr(errEl, 'Please fill in both fields');
+    return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Signing in...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nickname: nick, password: pass})
+    });
+    const d = await r.json();
+    if (d.success) {
+      token = d.accessToken;
+      user = d.user;
+      localStorage.setItem('wt_token', token);
+      localStorage.setItem('wt_user', JSON.stringify(user));
+      showApp();
+    } else {
+      showErr(errEl, d.error || 'Wrong username or password');
+    }
+  } catch (e) {
+    showErr(errEl, 'Cannot connect to server');
+  }
+  btn.innerHTML = 'Sign In';
+  btn.disabled = false;
+}
+
+function logout() {
+  token = null;
+  user = null;
+  localStorage.removeItem('wt_token');
+  localStorage.removeItem('wt_user');
+  document.getElementById('screen-app').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+}
+
+async function registerSelf() {
+  const nick = document.getElementById('reg-nick').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const email = document.getElementById('reg-email').value.trim();
+  const errEl = document.getElementById('reg-err-login');
+  const btn = document.getElementById('btn-reg');
+  if (!nick || !pass) {
+    showErr(errEl, 'Username and password are required');
+    return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Creating...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, role: 'employee'})
+    });
+    const d = await r.json();
+    if (d.success) {
+      authTab('signin');
+      const el = document.getElementById('login-err');
+      el.style.display = 'block';
+      el.style.background = 'rgba(0,229,160,.1)';
+      el.style.borderColor = 'rgba(0,229,160,.3)';
+      el.style.color = 'var(--green)';
+      el.textContent = '✅ Account created! Ask your manager to activate it, then sign in.';
+      document.getElementById('l-nick').value = nick;
+    } else {
+      showErr(errEl, d.error || 'Registration failed');
+    }
+  } catch (e) {
+    showErr(errEl, 'Cannot connect to server');
+  }
+  btn.innerHTML = 'Create Account';
+  btn.disabled = false;
 }
 
 async function resetPassword() {
@@ -448,524 +570,249 @@ async function resetPassword() {
   const email = document.getElementById('forgot-email').value.trim();
   const errEl = document.getElementById('forgot-err');
   const btn = document.getElementById('btn-forgot');
-  if(!nick||!email){ showErr(errEl,'Please fill in both fields'); return; }
-  btn.innerHTML='<span class="spinner"></span> Sending...'; btn.disabled=true; errEl.style.display='none';
-  try {
-    const r = await fetch(\`\${API}/api/auth/forgot-password\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,email})});
-    const d = await r.json();
-    if(d.success || d.message){
-      authTab('signin');
-      const el = document.getElementById('login-err');
-      el.style.display='block';
-      el.style.background='rgba(0,229,160,.1)';
-      el.style.borderColor='rgba(0,229,160,.3)';
-      el.style.color='var(--green)';
-      el.textContent='✅ If an account exists with that username and email, a password reset link has been sent.';
-    } else { showErr(errEl, d.error||'Failed to send reset link'); }
-  } catch(e) { showErr(errEl,'Connection error'); }
-  btn.innerHTML='Reset Password'; btn.disabled=false;
-}
-
-async function registerSelf() {
-  const nick = document.getElementById('reg-nick').value.trim();
-  const pass = document.getElementById('reg-pass').value;
-  const email = document.getElementById('reg-email').value.trim();
-  const role = document.getElementById('reg-role').value;
-  const errEl = document.getElementById('reg-err-login');
-  const btn = document.getElementById('btn-reg');
-  if (!nick||!pass) { showErr(errEl,'Username and password are required'); return; }
-  btn.innerHTML='<span class="spinner"></span> Creating...'; btn.disabled=true; errEl.style.display='none';
-  try {
-    const r = await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role:'employee'})});
-    const d = await r.json();
-    if (d.success) {
-      authTab('signin');
-      const el = document.getElementById('login-err');
-      el.style.display='block';
-      el.style.background='rgba(0,229,160,.1)';
-      el.style.borderColor='rgba(0,229,160,.3)';
-      el.style.color='var(--green)';
-      el.textContent='✅ Account created! Ask your manager to activate it, then sign in.';
-      document.getElementById('l-nick').value = nick;
-    } else { showErr(errEl, d.error||'Registration failed'); }
-  } catch(e) { showErr(errEl,'Cannot connect to server'); }
-  btn.innerHTML='Create Account'; btn.disabled=false;
-}
-
-// BOOT
-window.onload = () => {
-  tickClock(); setInterval(tickClock, 1000);
-  setDefaultDates();
-  if (token && user) showApp();
-};
-
-function tickClock() {
-  const n = new Date();
-  const el = document.getElementById('live-time');
-  if (el) el.textContent = n.toLocaleTimeString('en-US',{hour12:false});
-  const de = document.getElementById('live-date');
-  if (de) de.textContent = n.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-}
-
-function toast(msg, type='ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `show ${type}`;
-  clearTimeout(t._t); t._t = setTimeout(() => t.className='', 3200);
-}
-
-function hdr() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
-function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
-function toHm(h) {
-  const hrs = Math.floor(h);
-  const mins = Math.round((h - hrs) * 60);
-  if(hrs===0) return mins+'m';
-  if(mins===0) return hrs+'h';
-  return hrs+'h '+mins+'m';
-}
-
-function fmtDate(s) { return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function fmtTime(s) { return new Date(s).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
-function loadRow(n) { return `<tr><td colspan="${n}" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>`; }
-function emptyRow(n, icon, msg) { return `<tr><td colspan="${n}"><div class="empty"><div class="empty-icon">${icon}</div><p>${msg}</p></div></td></tr>`; }
-
-// LOGIN
-async function login() {
-  const nick = document.getElementById('l-nick').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  const errEl = document.getElementById('login-err');
-  const btn = document.getElementById('btn-login');
-  if (!nick||!pass) { showErr(errEl,'Please fill in both fields'); return; }
-  btn.innerHTML='<span class="spinner"></span> Signing in...'; btn.disabled=true; errEl.style.display='none';
-  try {
-    const r = await fetch(`${API}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass})});
-    const d = await r.json();
-    if (d.success) {
-      token=d.accessToken; user=d.user;
-      localStorage.setItem('wt_token',token);
-      localStorage.setItem('wt_user',JSON.stringify(user));
-      showApp();
-    } else { showErr(errEl, d.error||'Wrong username or password'); }
-  } catch(e) { showErr(errEl,'Cannot connect to server'); }
-  btn.innerHTML='Sign In'; btn.disabled=false;
-}
-
-function logout() {
-  token=null; user=null;
-  localStorage.removeItem('wt_token'); localStorage.removeItem('wt_user');
-  document.getElementById('screen-app').style.display='none';
-  document.getElementById('screen-login').style.display='flex';
-}
-
-function showApp() {
-  document.getElementById('screen-login').style.display='none';
-  document.getElementById('screen-app').style.display='block';
-  document.getElementById('nav-name').textContent=user.nickname;
-  document.getElementById('nav-role').textContent=user.role;
-  if (['manager','owner'].includes(user.role)) {
-    document.querySelectorAll('.admin-only').forEach(el=>el.classList.remove('hidden'));
+  if (!nick || !email) {
+    showErr(errEl, 'Please fill in both fields');
+    return;
   }
-  loadClockStatus(); loadStats();
+  btn.innerHTML = '<span class="spinner"></span> Sending...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/forgot-password', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nickname: nick, email: email})
+    });
+    const d = await r.json();
+    if (d.success || d.message) {
+      authTab('signin');
+      const el = document.getElementById('login-err');
+      el.style.display = 'block';
+      el.style.background = 'rgba(0,229,160,.1)';
+      el.style.borderColor = 'rgba(0,229,160,.3)';
+      el.style.color = 'var(--green)';
+      el.textContent = '✅ If an account exists with that username and email, a password reset link has been sent.';
+    } else {
+      showErr(errEl, d.error || 'Failed to send reset link');
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+  }
+  btn.innerHTML = 'Reset Password';
+  btn.disabled = false;
 }
 
-// NAV
+// === APP ===
+function showApp() {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'block';
+  document.getElementById('nav-name').textContent = user.nickname;
+  document.getElementById('nav-role').textContent = user.role;
+  if (['manager', 'owner'].includes(user.role)) {
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+  }
+  loadClockStatus();
+  loadStats();
+}
+
 function go(panel) {
-  document.querySelectorAll('.nav-item,.mtab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  const si=document.getElementById(`si-${panel}`); if(si) si.classList.add('active');
-  const mt=document.getElementById(`mt-${panel}`); if(mt) mt.classList.add('active');
-  document.getElementById(`panel-${panel}`).classList.add('active');
-  if(panel==='hours') loadMyEntries();
-  if(panel==='earnings') loadMyPayments();
-  if(panel==='workers') loadWorkers();
-  if(panel==='allhours') loadAllEntries();
-  if(panel==='payments') setDefaultDates();
-  if(panel==='profile') loadProfile();
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const si = document.getElementById('si-' + panel);
+  if (si) si.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+  if (panel === 'hours') loadMyEntries();
+  if (panel === 'earnings') loadMyPayments();
+  if (panel === 'workers') loadWorkers();
+  if (panel === 'allhours') loadAllEntries();
+  if (panel === 'payments') setDefaultDates();
+  if (panel === 'profile') loadProfile();
 }
 
-// CLOCK STATUS
+// === CLOCK ===
 async function loadClockStatus() {
   try {
-    const r = await fetch(`${API}/api/time-entries/my-entries?status=active&limit=1`,{headers:hdr()});
+    const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
     const d = await r.json();
-    if (d.success && d.entries?.length && d.entries[0].status==='active') {
+    if (d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active') {
       setClocked(true, new Date(d.entries[0].clock_in));
     }
-  } catch(e) {}
+  } catch (e) {}
 }
 
-function setClocked(on, since=null) {
-  const pill=document.getElementById('status-pill');
-  const dot=document.getElementById('status-dot');
-  const txt=document.getElementById('status-txt');
-  const ci=document.getElementById('btn-ci');
-  const co=document.getElementById('btn-co');
-  const info=document.getElementById('clock-since');
+function setClocked(on, since) {
+  const pill = document.getElementById('status-pill');
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  const ci = document.getElementById('btn-ci');
+  const co = document.getElementById('btn-co');
+  const info = document.getElementById('clock-since');
   if (on) {
-    pill.className='status-pill in'; dot.className='dot pulse';
-    txt.textContent='Currently clocked in';
-    ci.disabled=true; co.disabled=false;
-    info.textContent=since?`Started at ${since.toLocaleTimeString()}`:'';
+    pill.className = 'status-pill in';
+    dot.className = 'dot pulse';
+    txt.textContent = 'Currently clocked in';
+    ci.disabled = true;
+    co.disabled = false;
+    info.textContent = since ? 'Started at ' + since.toLocaleTimeString() : '';
   } else {
-    pill.className='status-pill out'; dot.className='dot';
-    txt.textContent='Not clocked in';
-    ci.disabled=false; co.disabled=true;
-    info.textContent='';
+    pill.className = 'status-pill out';
+    dot.className = 'dot';
+    txt.textContent = 'Not clocked in';
+    ci.disabled = false;
+    co.disabled = true;
+    info.textContent = '';
   }
 }
 
 async function clockIn() {
-  const btn=document.getElementById('btn-ci');
-  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+  const btn = document.getElementById('btn-ci');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
   try {
-    const r=await fetch(`${API}/api/time-entries/clock-in`,{method:'POST',headers:hdr()});
-    const d=await r.json();
-    if(d.success){setClocked(true,new Date());toast('✅ Clocked in!');loadStats();}
-    else{toast(d.error||'Failed','err');btn.disabled=false;}
-  } catch(e){toast('Connection error','err');btn.disabled=false;}
-  btn.innerHTML='Clock In';
+    const r = await fetch(API + '/api/time-entries/clock-in', {method: 'POST', headers: hdr()});
+    const d = await r.json();
+    if (d.success) {
+      setClocked(true, new Date());
+      toast('✅ Clocked in!');
+      loadStats();
+    } else {
+      toast(d.error || 'Failed', 'err');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+    btn.disabled = false;
+  }
+  btn.innerHTML = 'Clock In';
 }
 
 async function clockOut() {
-  const btn=document.getElementById('btn-co');
-  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+  const btn = document.getElementById('btn-co');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
   try {
-    const r=await fetch(`${API}/api/time-entries/clock-out`,{method:'POST',headers:hdr()});
-    const d=await r.json();
-    if(d.success){setClocked(false);toast('👋 Clocked out!');loadStats();}
-    else{toast(d.error||'Failed','err');btn.disabled=false;}
-  } catch(e){toast('Connection error','err');btn.disabled=false;}
-  btn.innerHTML='Clock Out';
+    const r = await fetch(API + '/api/time-entries/clock-out', {method: 'POST', headers: hdr()});
+    const d = await r.json();
+    if (d.success) {
+      setClocked(false);
+      toast('👋 Clocked out!');
+      loadStats();
+    } else {
+      toast(d.error || 'Failed', 'err');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+    btn.disabled = false;
+  }
+  btn.innerHTML = 'Clock Out';
 }
 
 async function loadStats() {
   try {
-    const r=await fetch(`${API}/api/time-entries/my-entries?limit=200`,{headers:hdr()});
-    const d=await r.json();
-    if(!d.success) return;
-    const now=new Date();
-    const todayStr=now.toDateString();
-    const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());
-    const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
-    let today=0,week=0,month=0;
-    (d.entries||[]).forEach(e=>{
-      if(!e.total_hours) return;
-      const h=Number(e.total_hours); const dt=new Date(e.clock_in);
-      if(dt.toDateString()===todayStr) today+=h;
-      if(dt>=weekStart) week+=h;
-      if(dt>=monthStart) month+=h;
+    const r = await fetch(API + '/api/time-entries/my-entries?limit=200', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) return;
+    const now = new Date();
+    const todayStr = now.toDateString();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    let today = 0, week = 0, month = 0;
+    (d.entries || []).forEach(e => {
+      if (!e.total_hours) return;
+      const h = Number(e.total_hours);
+      const dt = new Date(e.clock_in);
+      if (dt.toDateString() === todayStr) today += h;
+      if (dt >= weekStart) week += h;
+      if (dt >= monthStart) month += h;
     });
-    document.getElementById('st-today').textContent=toHm(today);
-    document.getElementById('st-week').textContent=toHm(week);
-    document.getElementById('st-month').textContent=toHm(month);
-  } catch(e){}
+    document.getElementById('st-today').textContent = toHm(today);
+    document.getElementById('st-week').textContent = toHm(week);
+    document.getElementById('st-month').textContent = toHm(month);
+  } catch (e) {}
 }
 
+// === MY ENTRIES ===
 async function loadMyEntries() {
-  const tb=document.getElementById('my-entries-body');
-  tb.innerHTML=loadRow(5);
+  const tb = document.getElementById('my-entries-body');
+  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
-    const r=await fetch(`${API}/api/time-entries/my-entries?limit=100`,{headers:hdr()});
-    const d=await r.json();
-    if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(5,'📭','No time entries yet');return;}
-    // Filter out entries with 0 hours
-    const validEntries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
-    if(!validEntries.length) { tb.innerHTML=emptyRow(5,'📭','No completed entries yet'); return; }
-    tb.innerHTML=validEntries.map(e=>`<tr>
-      <td>${fmtDate(e.clock_in)}</td>
-      <td>${fmtTime(e.clock_in)}</td>
-      <td>${fmtTime(e.clock_out)}</td>
-      <td>${Number(e.total_hours).toFixed(2)+'h'}</td>
-      <td><span class="badge badge-${e.status}">${e.status}</span></td>
-    </tr>`).join('');
-  } catch(e){tb.innerHTML=emptyRow(5,'❌','Failed to load');}
-}
-
-async function loadMyPayments() {
-  const tb=document.getElementById('my-pay-body');
-  tb.innerHTML=loadRow(3);
-  try {
-    const r=await fetch(`${API}/api/payments/my-payments`,{headers:hdr()});
-    const d=await r.json();
-    if(!d.success||!d.payments?.length){tb.innerHTML=emptyRow(3,'💵','No payments recorded yet');return;}
-    tb.innerHTML=d.payments.map(p=>`<tr>
-      <td>${fmtDate(p.period_start)} – ${fmtDate(p.period_end)}</td>
-      <td>${Number(p.total_hours).toFixed(1)}h</td>
-      <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--green)">€${Number(p.amount).toFixed(2)}</td>
-    </tr>`).join('');
-  } catch(e){tb.innerHTML=emptyRow(3,'❌','Failed to load');}
-}
-
-async function loadWorkers() {
-  const grid=document.getElementById('workers-grid');
-  grid.innerHTML='<div class="empty"><span class="spinner"></span></div>';
-  try {
-    const r=await fetch(`${API}/api/users`,{headers:hdr()});
-    const d=await r.json();
-    if(!d.success||!d.users?.length){grid.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>';return;}
-    grid.innerHTML=d.users.map(u=>{
-      const safeId = u.id.replace(/[^a-zA-Z0-9]/g,'_');
-      return `
-      <div class="worker-card" style="flex-direction:column;align-items:flex-start;gap:12px;">
-        <div style="display:flex;align-items:center;gap:12px;width:100%;">
-          <div class="avatar" style="position:relative;overflow:hidden;">
-            <span class="av-letter-${safeId}" style="position:relative;z-index:1">${u.nickname[0].toUpperCase()}</span>
-            <img class="av-img-${safeId}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
-          </div>
-          <div class="worker-info">
-            <div class="worker-name">${u.nickname}</div>
-          </div>
-          <div class="online-dot ${u.is_active?'on':''}" title="${u.is_active?'Active':'Inactive'}"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;width:100%;">
-          <select onchange="updateRole('${u.id}',this.value)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;">
-            <option value="employee" ${u.role==='employee'?'selected':''}>Employee</option>
-            <option value="farmer" ${u.role==='farmer'?'selected':''}>Farmer</option>
-            <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
-            <option value="owner" ${u.role==='owner'?'selected':''}>Owner</option>
-          </select>
-          ${!u.is_active?`<button onclick="activateWorker('${u.id}')" style="background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.3);border-radius:10px;padding:8px 12px;color:var(--green);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">Activate</button>`:''}
-        </div>
-      </div>`).join('');
-  } catch(e){grid.innerHTML='<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>';}
-}
-
-async function registerWorker() {
-  const nick=document.getElementById('r-nick').value.trim();
-  const email=document.getElementById('r-email').value.trim();
-  const pass=document.getElementById('r-pass').value;
-  const role=document.getElementById('r-role').value;
-  const errEl=document.getElementById('reg-err');
-  const btn=document.getElementById('btn-reg');
-  if(!nick||!pass){showErr(errEl,'Username and password are required');return;}
-  btn.innerHTML='<span class="spinner"></span> Adding...'; btn.disabled=true; errEl.style.display='none';
-  try {
-    const r=await fetch(`${API}/api/auth/register`,{method:'POST',headers:hdr(),body:JSON.stringify({nickname:nick,password:pass,email:email||undefined,role})});
-    const d=await r.json();
-    if(d.success){
-      toast(`✅ ${nick} added!`);
-      document.getElementById('r-nick').value='';
-      document.getElementById('r-email').value='';
-      document.getElementById('r-pass').value='';
-      // Auto-activate
-      if(d.user?.id) await fetch(`${API}/api/users/${d.user.id}/activate`,{method:'POST',headers:hdr()});
-      loadWorkers();
-    } else { showErr(errEl, d.error||'Failed to add worker'); }
-  } catch(e){showErr(errEl,'Connection error');}
-  btn.innerHTML='Add Worker'; btn.disabled=false;
-}
-
-async function updateRole(userId, newRole) {
-  try {
-    // Try PATCH first, fall back to PUT
-    let r = await fetch(`${API}/api/users/${userId}`,{method:'PATCH',headers:hdr(),body:JSON.stringify({role:newRole})});
-    if(r.status===404||r.status===405) {
-      r = await fetch(`${API}/api/users/${userId}`,{method:'PUT',headers:hdr(),body:JSON.stringify({role:newRole})});
+    const r = await fetch(API + '/api/time-entries/my-entries?limit=100', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.entries || d.entries.length === 0) {
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
+      return;
     }
-    const d = await r.json();
-    if(d.success){ toast('✅ Role updated!'); }
-    else { toast(d.error||'Route not found - role update not supported yet','err'); }
-  } catch(e){ toast('Connection error','err'); }
-}
-
-async function deleteWorker(userId) {
-  try {
-    const r = await fetch(`${API}/api/users/${userId}`,{method:'DELETE',headers:hdr()});
-    const d = await r.json();
-    if(d.success){ toast('🗑️ Worker deleted'); loadWorkers(); }
-    else { toast(d.error||'Failed to delete','err'); }
-  } catch(e){ toast('Connection error','err'); }
-}
-
-async function activateWorker(userId) {
-  try {
-    const r = await fetch(`${API}/api/users/${userId}/activate`,{method:'POST',headers:hdr()});
-    const d = await r.json();
-    if(d.success){ toast('✅ Worker activated!'); loadWorkers(); }
-    else { toast(d.error||'Failed','err'); }
-  } catch(e){ toast('Connection error','err'); }
-}
-
-window.togglePerson = function(pid) {
-  const tbody = document.getElementById(pid);
-  const arr = document.getElementById('arr_'+pid);
-  if(!tbody) return;
-  const isHidden = tbody.style.display === 'none';
-  tbody.style.display = isHidden ? '' : 'none';
-  arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
-}
-
-async function loadAllEntries() {
-  const tb=document.getElementById('all-entries-body');
-  tb.innerHTML=loadRow(6);
-  try {
-    const r=await fetch(`${API}/api/time-entries?limit=200`,{headers:hdr()});
-    const d=await r.json();
-    if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(6,'📭','No entries yet');return;}
-    // Group by PERSON and filter out 0-hour entries
-    const byPerson = {};
-    d.entries.forEach(e => {
-      if(!e.total_hours || Number(e.total_hours) === 0) return; // Skip 0-hour entries
-      const key = e.nickname||e.user_id||'Unknown';
-      if(!byPerson[key]) byPerson[key]=[];
-      byPerson[key].push(e);
+    const validEntries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
+    if (validEntries.length === 0) {
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>';
+      return;
+    }
+    let html = '';
+    validEntries.forEach(e => {
+      html += '<tr>';
+      html += '<td>' + fmtDate(e.clock_in) + '</td>';
+      html += '<td>' + fmtTime(e.clock_in) + '</td>';
+      html += '<td>' + fmtTime(e.clock_out) + '</td>';
+      html += '<td>' + Number(e.total_hours).toFixed(2) + 'h</td>';
+      html += '<td><span class="badge badge-' + e.status + '">' + e.status + '</span></td>';
+      html += '</tr>';
     });
-    if(Object.keys(byPerson).length === 0) { tb.innerHTML=emptyRow(5,'📭','No completed entries yet'); return; }
-    let rows = '';
-    Object.entries(byPerson).forEach(([name, entries]) => {
-      const totalHrs = entries.reduce((sum,e)=>sum+(e.total_hours?Number(e.total_hours):0),0);
-      const pid = 'p_'+name.replace(/[^a-z0-9]/gi,'_');
-      rows += `<tr style="background:var(--surface2);">
-        <td colspan="5" style="padding:14px 20px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window.togglePerson('${pid}')">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;position:relative;overflow:hidden;">
-                <span style="position:relative;z-index:1">${name[0].toUpperCase()}</span>
-                <img class="person-av person-av-${name.replace(/[^a-z0-9]/gi,'_')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
-              </div>
-              <div>
-                <div style="font-weight:600;font-size:15px">${name}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:2px">${entries.length} entries · ${toHm(totalHrs)} total</div>
-              </div>
-            </div>
-            <span id="arr_${pid}" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span>
-          </div>
-          </div>
-        </td>
-      </tr>`;
-      rows += `<tbody id="${pid}" style="display:none;">`;
-      entries.forEach(e => {
-        const hrs = e.total_hours ? Number(e.total_hours).toFixed(2) : null;
-        rows += `<tr style="background:rgba(0,0,0,.15);">
-          <td style="padding-left:66px;color:var(--muted);font-size:13px">${fmtDate(e.clock_in)}</td>
-          <td>${fmtTime(e.clock_in)}</td>
-          <td>${e.clock_out?fmtTime(e.clock_out):'<span style="color:var(--green);font-weight:600">Active ●</span>'}</td>
-          <td style="font-family:'Oxanium',sans-serif;font-weight:600;color:var(--accent)">${hrs?toHm(Number(e.total_hours)):'—'}</td>
-          <td><span class="badge badge-${e.status}">${e.status}</span></td>
-        </tr>`;
-      });
-      rows += `</tbody>`;
-    });
-    tb.innerHTML = rows;
-    // Load avatars for each person
-    Object.keys(byPerson).forEach(name => {
-      const entries = byPerson[name];
-      if(entries.length>0) {
-        const userId = entries[0].user_id;
-        const saved = localStorage.getItem('avatar_'+userId);
-        if(saved) {
-          const imgs = document.querySelectorAll('.person-av-'+name.replace(/[^a-z0-9]/gi,'_'));
-          imgs.forEach(img => { img.src = saved; img.style.display = 'block'; });
-        }
-      }
-    });
-  } catch(e){tb.innerHTML=emptyRow(6,'❌','Failed to load');}
+    tb.innerHTML = html;
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
+  }
 }
 
-function setDefaultDates() {
-  const now=new Date();
-  const s=document.getElementById('pay-start');
-  const e=document.getElementById('pay-end');
-  if(s&&!s.value) s.value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];
-  if(e&&!e.value) e.value=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().split('T')[0];
-}
-
-async function calcPayments() {
-  const start=document.getElementById('pay-start').value;
-  const end=document.getElementById('pay-end').value;
-  const total=parseFloat(document.getElementById('pay-total').value);
-  const errEl=document.getElementById('pay-err');
-  const btn=document.getElementById('btn-calc');
-  if(!start||!end||!total||total<=0){showErr(errEl,'Please fill in all fields');return;}
-  btn.innerHTML='<span class="spinner"></span> Calculating...'; btn.disabled=true; errEl.style.display='none';
+// === MY PAYMENTS ===
+async function loadMyPayments() {
+  const tb = document.getElementById('my-pay-body');
+  tb.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
-    const r=await fetch(`${API}/api/payments/calculate`,{method:'POST',headers:hdr(),body:JSON.stringify({period_start:start,period_end:end,total_amount:total})});
-    const d=await r.json();
-    console.log('Payment response:', JSON.stringify(d));
-    console.log('Full response:', d);
-    const payData = Array.isArray(d) ? d : (d.distributions || d.payments || d.results || d.data || []);
-    if((d.success&&payData.length>0) || (Array.isArray(d)&&d.length>0)){
-      const list=document.getElementById('pay-list');
-      const wrap=document.getElementById('pay-results');
-      wrap.classList.remove('hidden');
-      const payHTML = [];
-      payData.forEach(p => {
-        const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
-        const pct = p.percentage ? \` · \${p.percentage.toFixed(1)}%\` : '';
-        payHTML.push(\`
-        <div class="pay-result-item">
-          <div class="pay-worker">
-            <div class="avatar avatar-sm" style="position:relative;overflow:hidden;">
-              <span style="position:relative;z-index:1">\${(p.nickname||'?')[0].toUpperCase()}</span>
-              <img class="pay-av-\${safeId}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
-            </div>
-            <div>
-              <div style="font-weight:500">\${p.nickname||'Unknown'}</div>
-              <div class="pay-meta">\${Number(p.total_hours||0).toFixed(1)}h · <span class="badge badge-\${p.role}">\${p.role}</span>\${pct}</div>
-            </div>
-          </div>
-          <div class="pay-amount">€\${Number(p.amount).toFixed(2)}</div>
-        </div>\`);
-      });
-      list.innerHTML = payHTML.join('');
-      
-      // Load avatars for payment results
-      payData.forEach(p => {
-        if(p.user_id) {
-          const saved = localStorage.getItem('avatar_'+p.user_id);
-          if(saved) {
-            const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_');
-            const imgs = document.querySelectorAll('.pay-av-'+safeId);
-            imgs.forEach(img => { img.src = saved; img.style.display = 'block'; });
-          }
-        }
-      });
-      toast('✅ Calculation done!');
-      
-      // Show note if no farmers in results
-      const hasFarmers = payData.some(p => p.role === 'farmer');
-      if(!hasFarmers && d.summary) {
-        const note = document.createElement('div');
-        note.style.cssText = 'margin-top:16px;padding:12px 16px;background:rgba(255,181,71,.12);border:1px solid rgba(255,181,71,.3);border-radius:10px;font-size:13px;color:var(--amber);';
-        note.innerHTML = '⚠️ No farmers worked during this period. The 20% farmer pool (€' + (d.summary.farmer_pool||0).toFixed(2) + ') remains unallocated.';
-        list.parentElement.appendChild(note);
-      }
-    } else { showErr(errEl, d.error||'Calculation failed'); }
-  } catch(e){showErr(errEl,'Connection error');}
-  btn.innerHTML='Calculate'; btn.disabled=false;
+    const r = await fetch(API + '/api/payments/my-payments', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.payments || d.payments.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3"><div class="empty"><div class="empty-icon">💵</div><p>No payments recorded yet</p></div></td></tr>';
+      return;
+    }
+    let html = '';
+    d.payments.forEach(p => {
+      html += '<tr>';
+      html += '<td>' + fmtDate(p.period_start) + ' – ' + fmtDate(p.period_end) + '</td>';
+      html += '<td>' + Number(p.total_hours).toFixed(1) + 'h</td>';
+      html += '<td style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green)">€' + Number(p.amount).toFixed(2) + '</td>';
+      html += '</tr>';
+    });
+    tb.innerHTML = html;
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="3"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
+  }
 }
 
+// === PROFILE ===
 function loadProfile() {
-  if(!user) return;
+  if (!user) return;
   document.getElementById('profile-name').textContent = user.nickname;
-  document.getElementById('profile-role').textContent = user.role;
+  document.getElementById('profile-role-txt').textContent = user.role;
   document.getElementById('avatar-letter').textContent = user.nickname[0].toUpperCase();
-  document.getElementById('profile-email').value = user.email||'';
-  // Load saved avatar
-  const savedAvatar = localStorage.getItem('avatar_'+user.id);
-  if(savedAvatar) {
+  document.getElementById('profile-email').value = user.email || '';
+  const savedAvatar = localStorage.getItem('avatar_' + user.id);
+  if (savedAvatar) {
     document.getElementById('avatar-img').src = savedAvatar;
     document.getElementById('avatar-img').style.display = 'block';
+  } else {
+    document.getElementById('avatar-img').style.display = 'none';
   }
-  // Update nav avatar if exists
-  const navAvatar = document.getElementById('avatar-letter');
-  if(navAvatar) navAvatar.textContent = user.nickname[0].toUpperCase();
-}
-
-function removeAvatar() {
-  if(!user) return;
-  localStorage.removeItem('avatar_'+user.id);
-  document.getElementById('avatar-img').style.display = 'none';
-  document.getElementById('avatar-img').src = '';
-  toast('🗑️ Profile picture removed');
 }
 
 function uploadAvatar(input) {
   const file = input.files[0];
-  if(!file) return;
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
     const dataUrl = e.target.result;
-    localStorage.setItem('avatar_'+user.id, dataUrl);
+    localStorage.setItem('avatar_' + user.id, dataUrl);
     document.getElementById('avatar-img').src = dataUrl;
     document.getElementById('avatar-img').style.display = 'block';
     toast('✅ Profile picture updated!');
@@ -973,33 +820,390 @@ function uploadAvatar(input) {
   reader.readAsDataURL(file);
 }
 
+function removeAvatar() {
+  if (!user) return;
+  localStorage.removeItem('avatar_' + user.id);
+  document.getElementById('avatar-img').style.display = 'none';
+  document.getElementById('avatar-img').src = '';
+  toast('🗑️ Profile picture removed');
+}
+
 async function updateProfile() {
   const email = document.getElementById('profile-email').value.trim();
   const errEl = document.getElementById('profile-err');
-  errEl.style.display='none';
+  errEl.style.display = 'none';
   try {
-    const r = await fetch(`${API}/api/users/${user.id}`,{method:'PATCH',headers:hdr(),body:JSON.stringify({email})});
+    const r = await fetch(API + '/api/users/' + user.id, {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({email: email})
+    });
     const d = await r.json();
-    if(d.success){
+    if (d.success) {
       user.email = email;
       localStorage.setItem('wt_user', JSON.stringify(user));
       toast('✅ Email updated!');
-    } else { showErr(errEl, d.error||'Failed to update'); }
-  } catch(e){ showErr(errEl,'Connection error'); }
+    } else {
+      showErr(errEl, d.error || 'Failed to update');
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+  }
 }
 
 async function changePassword() {
   const current = document.getElementById('pwd-current').value;
   const newPwd = document.getElementById('pwd-new').value;
   const errEl = document.getElementById('pwd-err');
-  errEl.style.display='none';
-  if(!current||!newPwd){ showErr(errEl,'Please fill in both fields'); return; }
+  errEl.style.display = 'none';
+  if (!current || !newPwd) {
+    showErr(errEl, 'Please fill in both fields');
+    return;
+  }
   try {
-    const r = await fetch(`${API}/api/auth/change-password`,{method:'POST',headers:hdr(),body:JSON.stringify({currentPassword:current,newPassword:newPwd})});
+    const r = await fetch(API + '/api/users/' + user.id + '/password', {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({currentPassword: current, newPassword: newPwd})
+    });
     const d = await r.json();
-    if(d.success){ toast('✅ Password changed!'); document.getElementById('pwd-current').value=''; document.getElementById('pwd-new').value=''; }
-    else { showErr(errEl, d.error||'Failed to change password'); }
-  } catch(e){ showErr(errEl,'Connection error'); }
+    if (d.success) {
+      toast('✅ Password changed!');
+      document.getElementById('pwd-current').value = '';
+      document.getElementById('pwd-new').value = '';
+    } else {
+      showErr(errEl, d.error || 'Failed to change password');
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+  }
+}
+
+// === WORKERS ===
+async function loadWorkers() {
+  const grid = document.getElementById('workers-grid');
+  grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const r = await fetch(API + '/api/users', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.users || d.users.length === 0) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>';
+      return;
+    }
+    let html = '';
+    d.users.forEach(u => {
+      const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_');
+      html += '<div class="worker-card">';
+      html += '<div class="worker-row">';
+      html += '<div class="avatar">';
+      html += '<span class="avatar-letter">' + u.nickname[0].toUpperCase() + '</span>';
+      html += '<img class="avatar-img av-' + safeId + '">';
+      html += '</div>';
+      html += '<div class="worker-info"><div class="worker-name">' + u.nickname + '</div></div>';
+      html += '<div class="online-dot ' + (u.is_active ? 'on' : '') + '" title="' + (u.is_active ? 'Active' : 'Inactive') + '"></div>';
+      html += '</div>';
+      html += '<div class="worker-actions">';
+      html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
+      html += '<option value="employee"' + (u.role === 'employee' ? ' selected' : '') + '>Employee</option>';
+      html += '<option value="farmer"' + (u.role === 'farmer' ? ' selected' : '') + '>Farmer</option>';
+      html += '<option value="manager"' + (u.role === 'manager' ? ' selected' : '') + '>Manager</option>';
+      html += '<option value="owner"' + (u.role === 'owner' ? ' selected' : '') + '>Owner</option>';
+      html += '</select>';
+      if (!u.is_active) {
+        html += '<button onclick="activateWorker(\'' + u.id + '\')" class="btn-ghost" style="background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.3);color:var(--green);white-space:nowrap;">Activate</button>';
+      }
+      if (u.id !== user.id) {
+        html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + u.nickname + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑</button>';
+      }
+      html += '</div></div>';
+    });
+    grid.innerHTML = html;
+    
+    // Load avatars
+    d.users.forEach(u => {
+      const saved = localStorage.getItem('avatar_' + u.id);
+      if (saved) {
+        const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_');
+        const imgs = document.querySelectorAll('.av-' + safeId);
+        imgs.forEach(img => {
+          img.src = saved;
+          img.style.display = 'block';
+        });
+      }
+    });
+  } catch (e) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>';
+  }
+}
+
+async function registerWorker() {
+  const nick = document.getElementById('r-nick').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass = document.getElementById('r-pass').value;
+  const role = document.getElementById('r-role').value;
+  const errEl = document.getElementById('reg-err');
+  const btn = document.getElementById('btn-add-worker');
+  if (!nick || !pass) {
+    showErr(errEl, 'Name and password are required');
+    return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Adding...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/auth/register', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, role: role})
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ ' + nick + ' added!');
+      document.getElementById('r-nick').value = '';
+      document.getElementById('r-email').value = '';
+      document.getElementById('r-pass').value = '';
+      if (d.user && d.user.id) {
+        await fetch(API + '/api/users/' + d.user.id + '/activate', {method: 'POST', headers: hdr()});
+      }
+      loadWorkers();
+    } else {
+      showErr(errEl, d.error || 'Failed to add worker');
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+  }
+  btn.innerHTML = 'Add Worker';
+  btn.disabled = false;
+}
+
+async function updateRole(userId, newRole) {
+  try {
+    const r = await fetch(API + '/api/users/' + userId, {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({role: newRole})
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Role updated!');
+    } else {
+      toast(d.error || 'Failed to update role', 'err');
+      loadWorkers();
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+    loadWorkers();
+  }
+}
+
+async function activateWorker(userId) {
+  try {
+    const r = await fetch(API + '/api/users/' + userId + '/activate', {method: 'POST', headers: hdr()});
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Worker activated!');
+      loadWorkers();
+    } else {
+      toast(d.error || 'Failed', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+async function deleteWorker(userId, name) {
+  if (!confirm('Delete ' + name + '?')) return;
+  try {
+    const r = await fetch(API + '/api/users/' + userId, {method: 'DELETE', headers: hdr()});
+    const d = await r.json();
+    if (d.success) {
+      toast('🗑️ Worker deleted');
+      loadWorkers();
+    } else {
+      toast(d.error || 'Failed to delete', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+// === ALL HOURS ===
+async function loadAllEntries() {
+  const tb = document.getElementById('all-entries-body');
+  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  try {
+    const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.entries || d.entries.length === 0) {
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
+      return;
+    }
+    
+    // Group by person and filter out 0-hour entries
+    const byPerson = {};
+    d.entries.forEach(e => {
+      if (!e.total_hours || Number(e.total_hours) === 0) return;
+      const key = e.nickname || e.user_id || 'Unknown';
+      if (!byPerson[key]) {
+        byPerson[key] = {entries: [], user_id: e.user_id};
+      }
+      byPerson[key].entries.push(e);
+    });
+    
+    if (Object.keys(byPerson).length === 0) {
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>';
+      return;
+    }
+    
+    let html = '';
+    Object.entries(byPerson).forEach(([name, data]) => {
+      const entries = data.entries;
+      const totalHrs = entries.reduce((sum, e) => sum + (Number(e.total_hours) || 0), 0);
+      const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_');
+      const safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+      
+      html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
+      html += '<td colspan="5" style="padding:14px 20px;">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
+      html += '<div class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:14px;">';
+      html += '<span class="avatar-letter">' + name[0].toUpperCase() + '</span>';
+      html += '<img class="avatar-img av-' + safeId + '">';
+      html += '</div>';
+      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + entries.length + ' entries · ' + toHm(totalHrs) + ' total</div></div></div>';
+      html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span>';
+      html += '</div></td></tr>';
+      
+      html += '<tbody id="' + pid + '" style="display:none;">';
+      entries.forEach(e => {
+        const hrs = Number(e.total_hours);
+        html += '<tr style="background:rgba(0,0,0,.15);">';
+        html += '<td style="padding-left:66px;color:var(--muted);font-size:13px">' + fmtDate(e.clock_in) + '</td>';
+        html += '<td>' + fmtTime(e.clock_in) + '</td>';
+        html += '<td>' + (e.clock_out ? fmtTime(e.clock_out) : '<span style="color:var(--green);font-weight:600">Active ●</span>') + '</td>';
+        html += '<td style="font-family:\'Oxanium\',sans-serif;font-weight:600;color:var(--accent)">' + toHm(hrs) + '</td>';
+        html += '<td><span class="badge badge-' + e.status + '">' + e.status + '</span></td>';
+        html += '</tr>';
+      });
+      html += '</tbody>';
+    });
+    
+    tb.innerHTML = html;
+    
+    // Load avatars
+    Object.entries(byPerson).forEach(([name, data]) => {
+      if (data.user_id) {
+        const saved = localStorage.getItem('avatar_' + data.user_id);
+        if (saved) {
+          const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g, '_');
+          const imgs = document.querySelectorAll('.av-' + safeId);
+          imgs.forEach(img => {
+            img.src = saved;
+            img.style.display = 'block';
+          });
+        }
+      }
+    });
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
+  }
+}
+
+function togglePerson(pid) {
+  const tbody = document.getElementById(pid);
+  const arr = document.getElementById('arr_' + pid);
+  if (!tbody) return;
+  const isHidden = tbody.style.display === 'none';
+  tbody.style.display = isHidden ? '' : 'none';
+  arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+
+// === PAY CALCULATOR ===
+function setDefaultDates() {
+  const now = new Date();
+  const s = document.getElementById('pay-start');
+  const e = document.getElementById('pay-end');
+  if (s && !s.value) s.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  if (e && !e.value) e.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+}
+
+async function calcPayments() {
+  const start = document.getElementById('pay-start').value;
+  const end = document.getElementById('pay-end').value;
+  const total = parseFloat(document.getElementById('pay-total').value);
+  const errEl = document.getElementById('pay-err');
+  const btn = document.getElementById('btn-calc');
+  if (!start || !end || !total || total <= 0) {
+    showErr(errEl, 'Please fill in all fields');
+    return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Calculating...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/payments/calculate', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({period_start: start, period_end: end, total_amount: total})
+    });
+    const d = await r.json();
+    if (d.success && d.distributions && d.distributions.length > 0) {
+      const list = document.getElementById('pay-list');
+      const wrap = document.getElementById('pay-results');
+      wrap.classList.remove('hidden');
+      
+      let html = '';
+      d.distributions.forEach(p => {
+        const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+        const pct = p.percentage ? ' · ' + p.percentage.toFixed(1) + '%' : '';
+        html += '<div class="pay-result-item">';
+        html += '<div class="pay-worker">';
+        html += '<div class="avatar avatar-sm">';
+        html += '<span class="avatar-letter">' + (p.nickname || '?')[0].toUpperCase() + '</span>';
+        html += '<img class="avatar-img pay-av-' + safeId + '">';
+        html += '</div>';
+        html += '<div><div style="font-weight:500">' + (p.nickname || 'Unknown') + '</div>';
+        html += '<div class="pay-meta">' + Number(p.total_hours || 0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div>';
+        html += '</div></div>';
+        html += '<div class="pay-amount">€' + Number(p.amount).toFixed(2) + '</div>';
+        html += '</div>';
+      });
+      list.innerHTML = html;
+      
+      // Load avatars
+      d.distributions.forEach(p => {
+        if (p.user_id) {
+          const saved = localStorage.getItem('avatar_' + p.user_id);
+          if (saved) {
+            const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g, '_');
+            const imgs = document.querySelectorAll('.pay-av-' + safeId);
+            imgs.forEach(img => {
+              img.src = saved;
+              img.style.display = 'block';
+            });
+          }
+        }
+      });
+      
+      // Check for farmers
+      const hasFarmers = d.distributions.some(p => p.role === 'farmer');
+      if (!hasFarmers && d.summary && d.summary.farmer_pool) {
+        const note = document.createElement('div');
+        note.style.cssText = 'margin-top:16px;padding:12px 16px;background:rgba(255,181,71,.12);border:1px solid rgba(255,181,71,.3);border-radius:10px;font-size:13px;color:var(--amber);';
+        note.innerHTML = '⚠️ No farmers worked during this period. The 20% farmer pool (€' + d.summary.farmer_pool.toFixed(2) + ') remains unallocated.';
+        list.appendChild(note);
+      }
+      
+      toast('✅ Calculation done!');
+    } else {
+      showErr(errEl, d.error || 'Calculation failed');
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+  }
+  btn.innerHTML = 'Calculate';
+  btn.disabled = false;
 }
 </script>
 </body>
