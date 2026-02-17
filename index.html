@@ -1487,8 +1487,8 @@ let onlineUsers = new Set();
 let lastMessageId = null;
 let chatPollInterval = null;
 
-// Send heartbeat every 30 seconds to show we're online
-setInterval(sendHeartbeat, 30000);
+// Send heartbeat every 10 seconds to show we're online
+setInterval(sendHeartbeat, 5000);  // Every 5 seconds
 sendHeartbeat(); // Send immediately on load
 
 async function sendHeartbeat() {
@@ -1513,6 +1513,9 @@ async function updateOnlineUsers() {
     }
   } catch (e) {}
 }
+
+// Poll for online users every 5 seconds
+setInterval(updateOnlineUsers, 3000);  // Every 3 seconds
 
 function updateWorkerOnlineStatus() {
   // Update green dots in Workers tab
