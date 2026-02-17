@@ -449,7 +449,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
 
 
   <!-- MANAGEMENT CHAT (only for managers/owners) -->
-  <div id="chat-panel" class="chat-panel admin-only hidden minimized">
+  <div id="chat-panel" class="chat-panel admin-only hidden minimized" style="display:none;">
     <div class="chat-header" onclick="toggleChat()">
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="chat-title">💬 Management Chat</div>
@@ -785,10 +785,20 @@ function showApp() {
   document.getElementById('nav-name').textContent = user.nickname;
   document.getElementById('nav-role').textContent = user.role;
   loadNotifications();
+  
+  // Show/hide management features based on role
   if (['manager', 'owner'].includes(user.role)) {
+    // Show admin tabs and features
     document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     initChat(); // Initialize chat for managers/owners
+  } else {
+    // Hide admin tabs and features for employees/farmers
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.classList.add('hidden');
+      el.style.display = 'none'; // Extra hide
+    });
   }
+  
   loadClockStatus();
   loadStats();
   sendHeartbeat(); // Start online status tracking
@@ -1506,6 +1516,10 @@ async function updateOnlineUsers() {
   if (!token) return;
   try {
     const r = await fetch(API + '/api/users/online', {headers: hdr()});
+    if (!r.ok) {
+      // Rate limited or error - silently fail
+      return;
+    }
     const d = await r.json();
     if (d.success && d.online_users) {
       onlineUsers = new Set(d.online_users.map(u => u.id));
@@ -1573,6 +1587,10 @@ async function loadChatMessages() {
   
   try {
     const r = await fetch(API + '/api/users/chat/messages?limit=50', {headers: hdr()});
+    if (!r.ok) {
+      // Rate limited or error - silently fail
+      return;
+    }
     const d = await r.json();
     
     if (d.success && d.messages) {
@@ -1656,9 +1674,18 @@ function escapeHtml(text) {
 // Start chat polling when app loads (if manager/owner)
 function initChat() {
   if (['manager', 'owner'].includes(user.role)) {
-    document.getElementById('chat-panel').classList.remove('hidden');
-    loadChatMessages(); // Load initial messages
-    setInterval(loadChatMessages, 10000); // Check for new messages every 10 seconds even when minimized
+    const chatPanel = document.getElementById('chat-panel');
+    if (chatPanel) {
+      chatPanel.classList.remove('hidden');
+      loadChatMessages(); // Load initial messages
+      setInterval(loadChatMessages, 10000); // Check for new messages every 10 seconds even when minimized
+    }
+  } else {
+    // Hide chat completely for employees/farmers
+    const chatPanel = document.getElementById('chat-panel');
+    if (chatPanel) {
+      chatPanel.style.display = 'none';
+    }
   }
 }
 
