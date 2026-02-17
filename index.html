@@ -1215,11 +1215,9 @@ async function loadAllEntries() {
       html += '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + entries.length + ' entries · ' + toHm(totalHrs) + ' total</div></div></div>';
       html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span>';
       html += '</div></td></tr>';
-      
-      html += '<tbody id="' + pid + '" style="display:none;">';
       entries.forEach(e => {
         const hrs = Number(e.total_hours);
-        html += '<tr style="background:rgba(0,0,0,.15);">';
+        html += '<tr class="entry-row-' + pid + '" style="background:rgba(0,0,0,.15);display:none;">';
         html += '<td style="padding-left:66px;color:var(--muted);font-size:13px">' + fmtDate(e.clock_in) + '</td>';
         html += '<td>' + fmtTime(e.clock_in) + '</td>';
         html += '<td>' + (e.clock_out ? fmtTime(e.clock_out) : '<span style="color:var(--green);font-weight:600">Active ●</span>') + '</td>';
@@ -1227,7 +1225,6 @@ async function loadAllEntries() {
         html += '<td><span class="badge badge-' + e.status + '">' + e.status + '</span></td>';
         html += '</tr>';
       });
-      html += '</tbody>';
     });
     
     tb.innerHTML = html;
@@ -1252,11 +1249,13 @@ async function loadAllEntries() {
 }
 
 function togglePerson(pid) {
-  const tbody = document.getElementById(pid);
+  const entries = document.querySelectorAll('.entry-row-' + pid);
   const arr = document.getElementById('arr_' + pid);
-  if (!tbody) return;
-  const isHidden = tbody.style.display === 'none';
-  tbody.style.display = isHidden ? '' : 'none';
+  if (!entries.length) return;
+  const isHidden = entries[0].style.display === 'none';
+  entries.forEach(row => {
+    row.style.display = isHidden ? '' : 'none';
+  });
   arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
@@ -1328,7 +1327,7 @@ async function calcPayments() {
       let html = '';
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-        const pct = p.percentage ? ' · ' + p.percentage.toFixed(1) + '%' : '';
+        const pct = p.percentage ? ' · ' + (Number(p.percentage) || 0).toFixed(1) + '%' : '';
         html += '<div class="pay-result-item">';
         html += '<div class="pay-worker">';
         html += '<div class="avatar avatar-sm">';
