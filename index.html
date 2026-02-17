@@ -1504,12 +1504,21 @@ sendHeartbeat(); // Send immediately on load
 async function sendHeartbeat() {
   if (!token || !user) return;
   try {
-    await fetch(API + '/api/users/heartbeat', {
+    const r = await fetch(API + '/api/users/heartbeat', {
       method: 'POST',
       headers: hdr()
     });
+    if (!r.ok && r.status === 401) {
+      // Token expired - refresh the page to login again
+      console.warn('Session expired, redirecting to login...');
+      logout();
+      return;
+    }
     updateOnlineUsers(); // Also fetch who's online
-  } catch (e) {}
+  } catch (e) {
+    console.error('Heartbeat error:', e);
+    // Don't logout on network errors, just skip
+  }
 }
 
 async function updateOnlineUsers() {
@@ -1583,11 +1592,15 @@ function toggleChat() {
 }
 
 async function loadChatMessages() {
-  if (!['manager', 'owner'].includes(user.role)) return;
+  if (!user || !['manager', 'owner'].includes(user.role)) return;
   
   try {
     const r = await fetch(API + '/api/users/chat/messages?limit=50', {headers: hdr()});
     if (!r.ok) {
+      if (r.status === 401) {
+        // Session expired
+        return;
+      }
       // Rate limited or error - silently fail
       return;
     }
@@ -1673,19 +1686,18 @@ function escapeHtml(text) {
 
 // Start chat polling when app loads (if manager/owner)
 function initChat() {
+  const chatPanel = document.getElementById('chat-panel');
+  if (!chatPanel) return;
+  
   if (['manager', 'owner'].includes(user.role)) {
-    const chatPanel = document.getElementById('chat-panel');
-    if (chatPanel) {
-      chatPanel.classList.remove('hidden');
-      loadChatMessages(); // Load initial messages
-      setInterval(loadChatMessages, 10000); // Check for new messages every 10 seconds even when minimized
-    }
+    // Show chat for managers and owners
+    chatPanel.classList.remove('hidden');
+    chatPanel.style.display = 'flex'; // Force display
+    loadChatMessages(); // Load initial messages
+    setInterval(loadChatMessages, 10000); // Check for new messages every 10 seconds even when minimized
   } else {
     // Hide chat completely for employees/farmers
-    const chatPanel = document.getElementById('chat-panel');
-    if (chatPanel) {
-      chatPanel.style.display = 'none';
-    }
+    chatPanel.style.display = 'none';
   }
 }
 
