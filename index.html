@@ -322,13 +322,12 @@ tr:hover td{background:rgba(124,111,247,.03);}
               <span style="font-size:20px">📷</span>
             </div>
           </div>
-          <button onclick="removeAvatar();event.stopPropagation();" style="margin-top:8px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);border-radius:8px;padding:6px 12px;color:var(--danger);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-            Remove Picture
-          </button>
-        </div>
           <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px" id="profile-name"></div>
-          <div style="color:var(--muted);font-size:13px;margin-top:4px" id="profile-role"></div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px" id="profile-name"></div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="profile-role"></div>
+          <button onclick="removeAvatar()" style="background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);border-radius:8px;padding:6px 12px;color:var(--danger);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+            🗑 Remove Picture
+          </button>
         </div>
 
         <!-- Update Email -->
@@ -619,11 +618,14 @@ async function loadMyEntries() {
     const r=await fetch(`${API}/api/time-entries/my-entries?limit=100`,{headers:hdr()});
     const d=await r.json();
     if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(5,'📭','No time entries yet');return;}
-    tb.innerHTML=d.entries.map(e=>`<tr>
+    // Filter out entries with 0 hours
+    const validEntries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
+    if(!validEntries.length) { tb.innerHTML=emptyRow(5,'📭','No completed entries yet'); return; }
+    tb.innerHTML=validEntries.map(e=>`<tr>
       <td>${fmtDate(e.clock_in)}</td>
       <td>${fmtTime(e.clock_in)}</td>
-      <td>${e.clock_out?fmtTime(e.clock_out):'—'}</td>
-      <td>${e.total_hours?Number(e.total_hours).toFixed(2)+'h':'—'}</td>
+      <td>${fmtTime(e.clock_out)}</td>
+      <td>${Number(e.total_hours).toFixed(2)+'h'}</td>
       <td><span class="badge badge-${e.status}">${e.status}</span></td>
     </tr>`).join('');
   } catch(e){tb.innerHTML=emptyRow(5,'❌','Failed to load');}
@@ -655,8 +657,8 @@ async function loadWorkers() {
       <div class="worker-card" style="flex-direction:column;align-items:flex-start;gap:12px;">
         <div style="display:flex;align-items:center;gap:12px;width:100%;">
           <div class="avatar" style="position:relative;overflow:hidden;">
-            <span style="position:relative;z-index:1">${u.nickname[0].toUpperCase()}</span>
-            <img id="w-av-${u.id}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
+            <span class="av-letter-${u.id.replace(/[^a-zA-Z0-9]/g,'_')}" style="position:relative;z-index:1">${u.nickname[0].toUpperCase()}</span>
+            <img class="av-img-${u.id.replace(/[^a-zA-Z0-9]/g,'_')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;">
           </div>
           <div class="worker-info">
             <div class="worker-name">${u.nickname}</div>
@@ -748,18 +750,20 @@ async function loadAllEntries() {
     const r=await fetch(`${API}/api/time-entries?limit=200`,{headers:hdr()});
     const d=await r.json();
     if(!d.success||!d.entries?.length){tb.innerHTML=emptyRow(6,'📭','No entries yet');return;}
-    // Group by PERSON
+    // Group by PERSON and filter out 0-hour entries
     const byPerson = {};
     d.entries.forEach(e => {
+      if(!e.total_hours || Number(e.total_hours) === 0) return; // Skip 0-hour entries
       const key = e.nickname||e.user_id||'Unknown';
       if(!byPerson[key]) byPerson[key]=[];
       byPerson[key].push(e);
     });
+    if(Object.keys(byPerson).length === 0) { tb.innerHTML=emptyRow(5,'📭','No completed entries yet'); return; }
     let rows = '';
     Object.entries(byPerson).forEach(([name, entries]) => {
       const totalHrs = entries.reduce((sum,e)=>sum+(e.total_hours?Number(e.total_hours):0),0);
       const pid = 'p_'+name.replace(/[^a-z0-9]/gi,'_');
-      rows += `<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson('${pid}')">
+      rows += `<tr style="background:var(--surface2);cursor:pointer;" onclick="window.togglePerson('${pid}')">
         <td colspan="5" style="padding:14px 20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -776,7 +780,7 @@ async function loadAllEntries() {
           </div>
         </td>
       </tr>`;
-      rows += `<tbody id="${pid}">`;
+      rows += `<tbody id="${pid}" style="display:none;">`;
       entries.forEach(e => {
         const hrs = e.total_hours ? Number(e.total_hours).toFixed(2) : null;
         rows += `<tr style="background:rgba(0,0,0,.15);">
