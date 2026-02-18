@@ -1345,11 +1345,12 @@ function viewNotification(notifId, notifType, relatedId) {
   if (notifType === 'stock_alert' && relatedId) {
     viewStockAlert(relatedId);
   } else if (notifType === 'payment') {
-    showSection('earnings');
+    go('earnings');
   }
   
   // Close dropdown
   document.getElementById('notif-dropdown').classList.add('hidden');
+  notifDropdownOpen = false;
 }
   
 function renderPaymentNotifications() {
@@ -1395,9 +1396,21 @@ function viewPayment() {
   go('earnings');
 }
 
-function markAllRead() {
-  updateNotifBadge(0);
-  toast('✅ Marked all as read');
+async function markAllRead() {
+  try {
+    const r = await fetch(API + '/api/notifications/mark-all-read', {
+      method: 'POST',
+      headers: hdr()
+    });
+    const d = await r.json();
+    if (d.success) {
+      updateNotifBadge(0);
+      toast('✅ Marked all as read');
+      loadNotifications(); // Refresh to update UI
+    }
+  } catch (e) {
+    console.error('Mark all read error:', e);
+  }
   document.getElementById('notif-dropdown').classList.add('hidden');
   notifDropdownOpen = false;
 }
