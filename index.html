@@ -1310,24 +1310,6 @@ function renderPaymentNotifications() {
     return;
   }
   
-  let html = '';
-  notifications.slice(0, 10).forEach(n => {
-    const amount = parseFloat(n.amount) || 0;
-    
-    html += '<div class="notif-item" onclick="viewPayment(); event.stopPropagation();">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
-    html += '<div style="font-size:20px;">💰</div>';
-    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;">Payment Received</div>';
-    html += '<div style="font-size:11px;color:var(--muted);">' + fmtDate(n.period_start) + ' – ' + fmtDate(n.period_end) + '</div></div>';
-    html += '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>';
-    html += '</div>';
-    html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green);font-size:15px;">€' + amount.toFixed(2) + '</div>';
-    html += '</div>';
-  });
-  
-  list.innerHTML = html;
-}
-
 function viewStockAlert(alertId) {
   document.getElementById('notif-dropdown').classList.add('hidden');
   notifDropdownOpen = false;
