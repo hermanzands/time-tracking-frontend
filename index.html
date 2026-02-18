@@ -1341,74 +1341,7 @@ function viewStockAlert(alertId) {
   
   loadNotifications();
 }
-    function renderStockNotifications() {
-  const list = document.getElementById('notif-list');
-  if (notifications.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No notifications</div>';
-    return;
-  }
-  
-  let html = '';
-  notifications.forEach(n => {
-    const unreadClass = n.is_read ? '' : ' unread';
-    const timeAgo = getTimeAgo(new Date(n.created_at));
-    
-    html += '<div class="notif-item' + unreadClass + '" onclick="viewStockAlert(\'' + n.related_id + '\'); event.stopPropagation();">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
-    html += '<div style="font-size:20px;">📦</div>';
-    html += '<div style="flex:1;">';
-    html += '<div style="font-weight:600;font-size:13px;">Stock Alert</div>';
-    html += '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + escapeHtml(n.message) + '</div>';
-    html += '</div>';
-    if (!n.is_read) {
-      html += '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>';
-    }
-    html += '</div>';
-    html += '<div style="font-size:11px;color:var(--muted);">' + timeAgo + '</div>';
-    html += '</div>';
-  });
-  
-  list.innerHTML = html;
-}
-
-function renderPaymentNotifications() {
-  const list = document.getElementById('notif-list');
-  if (notifications.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No payments yet</div>';
-    return;
-  }
-  
-  let html = '';
-  notifications.slice(0, 10).forEach(n => {
-    html += '<div class="notif-item" onclick="viewPayment(); event.stopPropagation();">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
-    html += '<div style="font-size:20px;">💰</div>';
-    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;">Payment Received</div>';
-    html += '<div style="font-size:11px;color:var(--muted);">' + fmtDate(n.period_start) + ' – ' + fmtDate(n.period_end) + '</div></div>';
-    html += '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>';
-    html += '</div>';
-    html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green);font-size:15px;">€' + (Number(n.amount) || 0).toFixed(2) + '</div>';
-    html += '</div>';
-  });
-  
-  list.innerHTML = html;
-}
-
-function viewStockAlert(alertId) {
-  document.getElementById('notif-dropdown').classList.add('hidden');
-  notifDropdownOpen = false;
-  go('stock');
-  
-  // Mark as read
-  fetch(API + '/api/users/notifications/stock/' + alertId + '/read', {
-    method: 'PATCH',
-    headers: hdr()
-  }).catch(e => {});
-  
-  loadNotifications();
-}
-    
-    // Regular users see payment notifications
+        // Regular users see payment notifications
     const r = await fetch(API + '/api/payments/my-payments?limit=10', {headers: hdr()});
     const d = await r.json();
     if (d.success && d.payments) {
