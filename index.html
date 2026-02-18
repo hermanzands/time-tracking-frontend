@@ -1275,13 +1275,17 @@ async function loadNotifications() {
 }
 function renderStockNotifications() {
   const list = document.getElementById('notif-list');
-  if (notifications.length === 0) {
+  
+  // Filter to only show stock alert notifications (those with related_id)
+  const stockNotifications = notifications.filter(n => n.related_id);
+  
+  if (stockNotifications.length === 0) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No notifications</div>';
     return;
   }
   
   let html = '';
-  notifications.forEach(n => {
+  stockNotifications.forEach(n => {
     const unreadClass = n.is_read ? '' : ' unread';
     const timeAgo = getTimeAgo(new Date(n.created_at));
     
