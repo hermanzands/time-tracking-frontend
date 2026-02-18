@@ -1276,8 +1276,8 @@ async function loadNotifications() {
 function renderStockNotifications() {
   const list = document.getElementById('notif-list');
   
-  // Filter to only show stock alert notifications (those with related_id)
-  const stockNotifications = notifications.filter(n => n.related_id);
+// Show all notifications (stock alerts, payments, system)
+const stockNotifications = notifications;
   
   if (stockNotifications.length === 0) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No notifications</div>';
