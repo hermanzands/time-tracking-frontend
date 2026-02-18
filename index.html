@@ -1186,9 +1186,20 @@ async function loadWorkers() {
       grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>';
       return;
     }
+    
+    // ⭐ Filter to only show ACTIVE users
+    const activeUsers = d.users.filter(u => u.is_active);
+    
+    if (activeUsers.length === 0) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active workers yet</p></div>';
+      return;
+    }
+    
     let html = '';
-    d.users.forEach(u => {
+    activeUsers.forEach(u => {
       const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_');
+      const safeName = u.nickname.replace(/'/g, "\\'");
+      
       html += '<div class="worker-card">';
       html += '<div class="worker-row">';
       html += '<div class="avatar">';
@@ -1206,18 +1217,16 @@ async function loadWorkers() {
       html += '<option value="manager"' + (u.role === 'manager' ? ' selected' : '') + '>Manager</option>';
       html += '<option value="owner"' + (u.role === 'owner' ? ' selected' : '') + '>Owner</option>';
       html += '</select>';
-      if (!u.is_active) {
-        html += '<button onclick="activateWorker(\'' + u.id + '\')" class="btn-ghost" style="background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.3);color:var(--green);white-space:nowrap;">Activate</button>';
-      }
+      
       if (u.id !== user.id) {
-        html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + u.nickname + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>';
+        html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>';
       }
       html += '</div></div>';
     });
     grid.innerHTML = html;
     
     // Load avatars
-    d.users.forEach(u => {
+    activeUsers.forEach(u => {
       const saved = localStorage.getItem('avatar_' + u.id);
       if (saved) {
         const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_');
@@ -1309,9 +1318,26 @@ async function activateWorker(userId) {
 }
 
 async function deleteWorker(userId, name) {
-  if (!confirm('Delete ' + name + '?')) return;
+  const confirmed = await showModal({
+    icon: '🗑️',
+    title: 'Delete Worker?',
+    message: 'This will permanently delete ' + name + ' and all their data. This action cannot be undone.',
+    confirmText: 'Delete',
+    danger: true
+  });
+  
+  if (!confirmed) return;
+  
   try {
-    const r = await fetch(API + '/api/users/' + userId, {method: 'DELETE', headers: hdr()});
+    const r = await fetch(API + '/api/users/' + userId, {
+      method: 'DELETE',
+      headers: hdr()
+    });
+    
+    if (!r.ok) {
+      throw new Error('HTTP ' + r.status);
+    }
+    
     const d = await r.json();
     if (d.success) {
       toast('🗑️ Worker deleted');
@@ -1320,10 +1346,11 @@ async function deleteWorker(userId, name) {
       toast(d.error || 'Failed to delete', 'err');
     }
   } catch (e) {
-    toast('Connection error', 'err');
+    console.error('Delete worker error:', e);
+    toast('Failed to delete worker', 'err');
   }
 }
-
+  
 // === ALL HOURS ===
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
@@ -1962,22 +1989,17 @@ function renderPendingEmployees(pending) {
   
   if (!list || !count) return;
   
-  // Show/hide card based on role
-  if (['manager', 'owner'].includes(user.role)) {
-    card.classList.remove('hidden');
-    card.style.display = 'block';
-  }
-  
   count.textContent = pending.length;
   
   if (pending.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No pending approvals</div>';
+    list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;"><div style="font-size:48px;margin-bottom:12px;">✅</div><div style="font-weight:600;margin-bottom:6px;">No Pending Approvals</div><div style="font-size:13px;">All registrations have been reviewed</div></div>';
     return;
   }
   
   let html = '';
   pending.forEach(emp => {
     const initial = (emp.nickname || '?')[0].toUpperCase();
+    const safeName = emp.nickname.replace(/'/g, "\\'");
     const registeredTime = new Date(emp.created_at);
     const now = new Date();
     const diffMs = now - registeredTime;
@@ -1999,15 +2021,15 @@ function renderPendingEmployees(pending) {
     html += '<div class="pending-item">';
     html += '<div class="pending-avatar">' + initial + '</div>';
     html += '<div class="pending-info">';
-    html += '<div class="pending-name">' + escapeHtml(emp.nickname) + '</div>';
+    html += '<div class="pending-name">' + emp.nickname + '</div>';
     if (emp.email) {
-      html += '<div class="pending-email">📧 ' + escapeHtml(emp.email) + '</div>';
+      html += '<div class="pending-email">📧 ' + emp.email + '</div>';
     }
     html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div>';
     html += '</div>';
     html += '<div class="pending-actions">';
-    html += '<button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + escapeHtml(emp.nickname) + '\')">✓ Approve</button>';
-    html += '<button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + escapeHtml(emp.nickname) + '\')">✕ Reject</button>';
+    html += '<button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✓ Approve</button>';
+    html += '<button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✕ Reject</button>';
     html += '</div>';
     html += '</div>';
   });
