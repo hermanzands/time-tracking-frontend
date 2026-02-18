@@ -473,7 +473,25 @@ tr:hover td{background:rgba(124,111,247,.03);}
 
       <!-- PENDING APPROVALS -->
       <div class="panel" id="panel-pending">
-        ... paste the new panel code here ...
+        <div class="page-title">Pending Approvals</div>
+        <div class="page-sub">Review and approve new employee registrations</div>
+        
+        <div class="form-card">
+          <div class="form-card-title" style="display:flex;align-items:center;gap:8px;">
+            <span>⏳</span>
+            <span>Waiting for Your Approval</span>
+            <span id="pending-count" style="background:var(--amber);color:#080810;padding:2px 10px;border-radius:6px;font-size:12px;margin-left:auto;font-weight:700;">0</span>
+          </div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">New employees who have registered and are waiting for approval</div>
+          
+          <div id="pending-list" class="pending-list">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
+              <div style="font-size:48px;margin-bottom:12px;">✅</div>
+              <div style="font-weight:600;margin-bottom:6px;">No Pending Approvals</div>
+              <div style="font-size:13px;">All registrations have been reviewed</div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- ALL HOURS -->
