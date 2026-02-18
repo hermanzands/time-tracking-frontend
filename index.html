@@ -469,6 +469,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <button class="nav-item admin-only hidden" id="si-pending" onclick="go('pending')"><span class="icon">⏳</span>Pending Approvals</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
       <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
+      <button class="nav-item" id="si-stock" onclick="go('stock')"><span class="icon">📦</span>Stock Alerts</button>
     </aside>
 
     <main class="main">
@@ -1112,6 +1113,7 @@ function go(panel) {
   if (panel === 'pending') loadPendingEmployees();
   if (panel === 'allhours') loadAllEntries();
   if (panel === 'payments') setDefaultDates();
+  if (panel === 'stock') loadStockAlerts();
   if (panel === 'profile') loadProfile();
 }
 
