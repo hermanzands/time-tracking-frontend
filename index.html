@@ -779,12 +779,14 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="page-sub">Manage your team</div>
         <div class="form-card">
           <div class="form-card-title">➕ Add New Worker</div>
-          <div class="form-row">
-            <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
-            <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
-            <div class="field"><label>Employee ID / SID</label><input id="r-sid" type="text" placeholder="e.g. 12345"></div>
-            <div class="field"><label>Phone</label><input id="r-phone" type="tel" placeholder="e.g. (690-123-4567) "></div>
-          </div>
+        <div class="form-row">
+          <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
+          <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Employee ID / SID</label><input id="r-sid" type="text" placeholder="e.g. EMP001"></div>
+          <div class="field"><label>Phone</label><input id="r-phone" type="tel" placeholder="e.g. +31 6 12345678"></div>
+        </div>
           <div class="form-row">
             <div class="field"><label>Password</label>
               <div class="pwd-wrap">
@@ -1343,6 +1345,7 @@ function go(panel) {
   if (panel === 'allhours') loadAllEntries();
   if (panel === 'payments') setDefaultDates();
   if (panel === 'stock') loadStockAlerts();
+  if (panel === 'employees') loadEmployees();
   if (panel === 'profile') loadProfile();
 }
 
