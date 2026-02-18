@@ -880,6 +880,7 @@ function showApp() {
     // Show admin tabs and features
     document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     initChat(); // Initialize chat for managers/owners
+    loadPendingEmployees(); // Load pending approvals
   } else {
     // Hide admin tabs and features for employees/farmers
     document.querySelectorAll('.admin-only').forEach(el => {
@@ -901,7 +902,10 @@ function go(panel) {
   document.getElementById('panel-' + panel).classList.add('active');
   if (panel === 'hours') loadMyEntries();
   if (panel === 'earnings') loadMyPayments();
-  if (panel === 'workers') loadWorkers();
+  if (panel === 'workers') {
+  loadWorkers();
+  loadPendingEmployees();
+}
   if (panel === 'allhours') loadAllEntries();
   if (panel === 'payments') setDefaultDates();
   if (panel === 'profile') loadProfile();
@@ -2049,35 +2053,6 @@ async function rejectEmployee(userId, nickname) {
     }
   } catch (e) {
     toast('Connection error', 'err');
-  }
-}
-
-// Call loadPendingEmployees when Workers panel is opened
-// Update your go() function to include this:
-function go(panel) {
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  const si = document.getElementById('si-' + panel);
-  if (si) si.classList.add('active');
-  document.getElementById('panel-' + panel).classList.add('active');
-  if (panel === 'hours') loadMyEntries();
-  if (panel === 'earnings') loadMyPayments();
-  if (panel === 'workers') {
-    loadWorkers();
-    loadPendingEmployees(); // ← ADD THIS LINE
-  }
-  if (panel === 'allhours') loadAllEntries();
-  if (panel === 'payments') setDefaultDates();
-  if (panel === 'profile') loadProfile();
-}
-
-// Also load on initial page load for managers
-// Add to showApp() function:
-function showApp() {
-  // ... existing code ...
-  
-  if (['manager', 'owner'].includes(user.role)) {
-    loadPendingEmployees(); // Load pending approvals
   }
 }
 
