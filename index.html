@@ -374,15 +374,15 @@ tr:hover td{background:rgba(124,111,247,.03);}
 /* EMPLOYEE DIRECTORY */
 .employees-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-  gap:16px;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:14px;
 }
 
 .employee-card{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:24px;
+  border-radius:16px;
+  padding:18px;
   transition:all .2s;
   cursor:pointer;
 }
@@ -396,75 +396,63 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .employee-card-header{
   display:flex;
   align-items:center;
-  gap:16px;
-  margin-bottom:20px;
-  padding-bottom:16px;
+  gap:12px;
+  margin-bottom:16px;
+  padding-bottom:12px;
   border-bottom:1px solid var(--border);
 }
 
 .employee-avatar-large{
-  width:64px;
-  height:64px;
-  border-radius:16px;
+  width:52px;
+  height:52px;
+  border-radius:14px;
   background:linear-gradient(135deg,var(--accent),#ff6b8a);
   display:flex;
   align-items:center;
   justify-content:center;
   font-family:'Syne',sans-serif;
   font-weight:700;
-  font-size:24px;
+  font-size:20px;
   color:#fff;
   flex-shrink:0;
   position:relative;
   overflow:hidden;
 }
 
-.employee-header-info{
-  flex:1;
-}
-
 .employee-name{
   font-family:'Syne',sans-serif;
   font-weight:700;
-  font-size:18px;
-  margin-bottom:6px;
-}
-
-.employee-role-badge{
-  display:inline-block;
+  font-size:16px;
+  margin-bottom:5px;
 }
 
 .employee-details{
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:10px;
 }
 
 .employee-detail-row{
   display:flex;
   align-items:center;
-  gap:12px;
-  font-size:14px;
+  gap:10px;
+  font-size:13px;
 }
 
 .employee-detail-icon{
-  width:32px;
-  height:32px;
-  border-radius:8px;
+  width:28px;
+  height:28px;
+  border-radius:7px;
   background:var(--surface2);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:16px;
+  font-size:14px;
   flex-shrink:0;
 }
 
-.employee-detail-content{
-  flex:1;
-}
-
 .employee-detail-label{
-  font-size:11px;
+  font-size:10px;
   color:var(--muted);
   text-transform:uppercase;
   letter-spacing:.06em;
@@ -475,8 +463,8 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .employee-detail-value{
   color:var(--text);
   font-weight:500;
+  font-size:13px;
 }
-
 .employee-detail-value a{
   color:var(--accent);
   text-decoration:none;
@@ -2879,13 +2867,18 @@ async function loadEmployees() {
   }
 }
 
-// Render employee cards
 function renderEmployees(employees) {
   const grid = document.getElementById('employees-grid');
   if (!grid) return;
   
+  // Sort by role: Owner > Manager > Farmer > Employee
+  const roleOrder = { owner: 0, manager: 1, farmer: 2, employee: 3 };
+  const sortedEmployees = [...employees].sort((a, b) => {
+    return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+  });
+  
   let html = '';
-  employees.forEach(emp => {
+  sortedEmployees.forEach(emp => {
     const initial = (emp.nickname || '?')[0].toUpperCase();
     const safeId = emp.id.replace(/[^a-zA-Z0-9]/g, '_');
     
@@ -2903,7 +2896,7 @@ function renderEmployees(employees) {
     html += '</div>';
     html += '</div>';
     
-    // Details
+    // Details (NO EMAIL, PLAIN TEXT PHONE)
     html += '<div class="employee-details">';
     
     // SID
@@ -2916,23 +2909,13 @@ function renderEmployees(employees) {
       html += '</div></div>';
     }
     
-    // Phone
+    // Phone (PLAIN TEXT - NO LINK)
     if (emp.phone) {
       html += '<div class="employee-detail-row">';
       html += '<div class="employee-detail-icon">📞</div>';
       html += '<div class="employee-detail-content">';
       html += '<div class="employee-detail-label">Phone</div>';
-      html += '<div class="employee-detail-value"><a href="tel:' + emp.phone + '">' + escapeHtml(emp.phone) + '</a></div>';
-      html += '</div></div>';
-    }
-    
-    // Email
-    if (emp.email) {
-      html += '<div class="employee-detail-row">';
-      html += '<div class="employee-detail-icon">📧</div>';
-      html += '<div class="employee-detail-content">';
-      html += '<div class="employee-detail-label">Email</div>';
-      html += '<div class="employee-detail-value"><a href="mailto:' + emp.email + '">' + escapeHtml(emp.email) + '</a></div>';
+      html += '<div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div>';
       html += '</div></div>';
     }
     
@@ -2951,7 +2934,7 @@ function renderEmployees(employees) {
   grid.innerHTML = html;
   
   // Load avatars
-  employees.forEach(emp => {
+  sortedEmployees.forEach(emp => {
     const saved = localStorage.getItem('avatar_' + emp.id);
     if (saved) {
       const safeId = emp.id.replace(/[^a-zA-Z0-9]/g, '_');
