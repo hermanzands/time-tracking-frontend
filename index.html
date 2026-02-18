@@ -1341,26 +1341,6 @@ function viewStockAlert(alertId) {
   
   loadNotifications();
 }
-        // Regular users see payment notifications
-    const r = await fetch(API + '/api/payments/my-payments?limit=10', {headers: hdr()});
-    const d = await r.json();
-    if (d.success && d.payments) {
-      notifications = d.payments;
-      renderPaymentNotifications();
-      const unreadCount = notifications.length;
-      updateNotifBadge(unreadCount);
-    }
-  } catch (e) {
-    console.error('Load notifications error:', e);
-  }
-}
-
-function renderNotifications() {
-  const list = document.getElementById('notif-list');
-  if (notifications.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No payments yet</div>';
-    return;
-  }
   
   let html = '';
   notifications.slice(0, 10).forEach(n => {
