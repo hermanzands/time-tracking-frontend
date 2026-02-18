@@ -1247,15 +1247,31 @@ function toggleNotifications() {
 
 async function loadNotifications() {
   try {
+    // Managers/owners see stock alerts
+    if (['manager', 'owner'].includes(user.role)) {
+      const r = await fetch(API + '/api/users/notifications?limit=20', {headers: hdr()});
+      const d = await r.json();
+      if (d.success && d.notifications) {
+        notifications = d.notifications;
+        renderStockNotifications();
+        const unreadCount = d.notifications.filter(n => !n.is_read).length;
+        updateNotifBadge(unreadCount);
+      }
+      return;
+    }
+    
+    // Regular users see payment notifications
     const r = await fetch(API + '/api/payments/my-payments?limit=10', {headers: hdr()});
     const d = await r.json();
     if (d.success && d.payments) {
       notifications = d.payments;
-      renderNotifications();
-      const unreadCount = notifications.length; // Treat all as unread for now
+      renderPaymentNotifications();
+      const unreadCount = notifications.length;
       updateNotifBadge(unreadCount);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Load notifications error:', e);
+  }
 }
 
 function renderNotifications() {
