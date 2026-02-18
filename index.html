@@ -239,6 +239,138 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .btn-approve:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,229,160,.3);background:#00ffb3;}
 .btn-reject{background:rgba(255,85,102,.15);color:var(--danger);border:1.5px solid rgba(255,85,102,.3);padding:9px 20px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
 .btn-reject:hover{background:rgba(255,85,102,.25);border-color:var(--danger);transform:translateY(-2px);}  
+
+/* STOCK ALERTS */
+.stock-alerts-list{display:flex;flex-direction:column;gap:16px;}
+
+.stock-alert-item{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  display:flex;
+  gap:16px;
+  transition:all .2s;
+}
+.stock-alert-item:hover{border-color:var(--accent);}
+
+.stock-alert-item.restocked{
+  opacity:.6;
+  background:var(--bg);
+}
+
+.stock-alert-photo{
+  width:120px;
+  height:120px;
+  border-radius:12px;
+  object-fit:cover;
+  flex-shrink:0;
+  border:1px solid var(--border);
+}
+
+.stock-alert-content{flex:1;display:flex;flex-direction:column;gap:8px;}
+
+.stock-alert-header{display:flex;align-items:center;justify-content:space-between;}
+
+.stock-alert-user{
+  font-weight:600;
+  font-size:14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.stock-alert-note{
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+}
+
+.stock-alert-meta{
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.stock-alert-actions{
+  display:flex;
+  gap:8px;
+  margin-top:auto;
+}
+
+.badge-pending{
+  background:rgba(255,181,71,.15);
+  color:var(--amber);
+  border:1px solid rgba(255,181,71,.3);
+}
+
+.badge-restocked{
+  background:rgba(0,229,160,.15);
+  color:var(--green);
+  border:1px solid rgba(0,229,160,.3);
+}
+
+.btn-restock{
+  background:var(--green);
+  color:#080810;
+  padding:8px 16px;
+  border-radius:10px;
+  border:none;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all .2s;
+}
+
+.btn-restock:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(0,229,160,.3);
+  background:#00ffb3;
+}
+
+.stock-tab{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:9px;
+  cursor:pointer;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:14px;
+  background:transparent;
+  color:var(--muted);
+  transition:all .2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+
+.stock-tab.active{
+  background:var(--accent);
+  color:#fff;
+}
+
+.stock-tab-badge{
+  background:rgba(255,255,255,.2);
+  padding:2px 8px;
+  border-radius:6px;
+  font-size:11px;
+}
+
+.stock-tab.active .stock-tab-badge{
+  background:rgba(255,255,255,.3);
+}
+
+/* Mobile responsive */
+@media(max-width:700px){
+  .stock-alert-item{flex-direction:column;}
+  .stock-alert-photo{width:100%;height:200px;}
+}
+  
 </style>
 </head>
 <body>
@@ -489,6 +621,67 @@ tr:hover td{background:rgba(124,111,247,.03);}
               <div style="font-size:48px;margin-bottom:12px;">✅</div>
               <div style="font-weight:600;margin-bottom:6px;">No Pending Approvals</div>
               <div style="font-size:13px;">All registrations have been reviewed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+       <!-- STOCK ALERTS -->
+      <div class="panel" id="panel-stock">
+        <div class="page-title">Stock Alerts</div>
+        <div class="page-sub">Report and track low stock items</div>
+        
+        <!-- Upload Form (All users) -->
+        <div class="form-card">
+          <div class="form-card-title">📦 Report Low Stock</div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Upload a photo and describe what needs restocking</div>
+          
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <!-- Photo Preview -->
+            <div id="stock-photo-preview" style="display:none;">
+              <img id="stock-photo-img" style="max-width:100%;max-height:300px;border-radius:12px;border:1px solid var(--border);">
+            </div>
+            
+            <!-- Upload Button -->
+            <div>
+              <input type="file" id="stock-photo-input" accept="image/*" style="display:none" onchange="previewStockPhoto(this)">
+              <button onclick="document.getElementById('stock-photo-input').click()" class="btn btn-ghost" style="width:100%;">
+                📷 Choose Photo
+              </button>
+            </div>
+            
+            <!-- Note Input -->
+            <div class="field">
+              <label>What needs restocking?</label>
+              <textarea id="stock-note-input" placeholder="e.g. Coffee beans running low, need to order more" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;resize:vertical;min-height:80px;outline:none;"></textarea>
+            </div>
+            
+            <!-- Submit Button -->
+            <button id="btn-submit-stock" onclick="submitStockAlert()" class="btn btn-primary btn-sm" disabled>
+              ➕ Submit Alert
+            </button>
+            <div class="err-box" id="stock-err"></div>
+          </div>
+        </div>
+        
+        <!-- Manager Tabs -->
+        <div class="admin-only hidden" id="stock-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+          <button class="stock-tab active" data-tab="pending" onclick="switchStockTab('pending')">
+            Pending <span id="stock-pending-count" class="stock-tab-badge">0</span>
+          </button>
+          <button class="stock-tab" data-tab="completed" onclick="switchStockTab('completed')">
+            Completed <span id="stock-completed-count" class="stock-tab-badge">0</span>
+          </button>
+        </div>
+        
+        <!-- Alerts List -->
+        <div class="form-card">
+          <div class="form-card-title" id="stock-list-title">Your Alerts</div>
+          <div id="stock-alerts-list" class="stock-alerts-list">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
+              <div style="font-size:48px;margin-bottom:12px;">📦</div>
+              <div style="font-weight:600;margin-bottom:6px;">No Stock Alerts</div>
+              <div style="font-size:13px;">Upload a photo to report low stock</div>
             </div>
           </div>
         </div>
@@ -2038,7 +2231,15 @@ function renderPendingEmployees(pending) {
 }
 
 async function approveEmployee(userId, nickname) {
-  if (!confirm('Approve ' + nickname + '?')) return;
+  const confirmed = await showModal({
+    icon: '✅',
+    title: 'Approve Employee?',
+    message: 'Activate ' + nickname + '\'s account so they can start logging hours.',
+    confirmText: 'Approve',
+    danger: false  // Green button
+  });
+  
+  if (!confirmed) return;
   
   try {
     const r = await fetch(API + '/api/users/' + userId + '/activate', {
@@ -2049,8 +2250,8 @@ async function approveEmployee(userId, nickname) {
     const d = await r.json();
     if (d.success) {
       toast('✅ ' + nickname + ' approved!');
-      loadPendingEmployees(); // Refresh list
-      loadWorkers(); // Refresh workers grid
+      loadPendingEmployees();
+      loadWorkers();
     } else {
       toast(d.error || 'Failed to approve', 'err');
     }
@@ -2098,6 +2299,307 @@ setInterval(() => {
 // Refresh clocked-in list every 30 seconds
 setInterval(loadClockedInUsers, 30000);
 
+// === STOCK ALERTS ===
+let currentStockTab = 'pending';
+let stockPhotoData = null;
+
+// Preview uploaded photo
+function previewStockPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  // Check file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    toast('Image too large. Max 5MB', 'err');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    stockPhotoData = e.target.result;
+    document.getElementById('stock-photo-img').src = stockPhotoData;
+    document.getElementById('stock-photo-preview').style.display = 'block';
+    updateStockSubmitButton();
+  };
+  reader.readAsDataURL(file);
+}
+
+// Update submit button state
+function updateStockSubmitButton() {
+  const btn = document.getElementById('btn-submit-stock');
+  const note = document.getElementById('stock-note-input').value.trim();
+  btn.disabled = !stockPhotoData || !note;
+}
+
+// Listen to note input
+if (document.getElementById('stock-note-input')) {
+  document.getElementById('stock-note-input').addEventListener('input', updateStockSubmitButton);
+}
+
+// Submit stock alert
+async function submitStockAlert() {
+  const note = document.getElementById('stock-note-input').value.trim();
+  const errEl = document.getElementById('stock-err');
+  const btn = document.getElementById('btn-submit-stock');
+  
+  if (!stockPhotoData) {
+    showErr(errEl, 'Please upload a photo');
+    return;
+  }
+  
+  if (!note) {
+    showErr(errEl, 'Please describe what needs restocking');
+    return;
+  }
+  
+  btn.innerHTML = '<span class="spinner"></span> Submitting...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  
+  try {
+    const r = await fetch(API + '/api/stock-alerts', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({
+        image_data: stockPhotoData,
+        note: note
+      })
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Stock alert submitted!');
+      
+      // Reset form
+      stockPhotoData = null;
+      document.getElementById('stock-photo-input').value = '';
+      document.getElementById('stock-photo-preview').style.display = 'none';
+      document.getElementById('stock-note-input').value = '';
+      
+      // Reload alerts
+      loadStockAlerts();
+    } else {
+      showErr(errEl, d.error || 'Failed to submit alert');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    showErr(errEl, 'Connection error');
+    btn.disabled = false;
+  }
+  
+  btn.innerHTML = '➕ Submit Alert';
+}
+
+// Load stock alerts
+async function loadStockAlerts() {
+  const list = document.getElementById('stock-alerts-list');
+  if (!list) return;
+  
+  list.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner"></span></div>';
+  
+  try {
+    // Determine which status to show based on active tab
+    let url = API + '/api/stock-alerts';
+    if (['manager', 'owner'].includes(user.role)) {
+      // Managers see filtered by tab
+      const status = currentStockTab === 'pending' ? 'pending' : 'restocked';
+      url += '?status=' + status;
+    }
+    
+    const r = await fetch(url, {headers: hdr()});
+    const d = await r.json();
+    
+    if (d.success && d.alerts) {
+      renderStockAlerts(d.alerts);
+      updateStockCounts(d.alerts);
+    } else {
+      list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;"><div style="font-size:48px;margin-bottom:12px;">📦</div><div style="font-weight:600;margin-bottom:6px;">No Stock Alerts</div><div style="font-size:13px;">Upload a photo to report low stock</div></div>';
+    }
+  } catch (e) {
+    console.error('Load stock alerts error:', e);
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);">Failed to load alerts</div>';
+  }
+}
+
+// Render stock alerts
+function renderStockAlerts(alerts) {
+  const list = document.getElementById('stock-alerts-list');
+  
+  if (alerts.length === 0) {
+    const emptyMsg = currentStockTab === 'pending' 
+      ? 'No pending stock alerts'
+      : 'No completed restocks yet';
+    list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;"><div style="font-size:48px;margin-bottom:12px;">✅</div><div style="font-weight:600;margin-bottom:6px;">' + emptyMsg + '</div></div>';
+    return;
+  }
+  
+  let html = '';
+  alerts.forEach(alert => {
+    const isRestocked = alert.status === 'restocked';
+    const timeAgo = getTimeAgo(new Date(alert.created_at));
+    const showUser = ['manager', 'owner'].includes(user.role);
+    
+    html += '<div class="stock-alert-item' + (isRestocked ? ' restocked' : '') + '">';
+    html += '<img src="' + alert.image_data + '" class="stock-alert-photo">';
+    html += '<div class="stock-alert-content">';
+    
+    html += '<div class="stock-alert-header">';
+    if (showUser) {
+      html += '<div class="stock-alert-user">';
+      html += '<span class="avatar" style="width:24px;height:24px;font-size:11px;">';
+      html += '<span class="avatar-letter">' + (alert.user_nickname || '?')[0].toUpperCase() + '</span>';
+      html += '</span>';
+      html += alert.user_nickname;
+      html += '</div>';
+    }
+    html += '<span class="badge badge-' + alert.status + '">' + alert.status.toUpperCase() + '</span>';
+    html += '</div>';
+    
+    html += '<div class="stock-alert-note">' + escapeHtml(alert.note) + '</div>';
+    
+    html += '<div class="stock-alert-meta">';
+    html += '<span>📅 ' + timeAgo + '</span>';
+    if (isRestocked && alert.restocked_by_nickname) {
+      html += '<span>✅ Restocked by ' + alert.restocked_by_nickname + '</span>';
+    }
+    html += '</div>';
+    
+    // Actions (managers only, pending only)
+    if (['manager', 'owner'].includes(user.role) && !isRestocked) {
+      html += '<div class="stock-alert-actions">';
+      html += '<button onclick="markRestocked(\'' + alert.id + '\')" class="btn-restock">✓ Mark Restocked</button>';
+      html += '<button onclick="deleteStockAlert(\'' + alert.id + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:8px 16px;">🗑️</button>';
+      html += '</div>';
+    }
+    
+    html += '</div></div>';
+  });
+  
+  list.innerHTML = html;
+}
+
+// Update stock counts for manager tabs
+function updateStockCounts(allAlerts) {
+  if (!['manager', 'owner'].includes(user.role)) return;
+  
+  // For managers, we need to fetch both pending and completed for accurate counts
+  // The current call only gets one status
+  // So let's fetch totals separately
+  fetchStockCounts();
+}
+
+async function fetchStockCounts() {
+  try {
+    const [pendingRes, completedRes] = await Promise.all([
+      fetch(API + '/api/stock-alerts?status=pending', {headers: hdr()}),
+      fetch(API + '/api/stock-alerts?status=restocked', {headers: hdr()})
+    ]);
+    
+    const pendingData = await pendingRes.json();
+    const completedData = await completedRes.json();
+    
+    const pendingCount = document.getElementById('stock-pending-count');
+    const completedCount = document.getElementById('stock-completed-count');
+    
+    if (pendingCount) pendingCount.textContent = pendingData.alerts?.length || 0;
+    if (completedCount) completedCount.textContent = completedData.alerts?.length || 0;
+  } catch (e) {
+    console.error('Fetch stock counts error:', e);
+  }
+}
+
+// Switch between pending and completed tabs (managers only)
+function switchStockTab(tab) {
+  currentStockTab = tab;
+  
+  // Update tab styling
+  document.querySelectorAll('.stock-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  
+  // Update list title
+  const title = document.getElementById('stock-list-title');
+  if (title) {
+    title.textContent = tab === 'pending' ? 'Pending Alerts' : 'Completed Restocks';
+  }
+  
+  // Reload alerts
+  loadStockAlerts();
+}
+
+// Mark alert as restocked
+async function markRestocked(alertId) {
+  const confirmed = await showModal({
+    icon: '✅',
+    title: 'Mark as Restocked?',
+    message: 'Confirm that this item has been restocked and the issue is resolved.',
+    confirmText: 'Mark Restocked',
+    danger: false
+  });
+  
+  if (!confirmed) return;
+  
+  try {
+    const r = await fetch(API + '/api/stock-alerts/' + alertId + '/restock', {
+      method: 'PATCH',
+      headers: hdr()
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Marked as restocked!');
+      loadStockAlerts();
+    } else {
+      toast(d.error || 'Failed to update', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+// Delete stock alert
+async function deleteStockAlert(alertId) {
+  const confirmed = await showModal({
+    icon: '🗑️',
+    title: 'Delete Stock Alert?',
+    message: 'This will permanently delete this stock alert.',
+    confirmText: 'Delete',
+    danger: true
+  });
+  
+  if (!confirmed) return;
+  
+  try {
+    const r = await fetch(API + '/api/stock-alerts/' + alertId, {
+      method: 'DELETE',
+      headers: hdr()
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      toast('🗑️ Alert deleted');
+      loadStockAlerts();
+    } else {
+      toast(d.error || 'Failed to delete', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+// Helper: Get time ago text
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 1000 / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffDays > 0) return diffDays + 'd ago';
+  if (diffHours > 0) return diffHours + 'h ago';
+  if (diffMins > 0) return diffMins + 'm ago';
+  return 'Just now';
+}  
 </script>
 </body>
 </html>
