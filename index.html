@@ -652,9 +652,12 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <button class="nav-item active" id="si-clock" onclick="go('clock')"><span class="icon">⏱</span>Time Clock</button>
       <button class="nav-item" id="si-hours" onclick="go('hours')"><span class="icon">📋</span>My Hours</button>
       <button class="nav-item" id="si-earnings" onclick="go('earnings')"><span class="icon">💵</span>My Earnings</button>
+
+      <div class="sb-section">Team</div>
+      <button class="nav-item" id="si-employees" onclick="go('employees')"><span class="icon">📇</span>Employee Directory</button>
+
       <div class="sb-section admin-only hidden">Management</div>
       <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
-      <button class="nav-item admin-only hidden" id="si-employees" onclick="go('employees')"><span class="icon">📇</span>Employee Directory</button>
       <button class="nav-item admin-only hidden" id="si-pending" onclick="go('pending')"><span class="icon">⏳</span>Pending Approvals</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
       <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
@@ -1299,12 +1302,21 @@ function showApp() {
   loadNotifications();
   
   // Show/hide management features based on role
-  if (['manager', 'owner'].includes(user.role)) {
-    // Show admin tabs and features
-    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-    initChat(); // Initialize chat for managers/owners
-    loadPendingEmployees(); // Load pending approvals
-  } else {
+if (['manager', 'owner'].includes(user.role)) {
+  // Show admin tabs and features
+  document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+  
+  // Hide Pay Calculator from managers (only owners can see it)
+  if (user.role === 'manager') {
+    const payCalcBtn = document.getElementById('si-payments');
+    const payCalcPanel = document.getElementById('panel-payments');
+    if (payCalcBtn) payCalcBtn.style.display = 'none';
+    if (payCalcPanel) payCalcPanel.style.display = 'none';
+  }
+  
+  initChat();
+  loadPendingEmployees();
+} else {
     // Hide admin tabs and features for employees/farmers
     document.querySelectorAll('.admin-only').forEach(el => {
       el.classList.add('hidden');
@@ -2872,7 +2884,7 @@ function renderEmployees(employees) {
   if (!grid) return;
   
   // Sort by role: Owner > Manager > Farmer > Employee
-  const roleOrder = { owner: 0, manager: 1, farmer: 2, employee: 3 };
+  const roleOrder = { owner: 0, manager: 1, employee: 2, farmer: 3 };
   const sortedEmployees = [...employees].sort((a, b) => {
     return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
   });
