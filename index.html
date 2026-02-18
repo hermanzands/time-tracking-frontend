@@ -961,6 +961,7 @@ async function loadStats() {
     const r = await fetch(API + '/api/time-entries/my-entries?limit=200', {headers: hdr()});
     const d = await r.json();
     if (!d.success) return;
+    loadClockedInUsers();  // ← ADDED THIS LINE - loads the widget!
     const now = new Date();
     const todayStr = now.toDateString();
     const weekStart = new Date(now);
@@ -1833,7 +1834,6 @@ async function loadClockedInUsers() {
     console.error('Failed to load clocked in users:', e);
   }
 }
-
 function renderClockedInUsers(entries) {
   const widget = document.getElementById('clocked-in-widget');
   const list = document.getElementById('clocked-in-list');
@@ -1844,6 +1844,7 @@ function renderClockedInUsers(entries) {
   // Show widget for managers/owners
   if (['manager', 'owner'].includes(user.role)) {
     widget.classList.remove('hidden');
+    widget.style.display = 'block';  // ← ADDED THIS LINE - makes it visible!
   }
   
   count.textContent = entries.length;
