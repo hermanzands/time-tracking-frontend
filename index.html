@@ -223,6 +223,22 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .clocked-in-pulse{width:6px;height:6px;background:#080810;border-radius:50%;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 .clocked-in-empty{text-align:center;padding:30px;color:var(--muted);font-size:13px;}
+
+/* PENDING APPROVALS */  
+.pending-list{display:flex;flex-direction:column;gap:12px;}
+.pending-item{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;transition:all .2s;}
+.pending-item:hover{border-color:var(--accent);}
+.pending-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#fff;flex-shrink:0;}
+.pending-info{flex:1;}
+.pending-name{font-weight:600;font-size:15px;margin-bottom:4px;}
+.pending-email{font-size:13px;color:var(--muted);margin-bottom:4px;}
+.pending-time{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.pending-time-dot{width:4px;height:4px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite;}
+.pending-actions{display:flex;gap:10px;flex-shrink:0;}
+.btn-approve{background:var(--green);color:#080810;padding:10px 20px;border-radius:10px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-approve:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,229,160,.3);background:#00ffb3;}
+.btn-reject{background:rgba(255,85,102,.15);color:var(--danger);border:1.5px solid rgba(255,85,102,.3);padding:9px 20px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-reject:hover{background:rgba(255,85,102,.25);border-color:var(--danger);transform:translateY(-2px);}  
 </style>
 </head>
 <body>
@@ -453,6 +469,20 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="table-ttl" style="margin-bottom:16px">All Workers</div>
         <div class="workers-grid" id="workers-grid"><div class="empty"><span class="spinner"></span></div></div>
       </div>
+
+      <!-- PENDING EMPLOYEE APPROVALS -->
+<div class="form-card admin-only hidden" id="pending-approvals-card" style="display:none;">
+  <div class="form-card-title">
+    <span>⏳</span>
+    <span>Pending Approvals</span>
+    <span id="pending-count" style="background:var(--amber);color:#080810;padding:2px 10px;border-radius:6px;font-size:12px;margin-left:8px;font-weight:700;">0</span>
+  </div>
+  <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">New employees waiting for approval</div>
+  
+  <div id="pending-list" class="pending-list">
+    <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No pending approvals</div>
+  </div>
+</div>
 
       <!-- ALL HOURS -->
       <div class="panel" id="panel-allhours">
@@ -1895,6 +1925,169 @@ function renderClockedInUsers(entries) {
   });
 }
 
+// Load pending employees
+async function loadPendingEmployees() {
+  if (!user || !['manager', 'owner'].includes(user.role)) return;
+  
+  try {
+    const r = await fetch(API + '/api/users/pending', {headers: hdr()});
+    const d = await r.json();
+    
+    if (d.success && d.pending) {
+      renderPendingEmployees(d.pending);
+    }
+  } catch (e) {
+    console.error('Failed to load pending employees:', e);
+  }
+}
+
+function renderPendingEmployees(pending) {
+  const card = document.getElementById('pending-approvals-card');
+  const list = document.getElementById('pending-list');
+  const count = document.getElementById('pending-count');
+  
+  if (!card || !list || !count) return;
+  
+  // Show/hide card based on role
+  if (['manager', 'owner'].includes(user.role)) {
+    card.classList.remove('hidden');
+    card.style.display = 'block';
+  }
+  
+  count.textContent = pending.length;
+  
+  if (pending.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No pending approvals</div>';
+    return;
+  }
+  
+  let html = '';
+  pending.forEach(emp => {
+    const initial = (emp.nickname || '?')[0].toUpperCase();
+    const registeredTime = new Date(emp.created_at);
+    const now = new Date();
+    const diffMs = now - registeredTime;
+    const diffMins = Math.floor(diffMs / 1000 / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    let timeAgo;
+    if (diffDays > 0) {
+      timeAgo = diffDays + 'd ago';
+    } else if (diffHours > 0) {
+      timeAgo = diffHours + 'h ago';
+    } else if (diffMins > 0) {
+      timeAgo = diffMins + 'm ago';
+    } else {
+      timeAgo = 'Just now';
+    }
+    
+    html += '<div class="pending-item">';
+    html += '<div class="pending-avatar">' + initial + '</div>';
+    html += '<div class="pending-info">';
+    html += '<div class="pending-name">' + escapeHtml(emp.nickname) + '</div>';
+    if (emp.email) {
+      html += '<div class="pending-email">📧 ' + escapeHtml(emp.email) + '</div>';
+    }
+    html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div>';
+    html += '</div>';
+    html += '<div class="pending-actions">';
+    html += '<button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + escapeHtml(emp.nickname) + '\')">✓ Approve</button>';
+    html += '<button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + escapeHtml(emp.nickname) + '\')">✕ Reject</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  list.innerHTML = html;
+}
+
+async function approveEmployee(userId, nickname) {
+  if (!confirm('Approve ' + nickname + '?')) return;
+  
+  try {
+    const r = await fetch(API + '/api/users/' + userId + '/activate', {
+      method: 'POST',
+      headers: hdr()
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ ' + nickname + ' approved!');
+      loadPendingEmployees(); // Refresh list
+      loadWorkers(); // Refresh workers grid
+    } else {
+      toast(d.error || 'Failed to approve', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+async function rejectEmployee(userId, nickname) {
+  const confirmed = await showModal({
+    icon: '⚠️',
+    title: 'Reject Employee?',
+    message: 'This will permanently delete ' + nickname + '\'s registration. They will need to register again if you change your mind.',
+    confirmText: 'Reject',
+    danger: true
+  });
+  
+  if (!confirmed) return;
+  
+  try {
+    const r = await fetch(API + '/api/users/' + userId, {
+      method: 'DELETE',
+      headers: hdr()
+    });
+    
+    const d = await r.json();
+    if (d.success) {
+      toast('❌ ' + nickname + ' rejected');
+      loadPendingEmployees(); // Refresh list
+    } else {
+      toast(d.error || 'Failed to reject', 'err');
+    }
+  } catch (e) {
+    toast('Connection error', 'err');
+  }
+}
+
+// Call loadPendingEmployees when Workers panel is opened
+// Update your go() function to include this:
+function go(panel) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const si = document.getElementById('si-' + panel);
+  if (si) si.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+  if (panel === 'hours') loadMyEntries();
+  if (panel === 'earnings') loadMyPayments();
+  if (panel === 'workers') {
+    loadWorkers();
+    loadPendingEmployees(); // ← ADD THIS LINE
+  }
+  if (panel === 'allhours') loadAllEntries();
+  if (panel === 'payments') setDefaultDates();
+  if (panel === 'profile') loadProfile();
+}
+
+// Also load on initial page load for managers
+// Add to showApp() function:
+function showApp() {
+  // ... existing code ...
+  
+  if (['manager', 'owner'].includes(user.role)) {
+    loadPendingEmployees(); // Load pending approvals
+  }
+}
+
+// Auto-refresh pending list every 30 seconds
+setInterval(() => {
+  if (user && ['manager', 'owner'].includes(user.role)) {
+    loadPendingEmployees();
+  }
+}, 30000);
+  
 // Refresh clocked-in list every 30 seconds
 setInterval(loadClockedInUsers, 30000);
 
