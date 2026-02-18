@@ -370,6 +370,206 @@ tr:hover td{background:rgba(124,111,247,.03);}
   .stock-alert-item{flex-direction:column;}
   .stock-alert-photo{width:100%;height:200px;}
 }
+
+/* EMPLOYEE DIRECTORY */
+.employees-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:16px;
+}
+
+.employee-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:24px;
+  transition:all .2s;
+  cursor:pointer;
+}
+
+.employee-card:hover{
+  border-color:var(--accent);
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(124,111,247,.15);
+}
+
+.employee-card-header{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--border);
+}
+
+.employee-avatar-large{
+  width:64px;
+  height:64px;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),#ff6b8a);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:24px;
+  color:#fff;
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+
+.employee-header-info{
+  flex:1;
+}
+
+.employee-name{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:18px;
+  margin-bottom:6px;
+}
+
+.employee-role-badge{
+  display:inline-block;
+}
+
+.employee-details{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.employee-detail-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:14px;
+}
+
+.employee-detail-icon{
+  width:32px;
+  height:32px;
+  border-radius:8px;
+  background:var(--surface2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+}
+
+.employee-detail-content{
+  flex:1;
+}
+
+.employee-detail-label{
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:600;
+  margin-bottom:2px;
+}
+
+.employee-detail-value{
+  color:var(--text);
+  font-weight:500;
+}
+
+.employee-detail-value a{
+  color:var(--accent);
+  text-decoration:none;
+  transition:color .2s;
+}
+
+.employee-detail-value a:hover{
+  color:var(--text);
+}
+
+.employee-actions{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+  display:flex;
+  gap:8px;
+}
+
+.btn-edit-employee{
+  flex:1;
+  background:var(--accent);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:10px;
+  border:none;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all .2s;
+}
+
+.btn-edit-employee:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 16px rgba(124,111,247,.3);
+}
+
+/* Employee Edit Modal */
+.employee-modal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.employee-modal.show{
+  display:flex;
+}
+
+.employee-modal-content{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:32px;
+  max-width:500px;
+  width:100%;
+  max-height:90vh;
+  overflow-y:auto;
+}
+
+.employee-modal-title{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:22px;
+  margin-bottom:24px;
+}
+
+.employee-modal-fields{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.employee-modal-buttons{
+  display:flex;
+  gap:12px;
+  margin-top:24px;
+}
+
+/* Mobile responsive */
+@media(max-width:700px){
+  .employees-grid{
+    grid-template-columns:1fr;
+  }
+}
   
 </style>
 </head>
@@ -466,6 +666,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <button class="nav-item" id="si-earnings" onclick="go('earnings')"><span class="icon">💵</span>My Earnings</button>
       <div class="sb-section admin-only hidden">Management</div>
       <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
+      <button class="nav-item admin-only hidden" id="si-employees" onclick="go('employees')"><span class="icon">📇</span>Employee Directory</button>
       <button class="nav-item admin-only hidden" id="si-pending" onclick="go('pending')"><span class="icon">⏳</span>Pending Approvals</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
       <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
@@ -605,6 +806,32 @@ tr:hover td{background:rgba(124,111,247,.03);}
         <div class="table-ttl" style="margin-bottom:16px">All Workers</div>
         <div class="workers-grid" id="workers-grid"><div class="empty"><span class="spinner"></span></div></div>
       </div>
+
+      <!-- EMPLOYEES DIRECTORY -->
+<div class="panel" id="panel-employees">
+  <div class="page-title">Employee Directory</div>
+  <div class="page-sub">Complete team roster with contact information</div>
+  
+  <!-- Search Bar -->
+  <div class="form-card" style="margin-bottom:20px;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <input 
+          id="employee-search" 
+          type="text" 
+          placeholder="🔍 Search by name, SID, or phone..." 
+          style="width:100%;"
+          oninput="filterEmployees(this.value)">
+      </div>
+      <button onclick="exportEmployees()" class="btn-ghost">📥 Export CSV</button>
+    </div>
+  </div>
+  
+  <!-- Employee Cards Grid -->
+  <div id="employees-grid" class="employees-grid">
+    <div class="empty"><span class="spinner"></span></div>
+  </div>
+</div>
 
       <!-- PENDING APPROVALS -->
       <div class="panel" id="panel-pending">
@@ -2613,6 +2840,317 @@ function getTimeAgo(date) {
   if (diffMins > 0) return diffMins + 'm ago';
   return 'Just now';
 }  
+
+// === EMPLOYEE DIRECTORY ===
+let allEmployees = [];
+let editingEmployeeId = null;
+
+// Load all employees
+async function loadEmployees() {
+  const grid = document.getElementById('employees-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  
+  try {
+    const r = await fetch(API + '/api/users', {headers: hdr()});
+    const d = await r.json();
+    
+    if (!d.success || !d.users || d.users.length === 0) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>';
+      return;
+    }
+    
+    // Filter only active users
+    allEmployees = d.users.filter(u => u.is_active);
+    
+    if (allEmployees.length === 0) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active employees yet</p></div>';
+      return;
+    }
+    
+    renderEmployees(allEmployees);
+  } catch (e) {
+    console.error('Load employees error:', e);
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load employees</p></div>';
+  }
+}
+
+// Render employee cards
+function renderEmployees(employees) {
+  const grid = document.getElementById('employees-grid');
+  if (!grid) return;
+  
+  let html = '';
+  employees.forEach(emp => {
+    const initial = (emp.nickname || '?')[0].toUpperCase();
+    const safeId = emp.id.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
+    
+    // Header with avatar and basic info
+    html += '<div class="employee-card-header">';
+    html += '<div class="employee-avatar-large">';
+    html += '<span class="avatar-letter">' + initial + '</span>';
+    html += '<img class="avatar-img emp-av-' + safeId + '">';
+    html += '</div>';
+    html += '<div class="employee-header-info">';
+    html += '<div class="employee-name">' + emp.nickname + '</div>';
+    html += '<span class="badge badge-' + emp.role + '">' + emp.role + '</span>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Details
+    html += '<div class="employee-details">';
+    
+    // SID
+    if (emp.sid) {
+      html += '<div class="employee-detail-row">';
+      html += '<div class="employee-detail-icon">🆔</div>';
+      html += '<div class="employee-detail-content">';
+      html += '<div class="employee-detail-label">Employee ID</div>';
+      html += '<div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div>';
+      html += '</div></div>';
+    }
+    
+    // Phone
+    if (emp.phone) {
+      html += '<div class="employee-detail-row">';
+      html += '<div class="employee-detail-icon">📞</div>';
+      html += '<div class="employee-detail-content">';
+      html += '<div class="employee-detail-label">Phone</div>';
+      html += '<div class="employee-detail-value"><a href="tel:' + emp.phone + '">' + escapeHtml(emp.phone) + '</a></div>';
+      html += '</div></div>';
+    }
+    
+    // Email
+    if (emp.email) {
+      html += '<div class="employee-detail-row">';
+      html += '<div class="employee-detail-icon">📧</div>';
+      html += '<div class="employee-detail-content">';
+      html += '<div class="employee-detail-label">Email</div>';
+      html += '<div class="employee-detail-value"><a href="mailto:' + emp.email + '">' + escapeHtml(emp.email) + '</a></div>';
+      html += '</div></div>';
+    }
+    
+    // Join date
+    html += '<div class="employee-detail-row">';
+    html += '<div class="employee-detail-icon">📅</div>';
+    html += '<div class="employee-detail-content">';
+    html += '<div class="employee-detail-label">Joined</div>';
+    html += '<div class="employee-detail-value">' + fmtDate(emp.created_at) + '</div>';
+    html += '</div></div>';
+    
+    html += '</div>'; // Close employee-details
+    html += '</div>'; // Close employee-card
+  });
+  
+  grid.innerHTML = html;
+  
+  // Load avatars
+  employees.forEach(emp => {
+    const saved = localStorage.getItem('avatar_' + emp.id);
+    if (saved) {
+      const safeId = emp.id.replace(/[^a-zA-Z0-9]/g, '_');
+      const imgs = document.querySelectorAll('.emp-av-' + safeId);
+      imgs.forEach(img => {
+        img.src = saved;
+        img.style.display = 'block';
+      });
+    }
+  });
+}
+
+// Filter employees by search
+function filterEmployees(searchText) {
+  if (!searchText) {
+    renderEmployees(allEmployees);
+    return;
+  }
+  
+  const search = searchText.toLowerCase();
+  const filtered = allEmployees.filter(emp => {
+    return (
+      emp.nickname?.toLowerCase().includes(search) ||
+      emp.sid?.toLowerCase().includes(search) ||
+      emp.phone?.toLowerCase().includes(search) ||
+      emp.email?.toLowerCase().includes(search)
+    );
+  });
+  
+  renderEmployees(filtered);
+}
+
+// Open employee edit modal
+async function openEmployeeModal(employeeId) {
+  // Stop event from bubbling
+  event.stopPropagation();
+  
+  // Only managers/owners can edit
+  if (!['manager', 'owner'].includes(user.role)) {
+    return;
+  }
+  
+  editingEmployeeId = employeeId;
+  const emp = allEmployees.find(e => e.id === employeeId);
+  if (!emp) return;
+  
+  // Show modal with edit form
+  const confirmed = await showEmployeeEditModal(emp);
+  if (confirmed) {
+    loadEmployees(); // Refresh list
+  }
+}
+
+// Show employee edit modal
+function showEmployeeEditModal(emp) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+    
+    // Build form
+    let html = '';
+    html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">Edit Employee</div>';
+    
+    html += '<div style="display:flex;flex-direction:column;gap:16px;">';
+    
+    // Name
+    html += '<div class="field">';
+    html += '<label>Full Name</label>';
+    html += '<input id="emp-edit-name" type="text" value="' + escapeHtml(emp.nickname) + '">';
+    html += '</div>';
+    
+    // SID
+    html += '<div class="field">';
+    html += '<label>Employee ID / SID</label>';
+    html += '<input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '">';
+    html += '</div>';
+    
+    // Phone
+    html += '<div class="field">';
+    html += '<label>Phone Number</label>';
+    html += '<input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '">';
+    html += '</div>';
+    
+    // Email
+    html += '<div class="field">';
+    html += '<label>Email</label>';
+    html += '<input id="emp-edit-email" type="email" placeholder="employee@company.com" value="' + escapeHtml(emp.email || '') + '">';
+    html += '</div>';
+    
+    // Role
+    html += '<div class="field">';
+    html += '<label>Role</label>';
+    html += '<select id="emp-edit-role">';
+    html += '<option value="employee"' + (emp.role === 'employee' ? ' selected' : '') + '>Employee</option>';
+    html += '<option value="farmer"' + (emp.role === 'farmer' ? ' selected' : '') + '>Farmer</option>';
+    html += '<option value="manager"' + (emp.role === 'manager' ? ' selected' : '') + '>Manager</option>';
+    html += '<option value="owner"' + (emp.role === 'owner' ? ' selected' : '') + '>Owner</option>';
+    html += '</select>';
+    html += '</div>';
+    
+    html += '</div>';
+    
+    box.innerHTML = html;
+    
+    // Update buttons
+    const cancelBtn = document.getElementById('modal-cancel');
+    const confirmBtn = document.getElementById('modal-confirm');
+    
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    confirmBtn.textContent = 'Save Changes';
+    confirmBtn.className = 'modal-btn modal-btn-primary';
+    
+    overlay.classList.add('show');
+    
+    // Handle cancel
+    cancelBtn.onclick = () => {
+      overlay.classList.remove('show');
+      resolve(false);
+    };
+    
+    // Handle save
+    confirmBtn.onclick = async () => {
+      const name = document.getElementById('emp-edit-name').value.trim();
+      const sid = document.getElementById('emp-edit-sid').value.trim();
+      const phone = document.getElementById('emp-edit-phone').value.trim();
+      const email = document.getElementById('emp-edit-email').value.trim();
+      const role = document.getElementById('emp-edit-role').value;
+      
+      if (!name) {
+        toast('Name is required', 'err');
+        return;
+      }
+      
+      confirmBtn.innerHTML = '<span class="spinner"></span>';
+      confirmBtn.disabled = true;
+      
+      try {
+        const r = await fetch(API + '/api/users/' + emp.id, {
+          method: 'PATCH',
+          headers: hdr(),
+          body: JSON.stringify({
+            nickname: name,
+            sid: sid || null,
+            phone: phone || null,
+            email: email || null,
+            role: role
+          })
+        });
+        
+        const d = await r.json();
+        if (d.success) {
+          toast('✅ Employee updated!');
+          overlay.classList.remove('show');
+          resolve(true);
+        } else {
+          toast(d.error || 'Failed to update', 'err');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Save Changes';
+        }
+      } catch (e) {
+        toast('Connection error', 'err');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Save Changes';
+      }
+    };
+  });
+}
+
+// Export employees to CSV
+function exportEmployees() {
+  if (allEmployees.length === 0) {
+    toast('No employees to export', 'err');
+    return;
+  }
+  
+  // Build CSV
+  let csv = 'Name,Employee ID,Phone,Email,Role,Joined\n';
+  allEmployees.forEach(emp => {
+    csv += '"' + (emp.nickname || '').replace(/"/g, '""') + '",';
+    csv += '"' + (emp.sid || '').replace(/"/g, '""') + '",';
+    csv += '"' + (emp.phone || '').replace(/"/g, '""') + '",';
+    csv += '"' + (emp.email || '').replace(/"/g, '""') + '",';
+    csv += '"' + emp.role + '",';
+    csv += '"' + fmtDate(emp.created_at) + '"\n';
+  });
+  
+  // Download
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'employees-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  toast('📥 CSV exported!');
+}
+
+// Update go() function - ADD THIS LINE
+// if (panel === 'employees') loadEmployees();  
+
 </script>
 </body>
 </html>
