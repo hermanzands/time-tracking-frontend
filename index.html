@@ -327,6 +327,19 @@ tr:hover td{background:rgba(124,111,247,.03);}
       <div class="panel active" id="panel-clock">
         <div class="page-title">Time Clock</div>
         <div class="page-sub">Track your working hours</div>
+
+        <!-- Currently Clocked In Widget (for managers/owners) -->
+        <div id="clocked-in-widget" class="clocked-in-widget admin-only" style="display:none;">
+          <div class="clocked-in-title">
+            <span>👷</span>
+            <span>Currently Clocked In</span>
+            <span id="clocked-in-count" style="background:var(--green);color:#080810;padding:2px 8px;border-radius:6px;font-size:12px;margin-left:auto;">0</span>
+          </div>
+          <div id="clocked-in-list" class="clocked-in-list">
+            <div class="clocked-in-empty">No one is clocked in right now</div>
+          </div>
+        </div>
+        
         <div class="clock-hero">
           <div class="live-time" id="live-time">00:00:00</div>
           <div class="live-date" id="live-date"></div>
@@ -510,19 +523,6 @@ tr:hover td{background:rgba(124,111,247,.03);}
       </div>
     </div>
   </div>
-
-
-      <!-- Currently Clocked In Widget (for managers/owners) -->
-      <div id="clocked-in-widget" class="clocked-in-widget admin-only" style="display:none;">
-        <div class="clocked-in-title">
-          <span>👷</span>
-          <span>Currently Clocked In</span>
-          <span id="clocked-in-count" style="background:var(--green);color:#080810;padding:2px 8px;border-radius:6px;font-size:12px;margin-left:auto;">0</span>
-        </div>
-        <div id="clocked-in-list" class="clocked-in-list">
-          <div class="clocked-in-empty">No one is clocked in right now</div>
-        </div>
-      </div>
 
   <div id="toast"></div>
 
