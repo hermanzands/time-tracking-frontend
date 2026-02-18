@@ -2134,8 +2134,8 @@ let lastMessageId = null;
 let chatPollInterval = null;
 
 // Send heartbeat every 10 seconds to show we're online
-setInterval(sendHeartbeat, 5000);  // Every 5 seconds
-sendHeartbeat(); // Send immediately on load
+//setInterval(sendHeartbeat, 5000);  // Every 5 seconds
+//sendHeartbeat(); // Send immediately on load
 
 async function sendHeartbeat() {
   if (!token || !user) return;
