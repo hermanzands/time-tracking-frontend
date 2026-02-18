@@ -581,6 +581,8 @@ tr:hover td{background:rgba(124,111,247,.03);}
           <div class="form-row">
             <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
             <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
+            <div class="field"><label>Employee ID / SID</label><input id="r-sid" type="text" placeholder="e.g. 12345"></div>
+            <div class="field"><label>Phone</label><input id="r-phone" type="tel" placeholder="e.g. (690-123-4567) "></div>
           </div>
           <div class="form-row">
             <div class="field"><label>Password</label>
@@ -1440,6 +1442,8 @@ async function loadWorkers() {
 async function registerWorker() {
   const displayName = document.getElementById('r-nick').value.trim();
   const email = document.getElementById('r-email').value.trim();
+  const sid = document.getElementById('r-sid').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
   const pass = document.getElementById('r-pass').value;
   const role = document.getElementById('r-role').value;
   const errEl = document.getElementById('reg-err');
@@ -1455,7 +1459,14 @@ async function registerWorker() {
     const r = await fetch(API + '/api/auth/register', {
       method: 'POST',
       headers: hdr(),
-      body: JSON.stringify({nickname: displayName, password: pass, email: email || undefined, role: role})
+      body: JSON.stringify({
+  nickname: displayName, 
+  password: pass, 
+  email: email || undefined, 
+  role: role,
+  sid: sid || undefined,
+  phone: phone || undefined
+})
     });
     const d = await r.json();
     if (d.success) {
