@@ -162,6 +162,11 @@ tr:hover td{background:rgba(124,111,247,.03);}
   nav .nav-user{display:none;}
 }
 
+/* Remove arrows from number inputs */
+input[type=number]{-moz-appearance:textfield;appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+
 .notif-dropdown{position:absolute;top:60px;right:24px;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;max-height:500px;overflow:hidden;display:flex;flex-direction:column;}
 .notif-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .notif-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
@@ -1244,11 +1249,15 @@ function renderPayResults() {
     html += '<div class="pay-worker" style="flex:1;min-width:0;"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
     html += '<div style="min-width:0;"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (p.nickname||'Unknown') + '</div>';
     html += '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div></div></div>';
-    // Bonus input
-    html += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
-    html += '<span style="font-size:11px;color:var(--muted);">Bonus</span>';
-    html += '<div style="position:relative;width:72px;"><input type="number" min="0" max="200" step="0.5" value="' + bonusPct + '" placeholder="0" data-idx="' + idx + '" onchange="applyBonus(this)" oninput="applyBonus(this)" style="width:100%;padding:6px 22px 6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;"></div>';
-    html += '<span style="font-size:12px;color:var(--muted);">%</span></div>';
+    // Bonus input — only for employee and manager roles
+    if (!['farmer','owner'].includes(p.role)) {
+      html += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
+      html += '<span style="font-size:11px;color:var(--muted);">Bonus</span>';
+      html += '<div style="width:64px;"><input type="number" min="0" max="200" step="0.5" value="' + bonusPct + '" placeholder="0" data-idx="' + idx + '" onchange="applyBonus(this)" oninput="applyBonus(this)" style="width:100%;padding:6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;-moz-appearance:textfield;appearance:textfield;"></div>';
+      html += '<span style="font-size:12px;color:var(--muted);">%</span></div>';
+    } else {
+      html += '<div style="width:108px;"></div>'; // spacer to keep alignment
+    }
     // Amount
     html += '<div style="text-align:right;flex-shrink:0;min-width:80px;">';
     html += '<div class="pay-amount" id="pay-total-' + idx + '">€' + total.toFixed(2) + '</div>';
@@ -1271,8 +1280,8 @@ function applyBonus(input) {
   const total = base + bonusAmount;
   const totalEl = document.getElementById('pay-total-' + idx);
   const labelEl = document.getElementById('pay-bonus-label-' + idx);
-  if (totalEl) totalEl.textContent = '€' + total.toFixed(2);
-  if (labelEl) labelEl.innerHTML = pct > 0 ? '<span style="color:var(--amber);">+€' + bonusAmount.toFixed(2) + ' bonus</span>' : '&nbsp;';
+  if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+  if (labelEl) labelEl.innerHTML = pct > 0 ? '<span style="color:var(--amber);">+$' + bonusAmount.toFixed(2) + ' bonus</span>' : '&nbsp;';
 }
 
 async function calcPayments() {
