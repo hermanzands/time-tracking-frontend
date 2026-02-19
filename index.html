@@ -1361,7 +1361,7 @@ async function loadClockedInUsers() {
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
 }
 
-async function managerClockOut(entryId, nickname) {
+async function managerClockOut(entryId, nickname, clockInTime) {
   const confirmed = await showModal({
     icon: '⏹',
     title: 'Clock Out ' + nickname + '?',
@@ -1371,17 +1371,12 @@ async function managerClockOut(entryId, nickname) {
   });
   if (!confirmed) return;
   try {
-    const r = await fetch(API + '/api/time-entries/' + entryId + '/force-clock-out', {method:'PATCH', headers:hdr()});
-    // Fallback: try the PATCH /api/time-entries/:id endpoint if force-clock-out doesn't exist
-    if (r.status === 404) {
-      const r2 = await fetch(API + '/api/time-entries/' + entryId, {
-        method: 'PATCH', headers: hdr(),
-        body: JSON.stringify({clock_out: new Date().toISOString()})
-      });
-      const d2 = await r2.json();
-      if (d2.success) { toast('⏹ ' + nickname + ' clocked out'); loadClockedInUsers(); loadStats(); return; }
-      toast(d2.error || 'Failed to clock out', 'err'); return;
-    }
+    // Use same PATCH endpoint as the working edit modal
+    const r = await fetch(API + '/api/time-entries/' + entryId, {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({ clock_in: clockInTime, clock_out: new Date().toISOString() })
+    });
     const d = await r.json();
     if (d.success) { toast('⏹ ' + nickname + ' clocked out'); loadClockedInUsers(); loadStats(); }
     else { toast(d.error || 'Failed to clock out', 'err'); }
@@ -1402,10 +1397,11 @@ function renderClockedInUsers(entries) {
     const initial = (entry.nickname||'?')[0].toUpperCase(), userId = entry.user_id ? entry.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
     const safeName = (entry.nickname||'Unknown').replace(/'/g,"\\'");
     const entryId = entry.id || entry.entry_id || '';
+    const clockInIso = new Date(entry.clock_in).toISOString();
     html += '<div class="clocked-in-item"><div class="clocked-in-avatar avatar-sm"><span class="avatar-letter">' + initial + '</span><img class="avatar-img clocked-av-' + userId + '"></div>';
     html += '<div class="clocked-in-info"><div class="clocked-in-name">' + (entry.nickname||'Unknown') + '</div><div class="clocked-in-time">Since ' + fmtTime(entry.clock_in) + ' • ' + duration + '</div></div>';
     html += '<div class="clocked-in-badge"><span class="clocked-in-pulse"></span>Active</div>';
-    html += '<button onclick="managerClockOut(\'' + entryId + '\',\'' + safeName + '\')" title="Clock out ' + (entry.nickname||'this person') + '" style="margin-left:10px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(255,85,102,.28)\'" onmouseout="this.style.background=\'rgba(255,85,102,.15)\'">⏹ Clock Out</button>';
+    html += '<button onclick="managerClockOut(\'' + entryId + '\',\'' + safeName + '\',\'' + clockInIso + '\')" title="Clock out ' + (entry.nickname||'this person') + '" style="margin-left:10px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(255,85,102,.28)\'" onmouseout="this.style.background=\'rgba(255,85,102,.15)\'">⏹ Clock Out</button>';
     html += '</div>';
   });
   list.innerHTML = html;
