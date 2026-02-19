@@ -767,8 +767,34 @@ async function registerSelf() {
     const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, sid: sid, phone: phone, role: 'employee'}) });
     const d = await r.json();
     if (d.success) {
-      // No auth token yet (account is pending approval), so store SID/phone locally.
-      // They will be PATCHed to the DB automatically on the user's first successful login.
+      // The user row is now in the DB. Get a token immediately by logging in,
+      // then PATCH sid & phone right away — no approval needed for this step.
+      try {
+        const loginRes = await fetch(API + '/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({nickname: nick, password: pass})
+        });
+        const loginData = await loginRes.json();
+        // login may succeed even on inactive accounts — grab token either way
+        const tempToken = loginData.accessToken || loginData.token || (loginData.user ? null : null);
+        const userId = loginData.user?.id || d.user?.id;
+        if (tempToken && userId) {
+          await fetch(API + '/api/users/' + userId, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tempToken},
+            body: JSON.stringify({sid: sid, phone: phone})
+          });
+        } else if (userId) {
+          // Fallback: some backends allow unauthenticated self-update right after register
+          await fetch(API + '/api/users/' + userId, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sid: sid, phone: phone})
+          });
+        }
+      } catch(e) { /* best-effort — registration already succeeded */ }
+      // Also keep localStorage as a display fallback for Pending Approvals
       localStorage.setItem('wt_pending_sid_' + nick, sid);
       localStorage.setItem('wt_pending_phone_' + nick, phone);
       authTab('signin');
@@ -1519,7 +1545,7 @@ async function loadEmployees() {
 function renderEmployees(employees) {
   const grid = document.getElementById('employees-grid'); if (!grid) return;
   const roleOrder = {owner:0,manager:1,employee:2,farmer:3};
-  const sorted = [...employees].sort((a,b) => (roleOrder[a.role]||99)-(roleOrder[b.role]||99));
+  const sorted = [...employees].sort((a,b) => (roleOrder[a.role]??99)-(roleOrder[b.role]??99));
   let html = '';
   sorted.forEach(emp => {
     const initial = (emp.nickname||'?')[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
@@ -1529,7 +1555,6 @@ function renderEmployees(employees) {
     html += '<div class="employee-details">';
     if (emp.sid) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">🆔</div><div class="employee-detail-content"><div class="employee-detail-label">Employee ID</div><div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div></div></div>'; }
     if (emp.phone) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">📞</div><div class="employee-detail-content"><div class="employee-detail-label">Phone</div><div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div></div></div>'; }
-    html += '<div class="employee-detail-row"><div class="employee-detail-icon">📅</div><div class="employee-detail-content"><div class="employee-detail-label">Joined</div><div class="employee-detail-value">' + fmtDate(emp.created_at) + '</div></div></div>';
     html += '</div></div>';
   });
   grid.innerHTML = html;
