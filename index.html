@@ -383,7 +383,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
       <div class="panel active" id="panel-clock">
         <div class="page-title">Time Clock</div>
         <div class="page-sub">Track your working hours</div>
-        <div id="clocked-in-widget" class="clocked-in-widget admin-only" style="display:none;">
+        <div id="clocked-in-widget" class="clocked-in-widget" style="display:none;">
           <div class="clocked-in-title">
             <span>👷</span><span>Currently Clocked In</span>
             <span id="clocked-in-count" style="background:var(--green);color:#080810;padding:2px 8px;border-radius:6px;font-size:12px;margin-left:auto;">0</span>
@@ -519,7 +519,6 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
             <div class="field" style="flex:1;margin-bottom:0;">
               <input id="employee-search" type="text" placeholder="🔍 Search by name, SID, or phone..." style="width:100%;" oninput="filterEmployees(this.value)">
             </div>
-            <button onclick="exportEmployees()" class="btn-ghost">📥 Export CSV</button>
           </div>
         </div>
         <div id="employees-grid" class="employees-grid">
@@ -551,23 +550,28 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
       <div class="panel" id="panel-stock">
         <div class="page-title">Stock Alerts</div>
         <div class="page-sub">Report and track low stock items</div>
-        <div class="form-card">
-          <div class="form-card-title">📦 Report Low Stock</div>
-          <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Upload a photo and describe what needs restocking</div>
-          <div style="display:flex;flex-direction:column;gap:16px;">
-            <div id="stock-photo-preview" style="display:none;">
-              <img id="stock-photo-img" style="max-width:100%;max-height:300px;border-radius:12px;border:1px solid var(--border);">
-            </div>
-            <div>
+        <div class="form-card" style="padding:16px;">
+          <div class="form-card-title" style="margin-bottom:12px;font-size:14px;">📦 Report Low Stock</div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <!-- Drag & drop photo zone -->
+            <div id="stock-drop-zone" onclick="document.getElementById('stock-photo-input').click()"
+              style="flex-shrink:0;width:110px;height:110px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;background:var(--bg);"
+              ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-glow)'"
+              ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg)'"
+              ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='var(--bg)';handleStockDrop(event)">
               <input type="file" id="stock-photo-input" accept="image/*" style="display:none" onchange="previewStockPhoto(this)">
-              <button onclick="document.getElementById('stock-photo-input').click()" class="btn btn-ghost" style="width:100%;">📷 Choose Photo</button>
+              <img id="stock-photo-img" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px;">
+              <div id="stock-drop-hint" style="text-align:center;pointer-events:none;">
+                <div style="font-size:24px;">📷</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">Drop or click</div>
+              </div>
             </div>
-            <div class="field">
-              <label>What needs restocking?</label>
-              <textarea id="stock-note-input" placeholder="e.g. Cabbage is running low!" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;resize:vertical;min-height:80px;outline:none;"></textarea>
+            <!-- Note + submit -->
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <textarea id="stock-note-input" placeholder="What needs restocking? e.g. Cabbage is low..." style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;resize:none;height:74px;outline:none;" oninput="updateStockSubmitButton()"></textarea>
+              <button id="btn-submit-stock" onclick="submitStockAlert()" class="btn btn-primary btn-sm" disabled style="padding:8px 16px;font-size:13px;">➕ Submit Alert</button>
+              <div class="err-box" id="stock-err" style="margin:0;"></div>
             </div>
-            <button id="btn-submit-stock" onclick="submitStockAlert()" class="btn btn-primary btn-sm" disabled>➕ Submit Alert</button>
-            <div class="err-box" id="stock-err"></div>
           </div>
         </div>
         <div class="admin-only hidden" id="stock-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
@@ -1357,7 +1361,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document
 
 // === CLOCKED IN WIDGET ===
 async function loadClockedInUsers() {
-  if (!user || !['manager', 'owner'].includes(user.role)) return;
+  if (!user) return;
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
 }
 
@@ -1386,7 +1390,7 @@ async function managerClockOut(entryId, nickname, clockInTime) {
 function renderClockedInUsers(entries) {
   const widget = document.getElementById('clocked-in-widget'), list = document.getElementById('clocked-in-list'), count = document.getElementById('clocked-in-count');
   if (!widget || !list || !count) return;
-  if (['manager', 'owner'].includes(user.role)) { widget.classList.remove('hidden'); widget.style.display = 'block'; }
+  widget.classList.remove('hidden'); widget.style.display = 'block';
   count.textContent = entries.length;
   if (entries.length === 0) { list.innerHTML = '<div class="clocked-in-empty">No one is clocked in right now</div>'; return; }
   let html = '';
@@ -1401,7 +1405,9 @@ function renderClockedInUsers(entries) {
     html += '<div class="clocked-in-item"><div class="clocked-in-avatar avatar-sm"><span class="avatar-letter">' + initial + '</span><img class="avatar-img clocked-av-' + userId + '"></div>';
     html += '<div class="clocked-in-info"><div class="clocked-in-name">' + (entry.nickname||'Unknown') + '</div><div class="clocked-in-time">Since ' + fmtTime(entry.clock_in) + ' • ' + duration + '</div></div>';
     html += '<div class="clocked-in-badge"><span class="clocked-in-pulse"></span>Active</div>';
-    html += '<button onclick="managerClockOut(\'' + entryId + '\',\'' + safeName + '\',\'' + clockInIso + '\')" title="Clock out ' + (entry.nickname||'this person') + '" style="margin-left:10px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(255,85,102,.28)\'" onmouseout="this.style.background=\'rgba(255,85,102,.15)\'">⏹ Clock Out</button>';
+    if (['manager','owner'].includes(user.role)) {
+      html += '<button onclick="managerClockOut(\'' + entryId + '\',\'' + safeName + '\',\'' + clockInIso + '\')" title="Clock out ' + (entry.nickname||'this person') + '" style="margin-left:10px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(255,85,102,.28)\'" onmouseout="this.style.background=\'rgba(255,85,102,.15)\'">⏹ Clock Out</button>';
+    }
     html += '</div>';
   });
   list.innerHTML = html;
@@ -1460,7 +1466,27 @@ function previewStockPhoto(input) {
   const file = input.files[0]; if (!file) return;
   if (file.size > 5 * 1024 * 1024) { toast('Image too large. Max 5MB', 'err'); return; }
   const reader = new FileReader();
-  reader.onload = (e) => { stockPhotoData = e.target.result; document.getElementById('stock-photo-img').src = stockPhotoData; document.getElementById('stock-photo-preview').style.display = 'block'; updateStockSubmitButton(); };
+  reader.onload = (e) => {
+    stockPhotoData = e.target.result;
+    const img = document.getElementById('stock-photo-img');
+    img.src = stockPhotoData; img.style.display = 'block';
+    document.getElementById('stock-drop-hint').style.display = 'none';
+    updateStockSubmitButton();
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleStockDrop(e) {
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    stockPhotoData = ev.target.result;
+    const img = document.getElementById('stock-photo-img');
+    img.src = stockPhotoData; img.style.display = 'block';
+    document.getElementById('stock-drop-hint').style.display = 'none';
+    updateStockSubmitButton();
+  };
   reader.readAsDataURL(file);
 }
 
@@ -1476,7 +1502,16 @@ async function submitStockAlert() {
   try {
     const r = await fetch(API + '/api/stock-alerts', {method:'POST',headers:hdr(),body:JSON.stringify({image_data:stockPhotoData,note})});
     const d = await r.json();
-    if (d.success) { toast('✅ Stock alert submitted!'); stockPhotoData = null; document.getElementById('stock-photo-input').value = ''; document.getElementById('stock-photo-preview').style.display = 'none'; document.getElementById('stock-note-input').value = ''; loadStockAlerts(); }
+    if (d.success) {
+      toast('✅ Stock alert submitted!');
+      stockPhotoData = null;
+      document.getElementById('stock-photo-input').value = '';
+      const img = document.getElementById('stock-photo-img');
+      img.src = ''; img.style.display = 'none';
+      document.getElementById('stock-drop-hint').style.display = 'block';
+      document.getElementById('stock-note-input').value = '';
+      loadStockAlerts();
+    }
     else { showErr(errEl, d.error || 'Failed to submit alert'); btn.disabled = false; }
   } catch(e) { showErr(errEl, 'Connection error'); btn.disabled = false; }
   btn.innerHTML = '➕ Submit Alert';
@@ -1555,9 +1590,12 @@ async function loadEmployees() {
   const grid = document.getElementById('employees-grid'); if (!grid) return;
   grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const r = await fetch(API + '/api/users', {headers:hdr()}); const d = await r.json();
-    if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
-    allEmployees = d.users.filter(u => u.is_active);
+    // Try manager endpoint first, fall back to a public/employee-safe endpoint
+    let r = await fetch(API + '/api/users?is_active=true', {headers:hdr()});
+    if (r.status === 403) r = await fetch(API + '/api/users/directory', {headers:hdr()});
+    const d = await r.json();
+    if (!d.success || (!d.users && !d.employees)) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
+    allEmployees = (d.users || d.employees || []).filter(u => u.is_active);
     if (allEmployees.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active employees yet</p></div>'; return; }
     renderEmployees(allEmployees);
   } catch(e) { grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load employees</p></div>'; }
