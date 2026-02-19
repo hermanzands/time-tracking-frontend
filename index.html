@@ -1932,12 +1932,12 @@ async function deleteWorker(userId, name) {
 // === ALL HOURS ===
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
-  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
     const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()});
     const d = await r.json();
     if (!d.success || !d.entries || d.entries.length === 0) {
-      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
       return;
     }
     
@@ -2008,7 +2008,7 @@ async function loadAllEntries() {
       }
     });
   } catch (e) {
-    tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
+    tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>';
   }
 }
 
