@@ -3304,9 +3304,6 @@ async function editTimeEntry(entryId) {
     loadAllEntries(); // Refresh the list
     toast('✅ Time entry updated!');
   }
-} catch (e) {
-    toast('Failed to load entry', 'err');
-  }
 }
 
 function showEditTimeModal(entry) {
