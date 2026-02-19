@@ -1044,7 +1044,7 @@ async function loadStats() {
 // === MY ENTRIES ===
 async function loadMyEntries() {
   const tb = document.getElementById('my-entries-body');
-  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?limit=100', {headers: hdr()});
     const d = await r.json();
