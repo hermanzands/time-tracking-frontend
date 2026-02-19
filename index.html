@@ -313,6 +313,10 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <button class="pwd-toggle" onclick="togglePwd('reg-pass',this)" type="button">👁</button>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field" style="margin-bottom:0;"><label>SID</label><input id="reg-sid" type="text" placeholder="e.g. 12345"></div>
+        <div class="field" style="margin-bottom:0;"><label>Phone</label><input id="reg-phone" type="tel" placeholder="e.g. 06 12345678"></div>
+      </div>
       <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
       <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
       <div class="err-box" id="reg-err-login"></div>
@@ -730,12 +734,16 @@ async function registerSelf() {
   const nick = document.getElementById('reg-nick').value.trim();
   const pass = document.getElementById('reg-pass').value;
   const email = document.getElementById('reg-email').value.trim();
+  const sid = document.getElementById('reg-sid').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
   const errEl = document.getElementById('reg-err-login');
   const btn = document.getElementById('btn-reg');
   if (!nick || !pass) { showErr(errEl, 'Username and password are required'); return; }
+  if (!sid) { showErr(errEl, 'SID is required'); return; }
+  if (!phone) { showErr(errEl, 'Phone number is required'); return; }
   btn.innerHTML = '<span class="spinner"></span> Creating...'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, role: 'employee'}) });
+    const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, sid: sid, phone: phone, role: 'employee'}) });
     const d = await r.json();
     if (d.success) {
       authTab('signin');
@@ -1277,6 +1285,33 @@ async function loadClockedInUsers() {
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
 }
 
+async function managerClockOut(entryId, nickname) {
+  const confirmed = await showModal({
+    icon: '⏹',
+    title: 'Clock Out ' + nickname + '?',
+    message: nickname + ' will be clocked out right now. Their hours will be saved.',
+    confirmText: 'Clock Out',
+    danger: true
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/time-entries/' + entryId + '/force-clock-out', {method:'PATCH', headers:hdr()});
+    // Fallback: try the PATCH /api/time-entries/:id endpoint if force-clock-out doesn't exist
+    if (r.status === 404) {
+      const r2 = await fetch(API + '/api/time-entries/' + entryId, {
+        method: 'PATCH', headers: hdr(),
+        body: JSON.stringify({clock_out: new Date().toISOString()})
+      });
+      const d2 = await r2.json();
+      if (d2.success) { toast('⏹ ' + nickname + ' clocked out'); loadClockedInUsers(); loadStats(); return; }
+      toast(d2.error || 'Failed to clock out', 'err'); return;
+    }
+    const d = await r.json();
+    if (d.success) { toast('⏹ ' + nickname + ' clocked out'); loadClockedInUsers(); loadStats(); }
+    else { toast(d.error || 'Failed to clock out', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 function renderClockedInUsers(entries) {
   const widget = document.getElementById('clocked-in-widget'), list = document.getElementById('clocked-in-list'), count = document.getElementById('clocked-in-count');
   if (!widget || !list || !count) return;
@@ -1289,9 +1324,13 @@ function renderClockedInUsers(entries) {
     const hours = Math.floor((now-clockedInTime)/1000/60/60), minutes = Math.floor(((now-clockedInTime)/1000/60)%60);
     const duration = hours > 0 ? hours+'h '+minutes+'m' : minutes+'m';
     const initial = (entry.nickname||'?')[0].toUpperCase(), userId = entry.user_id ? entry.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
+    const safeName = (entry.nickname||'Unknown').replace(/'/g,"\\'");
+    const entryId = entry.id || entry.entry_id || '';
     html += '<div class="clocked-in-item"><div class="clocked-in-avatar avatar-sm"><span class="avatar-letter">' + initial + '</span><img class="avatar-img clocked-av-' + userId + '"></div>';
     html += '<div class="clocked-in-info"><div class="clocked-in-name">' + (entry.nickname||'Unknown') + '</div><div class="clocked-in-time">Since ' + fmtTime(entry.clock_in) + ' • ' + duration + '</div></div>';
-    html += '<div class="clocked-in-badge"><span class="clocked-in-pulse"></span>Active</div></div>';
+    html += '<div class="clocked-in-badge"><span class="clocked-in-pulse"></span>Active</div>';
+    html += '<button onclick="managerClockOut(\'' + entryId + '\',\'' + safeName + '\')" title="Clock out ' + (entry.nickname||'this person') + '" style="margin-left:10px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(255,85,102,.28)\'" onmouseout="this.style.background=\'rgba(255,85,102,.15)\'">⏹ Clock Out</button>';
+    html += '</div>';
   });
   list.innerHTML = html;
   entries.forEach(entry => { if (entry.user_id) { const saved = localStorage.getItem('avatar_' + entry.user_id); if (saved) { document.querySelectorAll('.clocked-av-' + entry.user_id.replace(/[^a-zA-Z0-9]/g,'_')).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
