@@ -318,11 +318,10 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <button class="pwd-toggle" onclick="togglePwd('reg-pass',this)" type="button">👁</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
         <div class="field" style="margin-bottom:0;"><label>SID</label><input id="reg-sid" type="text" placeholder="e.g. 12345"></div>
         <div class="field" style="margin-bottom:0;"><label>Phone</label><input id="reg-phone" type="tel" placeholder="e.g. 06 12345678"></div>
       </div>
-      <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
       <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
       <div class="err-box" id="reg-err-login"></div>
       <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">⚠️ Your account needs manager approval before you can log in</div>
@@ -460,9 +459,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <button onclick="removeAvatar()" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑 Remove Picture</button>
         </div>
         <div class="form-card">
-          <div class="form-card-title">📧 Update Email</div>
-          <div class="field"><label>Email Address</label><input id="profile-email" type="email" placeholder="your@email.com"></div>
-          <button class="btn btn-primary btn-sm" onclick="updateProfile()">Save Email</button>
+
           <div class="err-box" id="profile-err"></div>
         </div>
         <div class="form-card">
@@ -492,7 +489,6 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <div class="form-card-title">➕ Add New Worker</div>
           <div class="form-row">
             <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
-            <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
           </div>
           <div class="form-row">
             <div class="field"><label>SID</label><input id="r-sid" type="text" placeholder="e.g. 12345"></div>
@@ -769,7 +765,6 @@ function logout() {
 async function registerSelf() {
   const nick = document.getElementById('reg-nick').value.trim();
   const pass = document.getElementById('reg-pass').value;
-  const email = document.getElementById('reg-email').value.trim();
   const sid = document.getElementById('reg-sid').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
   const errEl = document.getElementById('reg-err-login');
@@ -779,7 +774,7 @@ async function registerSelf() {
   if (!phone) { showErr(errEl, 'Phone number is required'); return; }
   btn.innerHTML = '<span class="spinner"></span> Creating...'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, sid: sid, phone: phone, role: 'employee'}) });
+    const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, sid: sid, phone: phone, role: 'employee'}) });
     const d = await r.json();
     if (d.success) {
       // The user row is now in the DB. Get a token immediately by logging in,
@@ -1083,7 +1078,6 @@ function loadProfile() {
   document.getElementById('profile-name').textContent = user.nickname;
   document.getElementById('profile-role-txt').textContent = user.role;
   document.getElementById('avatar-letter').textContent = user.nickname[0].toUpperCase();
-  document.getElementById('profile-email').value = user.email || '';
   const savedAvatar = localStorage.getItem('avatar_' + user.id);
   if (savedAvatar) { document.getElementById('avatar-img').src = savedAvatar; document.getElementById('avatar-img').style.display = 'block'; }
   else { document.getElementById('avatar-img').style.display = 'none'; }
@@ -1099,8 +1093,7 @@ function uploadAvatar(input) {
 function removeAvatar() { if (!user) return; localStorage.removeItem('avatar_' + user.id); document.getElementById('avatar-img').style.display = 'none'; document.getElementById('avatar-img').src = ''; toast('🗑️ Profile picture removed'); }
 
 async function updateProfile() {
-  const email = document.getElementById('profile-email').value.trim(); const errEl = document.getElementById('profile-err'); errEl.style.display = 'none';
-  try { const r = await fetch(API + '/api/users/' + user.id, {method:'PATCH',headers:hdr(),body:JSON.stringify({email})}); const d = await r.json(); if (d.success) { user.email = email; localStorage.setItem('wt_user', JSON.stringify(user)); toast('✅ Email updated!'); } else { showErr(errEl, d.error || 'Failed to update'); } } catch(e) { showErr(errEl, 'Connection error'); }
+  toast('Nothing to update');
 }
 
 async function changePassword() {
@@ -1139,18 +1132,18 @@ async function loadWorkers() {
 }
 
 async function registerWorker() {
-  const displayName = document.getElementById('r-nick').value.trim(), email = document.getElementById('r-email').value.trim();
+  const displayName = document.getElementById('r-nick').value.trim();
   const sid = document.getElementById('r-sid').value.trim(), phone = document.getElementById('r-phone').value.trim();
   const pass = document.getElementById('r-pass').value, role = document.getElementById('r-role').value;
   const errEl = document.getElementById('reg-err'), btn = document.getElementById('btn-add-worker');
   if (!displayName || !pass) { showErr(errEl, 'Name and password are required'); return; }
   btn.innerHTML = '<span class="spinner"></span> Adding...'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    const r = await fetch(API + '/api/auth/register', {method:'POST',headers:hdr(),body:JSON.stringify({nickname:displayName,password:pass,email:email||undefined,role,sid:sid||undefined,phone:phone||undefined})});
+    const r = await fetch(API + '/api/auth/register', {method:'POST',headers:hdr(),body:JSON.stringify({nickname:displayName,password:pass,role,sid:sid||undefined,phone:phone||undefined})});
     const d = await r.json();
     if (d.success) {
       toast('✅ ' + displayName + ' added!');
-      ['r-nick','r-email','r-pass'].forEach(id => { document.getElementById(id).value = ''; });
+      ['r-nick','r-pass'].forEach(id => { document.getElementById(id).value = ''; });
       if (d.user && d.user.id) await fetch(API + '/api/users/' + d.user.id + '/activate', {method:'POST',headers:hdr()});
       loadWorkers();
     } else { showErr(errEl, d.error || 'Failed to add worker'); }
@@ -1484,7 +1477,6 @@ function renderPendingEmployees(pending) {
     const diffMs = now-registeredTime, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
     let timeAgo = diffDays>0?diffDays+'d ago':diffHours>0?diffHours+'h ago':diffMins>0?diffMins+'m ago':'Just now';
     html += '<div class="pending-item"><div class="pending-avatar">' + initial + '</div><div class="pending-info"><div class="pending-name">' + emp.nickname + '</div>';
-    if (emp.email) html += '<div class="pending-email">📧 ' + emp.email + '</div>';
     // API may not return sid/phone — fall back to localStorage set during self-registration
     const pendingSid   = emp.sid   || localStorage.getItem('wt_pending_sid_'   + emp.nickname) || '';
     const pendingPhone = emp.phone || localStorage.getItem('wt_pending_phone_' + emp.nickname) || '';
@@ -1675,7 +1667,7 @@ function renderEmployees(employees) {
 function filterEmployees(searchText) {
   if (!searchText) { renderEmployees(allEmployees); return; }
   const search = searchText.toLowerCase();
-  renderEmployees(allEmployees.filter(emp => emp.nickname?.toLowerCase().includes(search) || emp.sid?.toLowerCase().includes(search) || emp.phone?.toLowerCase().includes(search) || emp.email?.toLowerCase().includes(search)));
+  renderEmployees(allEmployees.filter(emp => emp.nickname?.toLowerCase().includes(search) || emp.sid?.toLowerCase().includes(search) || emp.phone?.toLowerCase().includes(search)));
 }
 
 async function openEmployeeModal(employeeId) {
@@ -1690,8 +1682,8 @@ async function openEmployeeModal(employeeId) {
 
 function exportEmployees() {
   if (allEmployees.length === 0) { toast('No employees to export', 'err'); return; }
-  let csv = 'Name,Employee ID,Phone,Email,Role,Joined\n';
-  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + (emp.email||'').replace(/"/g,'""') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\n'; });
+  let csv = 'Name,Employee ID,Phone,Role\n';
+  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + emp.role + '"\n'; });
   const blob = new Blob([csv], {type:'text/csv'}), url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = 'employees-' + new Date().toISOString().split('T')[0] + '.csv'; a.click(); URL.revokeObjectURL(url);
   toast('📥 CSV exported!');
@@ -1805,7 +1797,6 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Full Name</label><input id="emp-edit-name" type="text" value="' + escapeHtml(emp.nickname) + '"></div>';
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
-    html += '<div class="field"><label>Email</label><input id="emp-edit-email" type="email" placeholder="employee@company.com" value="' + escapeHtml(emp.email || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
     ['employee','farmer','manager','owner'].forEach(r => {
       html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
@@ -1832,7 +1823,6 @@ function showEmployeeEditModal(emp) {
       const name  = document.getElementById('emp-edit-name').value.trim();
       const sid   = document.getElementById('emp-edit-sid').value.trim();
       const phone = document.getElementById('emp-edit-phone').value.trim();
-      const email = document.getElementById('emp-edit-email').value.trim();
       const role  = document.getElementById('emp-edit-role').value;
 
       if (!name) { toast('Name is required', 'err'); return; }
@@ -1842,7 +1832,7 @@ function showEmployeeEditModal(emp) {
       try {
         const r = await fetch(API + '/api/users/' + emp.id, {
           method: 'PATCH', headers: hdr(),
-          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, email: email||null, role })
+          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, role })
         });
         const d = await r.json();
         if (d.success) { toast('✅ Employee updated!'); overlay.classList.remove('show'); resolve(true); }
