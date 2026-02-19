@@ -1010,7 +1010,7 @@ async function loadClockStatus() {
 }
 
 // Poll every 10 seconds so remote clock-outs reflect immediately on the employee screen
-setInterval(() => { if (user && token) loadClockStatus(); }, 3000);
+setInterval(() => { if (user && token) loadClockStatus(); }, 10000);
 
 function setClocked(on, since) {
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
@@ -1344,7 +1344,7 @@ async function updateOnlineUsers() {
   try { const r = await fetch(API + '/api/users/online', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.online_users) { onlineUsers = new Set(d.online_users.map(u => u.id)); updateWorkerOnlineStatus(); } } catch(e) {}
 }
 
-setInterval(updateOnlineUsers, 3000);
+setInterval(updateOnlineUsers, 15000);
 
 function updateWorkerOnlineStatus() {
   document.querySelectorAll('.online-dot').forEach(dot => {
@@ -1356,7 +1356,7 @@ function updateWorkerOnlineStatus() {
 function toggleChat() {
   const panel = document.getElementById('chat-panel'), arrow = document.getElementById('chat-arrow');
   chatOpen = !chatOpen;
-  if (chatOpen) { panel.classList.remove('minimized'); arrow.textContent = '▼'; loadChatMessages(); if (!chatPollInterval) chatPollInterval = setInterval(loadChatMessages, 5000); document.getElementById('chat-badge').classList.add('hidden'); }
+  if (chatOpen) { panel.classList.remove('minimized'); arrow.textContent = '▼'; loadChatMessages(); if (!chatPollInterval) chatPollInterval = setInterval(loadChatMessages, 20000); document.getElementById('chat-badge').classList.add('hidden'); }
   else { panel.classList.add('minimized'); arrow.textContent = '▲'; if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; } }
 }
 
@@ -1383,7 +1383,7 @@ function escapeHtml(text) { const div = document.createElement('div'); div.textC
 
 function initChat() {
   const chatPanel = document.getElementById('chat-panel'); if (!chatPanel) return;
-  if (['manager', 'owner'].includes(user.role)) { chatPanel.classList.remove('hidden'); chatPanel.style.display = 'flex'; loadChatMessages(); setInterval(loadChatMessages, 10000); }
+  if (['manager', 'owner'].includes(user.role)) { chatPanel.classList.remove('hidden'); chatPanel.style.display = 'flex'; loadChatMessages(); setInterval(loadChatMessages, 20000); }
   else { chatPanel.style.display = 'none'; }
 }
 
@@ -1519,8 +1519,8 @@ async function rejectEmployee(userId, nickname) {
   try { const r = await fetch(API + '/api/users/' + userId, {method:'DELETE',headers:hdr()}); const d = await r.json(); if (d.success) { toast('❌ ' + nickname + ' rejected'); loadPendingEmployees(); } else { toast(d.error || 'Failed to reject', 'err'); } } catch(e) { toast('Connection error', 'err'); }
 }
 
-setInterval(() => { if (user && ['manager','owner'].includes(user.role)) loadPendingEmployees(); }, 30000);
-setInterval(loadClockedInUsers, 30000);
+setInterval(() => { if (user && ['manager','owner'].includes(user.role)) loadPendingEmployees(); }, 60000);
+setInterval(loadClockedInUsers, 45000);
 
 // === STOCK ALERTS ===
 let currentStockTab = 'pending', stockPhotoData = null;
