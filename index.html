@@ -997,7 +997,7 @@ async function loadClockStatus() {
 }
 
 // Poll every 10 seconds so remote clock-outs reflect immediately on the employee screen
-setInterval(() => { if (user && token) loadClockStatus(); }, 10000);
+setInterval(() => { if (user && token) loadClockStatus(); }, 3000);
 
 function setClocked(on, since) {
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
