@@ -1590,12 +1590,10 @@ async function loadEmployees() {
   const grid = document.getElementById('employees-grid'); if (!grid) return;
   grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    // Try manager endpoint first, fall back to a public/employee-safe endpoint
-    let r = await fetch(API + '/api/users?is_active=true', {headers:hdr()});
-    if (r.status === 403) r = await fetch(API + '/api/users/directory', {headers:hdr()});
+    const r = await fetch(API + '/api/users', {headers:hdr()});
     const d = await r.json();
-    if (!d.success || (!d.users && !d.employees)) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
-    allEmployees = (d.users || d.employees || []).filter(u => u.is_active);
+    if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
+    allEmployees = d.users.filter(u => u.is_active);
     if (allEmployees.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active employees yet</p></div>'; return; }
     renderEmployees(allEmployees);
   } catch(e) { grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load employees</p></div>'; }
