@@ -956,6 +956,9 @@ function showApp() {
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
   }
+  // Show clocked-in widget for everyone
+  const ciWidget = document.getElementById('clocked-in-widget');
+  if (ciWidget) ciWidget.style.display = 'block';
   loadClockStatus();
   loadStats();
   sendHeartbeat();
@@ -1362,7 +1365,17 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document
 // === CLOCKED IN WIDGET ===
 async function loadClockedInUsers() {
   if (!user) return;
-  try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
+  try {
+    const r = await fetch(API + '/api/time-entries/active', {headers:hdr()});
+    if (!r.ok) {
+      // Endpoint may not be accessible to employees — show empty widget gracefully
+      renderClockedInUsers([]);
+      return;
+    }
+    const d = await r.json();
+    if (d.success && d.entries) renderClockedInUsers(d.entries);
+    else renderClockedInUsers([]);
+  } catch(e) { renderClockedInUsers([]); }
 }
 
 async function managerClockOut(entryId, nickname, clockInTime) {
@@ -1590,7 +1603,9 @@ async function loadEmployees() {
   const grid = document.getElementById('employees-grid'); if (!grid) return;
   grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const r = await fetch(API + '/api/users', {headers:hdr()});
+    // Managers/owners use /api/users, employees use /api/users/directory
+    const endpoint = ['manager','owner'].includes(user.role) ? '/api/users' : '/api/users/directory';
+    const r = await fetch(API + endpoint, {headers:hdr()});
     const d = await r.json();
     if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
     allEmployees = d.users.filter(u => u.is_active);
