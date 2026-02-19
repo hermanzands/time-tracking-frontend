@@ -315,7 +315,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="field" style="margin-bottom:0;"><label>SID</label><input id="reg-sid" type="text" placeholder="e.g. 12345"></div>
-        <div class="field" style="margin-bottom:0;"><label>Phone</label><input id="reg-phone" type="tel" placeholder="e.g. (690) 123-4567"></div>
+        <div class="field" style="margin-bottom:0;"><label>Phone</label><input id="reg-phone" type="tel" placeholder="e.g. 06 12345678"></div>
       </div>
       <div class="field"><label>Email (optional)</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
       <button class="btn btn-primary" id="btn-reg" onclick="registerSelf()">Create Account</button>
@@ -717,7 +717,28 @@ async function login() {
   try {
     const r = await fetch(API + '/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass}) });
     const d = await r.json();
-    if (d.success) { token = d.accessToken; user = d.user; localStorage.setItem('wt_token', token); localStorage.setItem('wt_user', JSON.stringify(user)); showApp(); }
+    if (d.success) {
+      token = d.accessToken; user = d.user;
+      localStorage.setItem('wt_token', token);
+      localStorage.setItem('wt_user', JSON.stringify(user));
+      // If SID/phone were stored during self-registration, flush them to the DB now
+      const pendingSid = localStorage.getItem('wt_pending_sid_' + nick);
+      const pendingPhone = localStorage.getItem('wt_pending_phone_' + nick);
+      if ((pendingSid || pendingPhone) && user.id) {
+        try {
+          await fetch(API + '/api/users/' + user.id, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
+            body: JSON.stringify({sid: pendingSid || undefined, phone: pendingPhone || undefined})
+          });
+          user.sid = pendingSid; user.phone = pendingPhone;
+          localStorage.setItem('wt_user', JSON.stringify(user));
+        } catch(e) {}
+        localStorage.removeItem('wt_pending_sid_' + nick);
+        localStorage.removeItem('wt_pending_phone_' + nick);
+      }
+      showApp();
+    }
     else { showErr(errEl, d.error || 'Wrong username or password'); }
   } catch (e) { showErr(errEl, 'Cannot connect to server'); }
   btn.innerHTML = 'Sign In'; btn.disabled = false;
@@ -746,21 +767,14 @@ async function registerSelf() {
     const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, sid: sid, phone: phone, role: 'employee'}) });
     const d = await r.json();
     if (d.success) {
-      // Fire a follow-up PATCH to ensure SID & phone are saved, since some
-      // backends ignore extra fields on /register but support them on PATCH /users/:id
-      if (d.user && d.user.id) {
-        try {
-          await fetch(API + '/api/users/' + d.user.id, {
-            method: 'PATCH',
-            headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + (d.accessToken || '')},
-            body: JSON.stringify({sid: sid, phone: phone})
-          });
-        } catch(e) { /* best-effort — don't block the success flow */ }
-      }
+      // No auth token yet (account is pending approval), so store SID/phone locally.
+      // They will be PATCHed to the DB automatically on the user's first successful login.
+      localStorage.setItem('wt_pending_sid_' + nick, sid);
+      localStorage.setItem('wt_pending_phone_' + nick, phone);
       authTab('signin');
       const el = document.getElementById('login-err');
       el.style.display = 'block'; el.style.background = 'rgba(0,229,160,.1)'; el.style.borderColor = 'rgba(0,229,160,.3)'; el.style.color = 'var(--green)';
-      el.textContent = '✅ Account created! Ask your manager to activate it, then sign in.';
+      el.textContent = '\u2705 Account created! Ask your manager to activate it, then sign in.';
       document.getElementById('l-nick').value = nick;
     } else { showErr(errEl, d.error || 'Registration failed'); }
   } catch (e) { showErr(errEl, 'Cannot connect to server'); }
@@ -1366,8 +1380,11 @@ function renderPendingEmployees(pending) {
     let timeAgo = diffDays>0?diffDays+'d ago':diffHours>0?diffHours+'h ago':diffMins>0?diffMins+'m ago':'Just now';
     html += '<div class="pending-item"><div class="pending-avatar">' + initial + '</div><div class="pending-info"><div class="pending-name">' + emp.nickname + '</div>';
     if (emp.email) html += '<div class="pending-email">📧 ' + emp.email + '</div>';
-    if (emp.sid) html += '<div class="pending-email">🆔 SID: ' + escapeHtml(emp.sid) + '</div>';
-    if (emp.phone) html += '<div class="pending-email">📞 ' + escapeHtml(emp.phone) + '</div>';
+    // API may not return sid/phone — fall back to localStorage set during self-registration
+    const pendingSid   = emp.sid   || localStorage.getItem('wt_pending_sid_'   + emp.nickname) || '';
+    const pendingPhone = emp.phone || localStorage.getItem('wt_pending_phone_' + emp.nickname) || '';
+    if (pendingSid)   html += '<div class="pending-email">🆔 SID: ' + escapeHtml(pendingSid) + '</div>';
+    if (pendingPhone) html += '<div class="pending-email">📞 ' + escapeHtml(pendingPhone) + '</div>';
     html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div></div>';
     html += '<div class="pending-actions"><button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✓ Approve</button><button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✕ Reject</button></div></div>';
   });
