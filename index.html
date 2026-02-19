@@ -1336,55 +1336,6 @@ function renderStockNotifications() {
   list.innerHTML = html;
 }
   
-  let html = '';
-  
-  notifications.forEach(notif => {
-    const timeAgo = getTimeAgo(notif.created_at);
-    const unreadClass = notif.is_read ? '' : 'unread';
-    
-    // Different icons and labels based on type
-    let icon = '📦';
-    let label = 'Stock Alert';
-    
-    if (notif.notification_type === 'payment') {
-      icon = '💰';
-      label = 'Payment';
-    } else if (notif.notification_type === 'system') {
-      icon = '📢';
-      label = 'System';
-    } else if (notif.notification_type === 'approval') {
-      icon = '✅';
-      label = 'Approved';
-    } else if (notif.notification_type === 'rejection') {
-      icon = '❌';
-      label = 'Rejected';
-    }
-    
-    html += `
-      <div class="notif-item ${unreadClass}" 
-           onclick="viewNotification('${notif.id}', '${notif.notification_type}', '${notif.related_id || ''}')"
-           style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;">
-        <div style="display: flex; align-items: start; gap: 10px;">
-          <span style="font-size: 24px;">${icon}</span>
-          <div style="flex: 1;">
-            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
-              ${label}
-            </div>
-            <div style="color: #666; font-size: 14px; line-height: 1.4;">
-              ${notif.message}
-            </div>
-            <div style="color: #999; font-size: 12px; margin-top: 4px;">
-              ${timeAgo}
-            </div>
-          </div>
-          ${!notif.is_read ? '<div style="width: 8px; height: 8px; background: #7c6ff7; border-radius: 50%; margin-top: 8px;"></div>' : ''}
-        </div>
-      </div>
-    `;
-  });
-  
-  list.innerHTML = html;
-}
 
 function viewNotification(notifId, notifType, relatedId) {
   // Mark as read
