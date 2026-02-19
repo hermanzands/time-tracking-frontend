@@ -988,7 +988,8 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
 let token = localStorage.getItem('wt_token');
 let user = JSON.parse(localStorage.getItem('wt_user') || 'null');
-
+let allEntriesData = {}; // Add this line with the other global variables
+  
 // === BOOT ===
 window.onload = () => {
   tickClock();
@@ -1963,9 +1964,9 @@ async function loadAllEntries() {
       const totalHrs = entries.reduce((sum, e) => sum + (Number(e.total_hours) || 0), 0);
       const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_');
       const safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+      entries.forEach(e => { allEntriesData[e.id] = e; });
       
       html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
-
       html += '<td colspan="6" style="padding:14px 20px;">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
       html += '<div style="display:flex;align-items:center;gap:12px;">';
@@ -3289,25 +3290,21 @@ let editingEntryId = null;
 async function editTimeEntry(entryId) {
   editingEntryId = entryId;
   
-  // Fetch entry details
-  try {
-    const r = await fetch(API + '/api/time-entries/' + entryId, {headers: hdr()});
-    const d = await r.json();
-    
-    if (!d.success || !d.entry) {
-      toast('Failed to load entry', 'err');
-      return;
-    }
-    
-    const entry = d.entry;
-    
-    // Show edit modal
-    const confirmed = await showEditTimeModal(entry);
-    if (confirmed) {
-      loadAllEntries(); // Refresh the list
-      toast('✅ Time entry updated!');
-    }
-  } catch (e) {
+  // Get entry from stored data instead of fetching
+  const entry = allEntriesData[entryId];
+  
+  if (!entry) {
+    toast('Entry not found. Please refresh the page.', 'err');
+    return;
+  }
+  
+  // Show edit modal
+  const confirmed = await showEditTimeModal(entry);
+  if (confirmed) {
+    loadAllEntries(); // Refresh the list
+    toast('✅ Time entry updated!');
+  }
+} catch (e) {
     toast('Failed to load entry', 'err');
   }
 }
