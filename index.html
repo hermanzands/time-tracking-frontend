@@ -975,13 +975,29 @@ function go(panel) {
 }
 
 // === CLOCK ===
+let lastKnownClockedIn = null; // track state to detect remote clock-out
+
 async function loadClockStatus() {
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
     const d = await r.json();
-    if (d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active') setClocked(true, new Date(d.entries[0].clock_in));
+    const isActive = d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active';
+    if (isActive) {
+      lastKnownClockedIn = true;
+      setClocked(true, new Date(d.entries[0].clock_in));
+    } else {
+      // If we WERE clocked in but now we're not — manager clocked us out
+      if (lastKnownClockedIn === true) {
+        toast('\u23f9 You have been clocked out by a manager', 'err');
+      }
+      lastKnownClockedIn = false;
+      setClocked(false);
+    }
   } catch(e) {}
 }
+
+// Poll every 10 seconds so remote clock-outs reflect immediately on the employee screen
+setInterval(() => { if (user && token) loadClockStatus(); }, 10000);
 
 function setClocked(on, since) {
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
