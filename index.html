@@ -612,32 +612,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
             <div class="field"><label>Period End</label><input id="pay-end" type="date"></div>
             <div class="field"><label>Total Amount (€)</label><input id="pay-total" type="number" placeholder="e.g. 10000" min="0"></div>
           </div>
-          <div style="margin-bottom:16px;">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">🎁 Bonus % per role <span style="font-weight:400;opacity:.6;">(optional — added on top of hours-based pay)</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-              <div class="field" style="margin-bottom:0;">
-                <label>Employee</label>
-                <div style="position:relative;">
-                  <input id="bonus-employee" type="number" min="0" max="200" step="0.5" placeholder="0" style="padding-right:32px;">
-                  <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;">%</span>
-                </div>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Farmer</label>
-                <div style="position:relative;">
-                  <input id="bonus-farmer" type="number" min="0" max="200" step="0.5" placeholder="0" style="padding-right:32px;">
-                  <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;">%</span>
-                </div>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Owner</label>
-                <div style="position:relative;">
-                  <input id="bonus-owner" type="number" min="0" max="200" step="0.5" placeholder="0" style="padding-right:32px;">
-                  <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;">%</span>
-                </div>
-              </div>
-            </div>
-          </div>
+
           <div style="display:flex;gap:12px;">
             <button class="btn btn-primary btn-sm" id="btn-calc" onclick="calcPayments()">Calculate</button>
             <button class="btn btn-primary btn-sm hidden" id="btn-process" onclick="processPayments()" style="background:var(--green);">Process & Send Payments</button>
@@ -1255,6 +1230,51 @@ function setDefaultDates() {
   if (e && !e.value) e.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 }
 
+function renderPayResults() {
+  const list = document.getElementById('pay-list');
+  if (!list || !window._payDistributions) return;
+  let html = '';
+  window._payDistributions.forEach((p, idx) => {
+    const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
+    const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
+    const bonusPct = p._bonusPct || 0;
+    const bonusAmount = p._baseAmount * (bonusPct / 100);
+    const total = p._baseAmount + bonusAmount;
+    html += '<div class="pay-result-item" style="align-items:center;gap:12px;">';
+    html += '<div class="pay-worker" style="flex:1;min-width:0;"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
+    html += '<div style="min-width:0;"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (p.nickname||'Unknown') + '</div>';
+    html += '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div></div></div>';
+    // Bonus input
+    html += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
+    html += '<span style="font-size:11px;color:var(--muted);">Bonus</span>';
+    html += '<div style="position:relative;width:72px;"><input type="number" min="0" max="200" step="0.5" value="' + bonusPct + '" placeholder="0" data-idx="' + idx + '" onchange="applyBonus(this)" oninput="applyBonus(this)" style="width:100%;padding:6px 22px 6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;"></div>';
+    html += '<span style="font-size:12px;color:var(--muted);">%</span></div>';
+    // Amount
+    html += '<div style="text-align:right;flex-shrink:0;min-width:80px;">';
+    html += '<div class="pay-amount" id="pay-total-' + idx + '">€' + total.toFixed(2) + '</div>';
+    if (bonusPct > 0) html += '<div style="font-size:11px;color:var(--amber);">+€' + bonusAmount.toFixed(2) + ' bonus</div>';
+    else html += '<div style="font-size:11px;color:var(--muted);" id="pay-bonus-label-' + idx + '">&nbsp;</div>';
+    html += '</div></div>';
+  });
+  list.innerHTML = html;
+  // Load avatars
+  window._payDistributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
+}
+
+function applyBonus(input) {
+  const idx = parseInt(input.dataset.idx);
+  const pct = parseFloat(input.value) || 0;
+  if (!window._payDistributions || !window._payDistributions[idx]) return;
+  window._payDistributions[idx]._bonusPct = pct;
+  const base = window._payDistributions[idx]._baseAmount;
+  const bonusAmount = base * (pct / 100);
+  const total = base + bonusAmount;
+  const totalEl = document.getElementById('pay-total-' + idx);
+  const labelEl = document.getElementById('pay-bonus-label-' + idx);
+  if (totalEl) totalEl.textContent = '€' + total.toFixed(2);
+  if (labelEl) labelEl.innerHTML = pct > 0 ? '<span style="color:var(--amber);">+€' + bonusAmount.toFixed(2) + ' bonus</span>' : '&nbsp;';
+}
+
 async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
@@ -1269,41 +1289,12 @@ async function calcPayments() {
       const farmerPool = total * 0.20;
       allFarmers.forEach(farmer => { const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id); if (!alreadyIncluded && allFarmers.length > 0) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:farmerPool/allFarmers.length,percentage:20/allFarmers.length}); });
 
-      // Read bonus % fields
-      const bonusByRole = {
-        employee: parseFloat(document.getElementById('bonus-employee').value) || 0,
-        farmer:   parseFloat(document.getElementById('bonus-farmer').value)   || 0,
-        owner:    parseFloat(document.getElementById('bonus-owner').value)    || 0,
-        manager:  0,
-      };
-
-      // Apply bonuses
-      d.distributions.forEach(p => {
-        const bonusPct = bonusByRole[p.role] || 0;
-        p._baseAmount = Number(p.amount) || 0;
-        p._bonusPct   = bonusPct;
-        p._bonusAmount = p._baseAmount * (bonusPct / 100);
-        p.amount = p._baseAmount + p._bonusAmount;
-      });
+      // Store base amounts for live bonus recalc
+      window._payDistributions = d.distributions.map(p => ({...p, _baseAmount: Number(p.amount)||0}));
 
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
-      let html = '';
-      d.distributions.forEach(p => {
-        const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
-        const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
-        let bonusTag = '';
-        if (p._bonusPct > 0) {
-          bonusTag = ' · <span style="color:var(--amber);font-size:11px;font-weight:700;">+' + p._bonusPct + '% bonus (€' + p._bonusAmount.toFixed(2) + ')</span>';
-        }
-        html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
-        html += '<div style="text-align:right;"><div class="pay-amount">€' + (Number(p.amount)||0).toFixed(2) + '</div>';
-        if (p._bonusPct > 0) { html += '<div style="font-size:11px;color:var(--muted);">base €' + p._baseAmount.toFixed(2) + '</div>'; }
-        html += '</div></div>';
-      });
-      list.innerHTML = html;
-      d.distributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
+      renderPayResults();
       document.getElementById('btn-process').classList.remove('hidden');
       toast('✅ Calculation done!');
     } else { showErr(errEl, d.error || 'Calculation failed'); }
