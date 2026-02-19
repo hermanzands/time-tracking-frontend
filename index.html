@@ -1050,7 +1050,7 @@ async function loadMyEntries() {
     const d = await r.json();
     if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
     const validEntries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
-    if (validEntries.length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
+    if (validEntries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
     let html = '';
     validEntries.forEach(e => { html += '<tr><td>' + fmtDate(e.clock_in) + '</td><td>' + fmtTime(e.clock_in) + '</td><td>' + fmtTime(e.clock_out) + '</td><td>' + Number(e.total_hours).toFixed(2) + 'h</td><td><span class="badge badge-' + e.status + '">' + e.status + '</span></td></tr>'; });
     tb.innerHTML = html;
