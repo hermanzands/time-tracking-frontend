@@ -328,11 +328,16 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
       <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center;">⚠️ Your account needs manager approval before you can log in</div>
     </div>
     <div id="form-forgot" class="hidden">
-      <div class="field"><label>Username</label><input id="forgot-nick" type="text" placeholder="your username"></div>
-      <div class="field"><label>Email</label><input id="forgot-email" type="email" placeholder="your email"></div>
-      <button class="btn btn-primary" id="btn-forgot" onclick="resetPassword()">Reset Password</button>
-      <div class="err-box" id="forgot-err"></div>
-      <div style="text-align:center;margin-top:16px;font-size:13px;">
+      <div style="text-align:center;padding:8px 0 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">📞</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:6px;">Need help signing in?</div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:24px;">Call us and we'll reset your password for you.</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;">
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px;">Henk Miller</div>
+          <span style="font-family:'Oxanium',sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:1px;">(690) 000-6426</span>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:4px;font-size:13px;">
         <a href="#" onclick="authTab('signin');return false;" style="color:var(--accent);text-decoration:none;">← Back to sign in</a>
       </div>
     </div>
@@ -682,8 +687,8 @@ window.onload = () => {
 
 function tickClock() {
   const n = new Date();
-  document.getElementById('live-time').textContent = n.toLocaleTimeString('en-US', {hour12: false});
-  document.getElementById('live-date').textContent = n.toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+  document.getElementById('live-time').textContent = n.toLocaleTimeString([], {hour12: false});
+  document.getElementById('live-date').textContent = n.toLocaleDateString([], {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
 }
 
 function toast(msg, type = 'ok') {
@@ -697,8 +702,8 @@ function toast(msg, type = 'ok') {
 function hdr() { return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}; }
 function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 function toHm(h) { const hrs = Math.floor(h); const mins = Math.round((h - hrs) * 60); if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
-function fmtDate(s) { return new Date(s).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}); }
-function fmtTime(s) { return new Date(s).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}); }
+function fmtDate(s) { return new Date(s).toLocaleDateString([], {day: 'numeric', month: 'short', year: 'numeric'}); }
+function fmtTime(s) { return new Date(s).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false}); }
 function togglePwd(inputId, btn) { const inp = document.getElementById(inputId); if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; } else { inp.type = 'password'; btn.textContent = '👁'; } }
 
 // === AUTH ===
@@ -817,23 +822,7 @@ async function registerSelf() {
   btn.innerHTML = 'Create Account'; btn.disabled = false;
 }
 
-async function resetPassword() {
-  const nick = document.getElementById('forgot-nick').value.trim();
-  const email = document.getElementById('forgot-email').value.trim();
-  const errEl = document.getElementById('forgot-err');
-  const btn = document.getElementById('btn-forgot');
-  if (!nick || !email) { showErr(errEl, 'Please fill in both fields'); return; }
-  btn.innerHTML = '<span class="spinner"></span> Sending...'; btn.disabled = true; errEl.style.display = 'none';
-  try {
-    const r = await fetch(API + '/api/auth/forgot-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, email: email}) });
-    const d = await r.json();
-    authTab('signin');
-    const el = document.getElementById('login-err');
-    el.style.display = 'block'; el.style.background = 'rgba(0,229,160,.1)'; el.style.borderColor = 'rgba(0,229,160,.3)'; el.style.color = 'var(--green)';
-    el.textContent = '✅ If an account exists with that username and email, a password reset link has been sent.';
-  } catch (e) { showErr(errEl, 'Connection error'); }
-  btn.innerHTML = 'Reset Password'; btn.disabled = false;
-}
+
 
 // === NOTIFICATIONS ===
 let notifications = [];
@@ -1369,7 +1358,7 @@ function renderChatMessages(messages) {
   const container = document.getElementById('chat-messages');
   if (messages.length === 0) { container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No messages yet</div>'; return; }
   let html = '';
-  messages.forEach(msg => { const isMe = msg.user_id === user.id; const time = new Date(msg.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); html += '<div class="chat-msg ' + (isMe?'chat-msg-me':'chat-msg-other') + '"><div class="chat-bubble">' + escapeHtml(msg.message) + '</div><div class="chat-meta">' + (isMe?'You':msg.nickname) + ' • ' + time + '</div></div>'; });
+  messages.forEach(msg => { const isMe = msg.user_id === user.id; const time = new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false}); html += '<div class="chat-msg ' + (isMe?'chat-msg-me':'chat-msg-other') + '"><div class="chat-bubble">' + escapeHtml(msg.message) + '</div><div class="chat-meta">' + (isMe?'You':msg.nickname) + ' • ' + time + '</div></div>'; });
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
 }
