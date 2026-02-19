@@ -746,6 +746,17 @@ async function registerSelf() {
     const r = await fetch(API + '/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass, email: email || undefined, sid: sid, phone: phone, role: 'employee'}) });
     const d = await r.json();
     if (d.success) {
+      // Fire a follow-up PATCH to ensure SID & phone are saved, since some
+      // backends ignore extra fields on /register but support them on PATCH /users/:id
+      if (d.user && d.user.id) {
+        try {
+          await fetch(API + '/api/users/' + d.user.id, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + (d.accessToken || '')},
+            body: JSON.stringify({sid: sid, phone: phone})
+          });
+        } catch(e) { /* best-effort — don't block the success flow */ }
+      }
       authTab('signin');
       const el = document.getElementById('login-err');
       el.style.display = 'block'; el.style.background = 'rgba(0,229,160,.1)'; el.style.borderColor = 'rgba(0,229,160,.3)'; el.style.color = 'var(--green)';
@@ -1355,6 +1366,8 @@ function renderPendingEmployees(pending) {
     let timeAgo = diffDays>0?diffDays+'d ago':diffHours>0?diffHours+'h ago':diffMins>0?diffMins+'m ago':'Just now';
     html += '<div class="pending-item"><div class="pending-avatar">' + initial + '</div><div class="pending-info"><div class="pending-name">' + emp.nickname + '</div>';
     if (emp.email) html += '<div class="pending-email">📧 ' + emp.email + '</div>';
+    if (emp.sid) html += '<div class="pending-email">🆔 SID: ' + escapeHtml(emp.sid) + '</div>';
+    if (emp.phone) html += '<div class="pending-email">📞 ' + escapeHtml(emp.phone) + '</div>';
     html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div></div>';
     html += '<div class="pending-actions"><button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✓ Approve</button><button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✕ Reject</button></div></div>';
   });
