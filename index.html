@@ -1175,7 +1175,7 @@ async function loadAllEntries() {
     if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
     const byPerson = {};
     d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
-    if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
+    if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
     let html = '';
     Object.entries(byPerson).forEach(([name, data]) => {
       const entries = data.entries, totalHrs = entries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
