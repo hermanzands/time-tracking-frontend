@@ -1677,7 +1677,7 @@ function renderReimbursements(items) {
     return;
   }
   const isAdmin = ['manager','owner'].includes(user.role);
-  list.innerHTML = items.map(item => {
+  list.innerHTML = '<div class="reimburse-grid">' + items.map(item => {
     const timeAgo = getTimeAgo(new Date(item.created_at));
     const statusColor = item.status === 'paid' ? 'var(--green)' : 'var(--amber)';
     const statusIcon = item.status === 'paid' ? '✅' : '⏳';
@@ -1686,31 +1686,31 @@ function renderReimbursements(items) {
         <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
       </div>
       <div class="reimburse-body">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--accent);letter-spacing:-0.5px;">$${parseFloat(item.amount).toFixed(2)}</div>
-          <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusIcon} ${item.status.toUpperCase()}</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--accent);letter-spacing:-0.5px;">$${parseFloat(item.amount).toFixed(2)}</div>
+          <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;font-size:10px;">${statusIcon} ${item.status.toUpperCase()}</span>
         </div>`;
     if (isAdmin) {
-      html += `<div style="display:flex;align-items:center;gap:8px;">
-        <div class="avatar" style="width:24px;height:24px;font-size:11px;display:inline-flex;flex-shrink:0;"><span class="avatar-letter">${(item.user_nickname||'?')[0].toUpperCase()}</span></div>
+      html += `<div style="display:flex;align-items:center;gap:6px;">
+        <div class="avatar" style="width:20px;height:20px;font-size:10px;display:inline-flex;flex-shrink:0;"><span class="avatar-letter">${(item.user_nickname||'?')[0].toUpperCase()}</span></div>
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(item.user_nickname||'Unknown')}</div>
-          ${item.user_sid ? `<div style="font-size:11px;color:var(--muted);">SID: ${escapeHtml(item.user_sid)}</div>` : ''}
+          <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(item.user_nickname||'Unknown')}</div>
+          ${item.user_sid ? `<div style="font-size:10px;color:var(--muted);">SID: ${escapeHtml(item.user_sid)}</div>` : ''}
         </div>
       </div>`;
     }
     html += `<div class="reimburse-meta"><span>📅 ${timeAgo}</span>`;
-    if (item.status === 'paid' && item.reviewed_by_nickname) html += ` · <span>✅ Paid by ${escapeHtml(item.reviewed_by_nickname)}</span>`;
+    if (item.status === 'paid' && item.reviewed_by_nickname) html += ` · <span>✅ ${escapeHtml(item.reviewed_by_nickname)}</span>`;
     html += `</div>`;
-    if (item.note) html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">"${escapeHtml(item.note)}"</div>`;
     if (isAdmin && item.status === 'pending') {
       html += `<div class="reimburse-actions">
-        <button onclick="reviewReimbursement('${item.id}','paid')" class="btn-approve">✅ Mark as Paid</button>
+        <button onclick="reviewReimbursement('${item.id}','paid')" class="btn-approve" style="flex:1;padding:8px;">✅ Paid</button>
+        <button onclick="deleteReimbursement('${item.id}')" class="btn-delete-reimburse">🗑️</button>
       </div>`;
     }
     html += `</div></div>`;
     return html;
-  }).join('');
+  }).join('') + '</div>';
 
   // Store items for lightbox lookup
   window._reimburseItems = items;
@@ -1742,6 +1742,23 @@ async function reviewReimbursement(id, status) {
     const d = await r.json();
     if (d.success) { toast('✅ Marked as paid!'); loadReimbursements(); }
     else { toast(d.error || 'Failed', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
+async function deleteReimbursement(id) {
+  const confirmed = await showModal({
+    icon: '🗑️',
+    title: 'Delete Request?',
+    message: 'Are you sure you want to delete this reimbursement request?',
+    confirmText: 'Delete',
+    danger: true
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/reimbursements/' + id, { method: 'DELETE', headers: hdr() });
+    const d = await r.json();
+    if (d.success) { toast('🗑️ Deleted'); loadReimbursements(); }
+    else { toast(d.error || 'Failed to delete', 'err'); }
   } catch(e) { toast('Connection error', 'err'); }
 }
 
