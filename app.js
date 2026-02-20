@@ -1765,9 +1765,14 @@ async function deleteReimbursement(id) {
 async function updateReimburseCounts() {
   if (!['manager','owner'].includes(user.role)) return;
   try {
-    const r = await fetch(API + '/api/reimbursements?status=pending', {headers: hdr()});
-    const d = await r.json();
+    const [rPending, rPaid] = await Promise.all([
+      fetch(API + '/api/reimbursements?status=pending', {headers: hdr()}),
+      fetch(API + '/api/reimbursements?status=paid', {headers: hdr()})
+    ]);
+    const [dPending, dPaid] = await Promise.all([rPending.json(), rPaid.json()]);
     const pc = document.getElementById('reimburse-pending-count');
-    if (pc) pc.textContent = d.reimbursements?.length || 0;
+    const pd = document.getElementById('reimburse-paid-count');
+    if (pc) pc.textContent = dPending.reimbursements?.length || 0;
+    if (pd) pd.textContent = dPaid.reimbursements?.length || 0;
   } catch(e) {}
 }
