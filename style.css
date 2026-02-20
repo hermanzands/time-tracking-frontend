@@ -342,3 +342,21 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .editor-pick-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;transition:background .15s;}
 .editor-pick-btn:hover{background:rgba(124,111,247,.15);border-color:var(--accent);color:var(--accent);}
 .editor-pick-btn.selected{background:rgba(124,111,247,.15);border-color:var(--accent);color:var(--accent);opacity:.4;pointer-events:none;}
+
+/* REIMBURSEMENTS */
+.reimburse-item{background:var(--surface2);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all .2s;}
+.reimburse-item:hover{border-color:var(--accent);}
+.reimburse-item.approved{opacity:.7;background:var(--bg);}
+.reimburse-item.rejected{opacity:.5;background:var(--bg);}
+.reimburse-photo{width:100%;max-height:320px;object-fit:contain;background:#0d0d1a;border-bottom:1px solid var(--border);display:block;cursor:pointer;}
+.reimburse-body{padding:16px;display:flex;flex-direction:column;gap:10px;}
+.reimburse-amount{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--accent);}
+.reimburse-meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.reimburse-actions{display:flex;gap:8px;margin-top:4px;}
+.btn-approve{flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;background:rgba(0,229,160,.15);border:1.5px solid rgba(0,229,160,.3);color:var(--green);transition:all .2s;}
+.btn-approve:hover{background:rgba(0,229,160,.25);}
+.btn-reject{flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;background:rgba(255,85,102,.15);border:1.5px solid rgba(255,85,102,.3);color:var(--danger);transition:all .2s;}
+.btn-reject:hover{background:rgba(255,85,102,.25);}
+/* lightbox */
+#reimburse-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;}
+#reimburse-lightbox img{max-width:94vw;max-height:94vh;border-radius:12px;object-fit:contain;}
