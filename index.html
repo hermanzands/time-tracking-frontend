@@ -326,15 +326,20 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-reply-actions{display:flex;gap:6px;margin-top:6px;}
 .forum-reply-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;}
 .forum-reply-btn:hover{color:var(--danger);background:rgba(255,85,102,.08);}
-.color-picker-popup{position:fixed;z-index:10000;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:none;flex-direction:column;gap:10px;min-width:220px;}
+.color-picker-popup{position:fixed;z-index:10000;background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;box-shadow:0 16px 60px rgba(0,0,0,.8);display:none;flex-direction:column;gap:10px;width:240px;user-select:none;}
 .color-picker-popup.show{display:flex;}
-.color-picker-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
-.color-swatch{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0;}
-.color-swatch:hover{transform:scale(1.2);border-color:rgba(255,255,255,.4);}
-.color-picker-custom{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--border);}
-.color-picker-custom label{font-size:11px;color:var(--muted);white-space:nowrap;}
-.color-picker-custom input[type=color]{width:32px;height:28px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;}
-.color-picker-custom input[type=text]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;}
+.cp-sv-canvas{width:100%;height:160px;border-radius:10px;cursor:crosshair;display:block;border:1px solid rgba(255,255,255,.08);}
+.cp-sv-cursor{position:absolute;width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.3);transform:translate(-50%,-50%);pointer-events:none;}
+.cp-sv-wrap{position:relative;}
+.cp-hue-canvas{width:100%;height:14px;border-radius:7px;cursor:crosshair;display:block;border:1px solid rgba(255,255,255,.08);}
+.cp-hue-cursor{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.6);transform:translate(-50%,-50%);pointer-events:none;}
+.cp-hue-wrap{position:relative;}
+.cp-bottom{display:flex;align-items:center;gap:8px;}
+.cp-preview{width:28px;height:28px;border-radius:8px;flex-shrink:0;border:1px solid rgba(255,255,255,.15);}
+.cp-hex-input{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 10px;color:#fff;font-size:13px;font-family:'DM Mono',monospace,sans-serif;outline:none;transition:border-color .15s;}
+.cp-hex-input:focus{border-color:var(--accent);}
+.cp-apply{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.cp-apply:hover{opacity:.85;}
 .forum-replies-wrap{border:1px solid var(--border);border-radius:14px;margin-top:20px;overflow:hidden;}
 .forum-replies-header{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding:12px 20px;background:rgba(124,111,247,.05);border-bottom:1px solid var(--border);}
 .forum-reply-box{margin-top:16px;display:flex;gap:10px;align-items:flex-start;}
@@ -801,13 +806,19 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 
 <!-- CUSTOM CONFIRMATION MODAL -->
 
-<div id="color-picker-popup" class="color-picker-popup" onclick="event.stopPropagation()">
-  <div class="color-picker-swatches" id="color-swatches"></div>
-  <div class="color-picker-custom">
-    <label>Custom:</label>
-    <input type="color" id="color-custom-native" value="#ffffff" oninput="onCustomColorInput(this.value)">
-    <input type="text" id="color-custom-hex" placeholder="#ffffff" maxlength="7" oninput="onCustomHexInput(this.value)">
-    <button class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;" onclick="applyCustomColor()">✓</button>
+<div id="color-picker-popup" class="color-picker-popup" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+  <div class="cp-sv-wrap">
+    <canvas class="cp-sv-canvas" id="cp-sv-canvas" width="240" height="160"></canvas>
+    <div class="cp-sv-cursor" id="cp-sv-cursor" style="left:50%;top:0%;"></div>
+  </div>
+  <div class="cp-hue-wrap">
+    <canvas class="cp-hue-canvas" id="cp-hue-canvas" width="240" height="14"></canvas>
+    <div class="cp-hue-cursor" id="cp-hue-cursor" style="left:0%;"></div>
+  </div>
+  <div class="cp-bottom">
+    <div class="cp-preview" id="cp-preview"></div>
+    <input class="cp-hex-input" id="cp-hex-input" maxlength="7" placeholder="#ffffff" oninput="cpHexInputChange(this.value)">
+    <button class="cp-apply" onmousedown="event.preventDefault();cpApply()">Apply</button>
   </div>
 </div>
 
@@ -1929,43 +1940,102 @@ async function deleteReply(replyId, postId) {
 }
 
 
-// === COLOR PICKER ===
-const COLOR_PALETTE = [
-  '#ffffff','#d1d5db','#9ca3af','#6b7280','#374151','#1f2937','#111827','#000000',
-  '#fca5a5','#f87171','#ef4444','#dc2626','#b91c1c','#fbbf24','#f59e0b','#d97706',
-  '#6ee7b7','#34d399','#10b981','#059669','#047857','#93c5fd','#60a5fa','#3b82f6',
-  '#a78bfa','#8b5cf6','#7c3aed','#c084fc','#e879f9','#f472b6','#fb7185','#fdba74',
-];
+// === COLOR PICKER (HSV Canvas) ===
 let colorPickerOpen = false;
+let cpHue = 0, cpSat = 1, cpVal = 1;
+let cpDraggingSV = false, cpDraggingHue = false;
+let cpCurrentColor = '#a78bfa';
 
-function buildColorSwatches() {
-  const wrap = document.getElementById('color-swatches');
-  if (!wrap || wrap.children.length) return;
-  COLOR_PALETTE.forEach(hex => {
-    const s = document.createElement('div');
-    s.className = 'color-swatch';
-    s.style.background = hex;
-    s.title = hex;
-    s.onmousedown = (e) => { e.preventDefault(); applyColor(hex); };
-    wrap.appendChild(s);
+function hsvToHex(h, s, v) {
+  let r, g, b;
+  const i = Math.floor(h * 6), f = h * 6 - i, p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
+  switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;case 5:r=v;g=p;b=q;break;}
+  return '#'+[r,g,b].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('');
+}
+
+function hexToHsv(hex) {
+  let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+  let h=0, s=max===0?0:d/max, v=max;
+  if(d!==0){if(max===r)h=(g-b)/d%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4; h/=6; if(h<0)h+=1;}
+  return {h,s,v};
+}
+
+function cpDrawSV() {
+  const canvas = document.getElementById('cp-sv-canvas'); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const hueHex = hsvToHex(cpHue, 1, 1);
+  // white→hue horizontal
+  const gradH = ctx.createLinearGradient(0,0,W,0);
+  gradH.addColorStop(0,'#fff'); gradH.addColorStop(1,hueHex);
+  ctx.fillStyle = gradH; ctx.fillRect(0,0,W,H);
+  // transparent→black vertical
+  const gradV = ctx.createLinearGradient(0,0,0,H);
+  gradV.addColorStop(0,'rgba(0,0,0,0)'); gradV.addColorStop(1,'#000');
+  ctx.fillStyle = gradV; ctx.fillRect(0,0,W,H);
+}
+
+function cpDrawHue() {
+  const canvas = document.getElementById('cp-hue-canvas'); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const grad = ctx.createLinearGradient(0,0,W,0);
+  [0,1/6,2/6,3/6,4/6,5/6,1].forEach((t,i) => {
+    const h = i/6; grad.addColorStop(t, hsvToHex(h,1,1));
   });
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
 }
 
-function toggleColorPicker(e) {
-  buildColorSwatches();
-  const popup = document.getElementById('color-picker-popup');
-  if (colorPickerOpen) { closeColorPicker(); return; }
-  const btn = document.getElementById('forum-color-btn');
-  const rect = btn.getBoundingClientRect();
-  popup.style.top = (rect.bottom + 6) + 'px';
-  popup.style.left = Math.max(8, rect.left - 80) + 'px';
-  popup.classList.add('show');
-  colorPickerOpen = true;
+function cpUpdateCursors() {
+  const sv = document.getElementById('cp-sv-canvas');
+  const svC = document.getElementById('cp-sv-cursor');
+  const hC = document.getElementById('cp-hue-cursor');
+  if(!sv||!svC||!hC) return;
+  const rect = sv.getBoundingClientRect();
+  svC.style.left = (cpSat * 100) + '%';
+  svC.style.top = ((1-cpVal) * 100) + '%';
+  hC.style.left = (cpHue * 100) + '%';
 }
 
-function closeColorPicker() {
-  document.getElementById('color-picker-popup').classList.remove('show');
-  colorPickerOpen = false;
+function cpUpdatePreview() {
+  const hex = hsvToHex(cpHue, cpSat, cpVal);
+  cpCurrentColor = hex;
+  const prev = document.getElementById('cp-preview');
+  const inp = document.getElementById('cp-hex-input');
+  if(prev) prev.style.background = hex;
+  if(inp) inp.value = hex;
+  document.getElementById('forum-color-swatch').style.background = hex;
+}
+
+function cpSetFromSVEvent(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+  cpSat = x; cpVal = 1 - y;
+  cpUpdateCursors(); cpUpdatePreview();
+}
+
+function cpSetFromHueEvent(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  cpHue = Math.max(0, Math.min(0.9999, (e.clientX - rect.left) / rect.width));
+  cpDrawSV(); cpUpdateCursors(); cpUpdatePreview();
+}
+
+function cpHexInputChange(val) {
+  if(/^#[0-9a-fA-F]{6}$/.test(val)) {
+    const hsv = hexToHsv(val);
+    cpHue = hsv.h; cpSat = hsv.s; cpVal = hsv.v;
+    cpDrawSV(); cpUpdateCursors();
+    document.getElementById('cp-preview').style.background = val;
+    cpCurrentColor = val;
+    document.getElementById('forum-color-swatch').style.background = val;
+  }
+}
+
+function cpApply() {
+  const hex = hsvToHex(cpHue, cpSat, cpVal);
+  applyColor(hex);
 }
 
 function applyColor(hex) {
@@ -1981,19 +2051,52 @@ function applyColor(hex) {
   document.getElementById('forum-color-swatch').style.background = hex;
 }
 
-function onCustomColorInput(hex) {
-  document.getElementById('color-custom-hex').value = hex;
+function cpInitEvents() {
+  const svCanvas = document.getElementById('cp-sv-canvas');
+  const hueCanvas = document.getElementById('cp-hue-canvas');
+  if(!svCanvas||!hueCanvas) return;
+
+  svCanvas.addEventListener('mousedown', e => { cpDraggingSV=true; cpSetFromSVEvent(e,svCanvas); });
+  hueCanvas.addEventListener('mousedown', e => { cpDraggingHue=true; cpSetFromHueEvent(e,hueCanvas); });
+
+  document.addEventListener('mousemove', e => {
+    if(cpDraggingSV) cpSetFromSVEvent(e,svCanvas);
+    if(cpDraggingHue) cpSetFromHueEvent(e,hueCanvas);
+  });
+  document.addEventListener('mouseup', () => { cpDraggingSV=false; cpDraggingHue=false; });
+
+  // Touch
+  svCanvas.addEventListener('touchstart', e=>{e.preventDefault();cpDraggingSV=true;cpSetFromSVEvent(e.touches[0],svCanvas);},{passive:false});
+  hueCanvas.addEventListener('touchstart', e=>{e.preventDefault();cpDraggingHue=true;cpSetFromHueEvent(e.touches[0],hueCanvas);},{passive:false});
+  document.addEventListener('touchmove', e=>{
+    if(cpDraggingSV)cpSetFromSVEvent(e.touches[0],svCanvas);
+    if(cpDraggingHue)cpSetFromHueEvent(e.touches[0],hueCanvas);
+  });
+  document.addEventListener('touchend', ()=>{cpDraggingSV=false;cpDraggingHue=false;});
 }
 
-function onCustomHexInput(val) {
-  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-    document.getElementById('color-custom-native').value = val;
-  }
+function toggleColorPicker(e) {
+  const popup = document.getElementById('color-picker-popup');
+  if (colorPickerOpen) { closeColorPicker(); return; }
+  const btn = document.getElementById('forum-color-btn');
+  const rect = btn.getBoundingClientRect();
+  const popupW = 240;
+  let left = rect.left;
+  if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.max(8, left) + 'px';
+  popup.classList.add('show');
+  colorPickerOpen = true;
+  // Draw after shown so canvas has dimensions
+  requestAnimationFrame(() => {
+    cpDrawSV(); cpDrawHue(); cpUpdateCursors(); cpUpdatePreview();
+    cpInitEvents();
+  });
 }
 
-function applyCustomColor() {
-  const hex = document.getElementById('color-custom-hex').value.trim() || document.getElementById('color-custom-native').value;
-  if (hex) applyColor(hex);
+function closeColorPicker() {
+  document.getElementById('color-picker-popup').classList.remove('show');
+  colorPickerOpen = false;
 }
 
 document.addEventListener('click', (e) => {
