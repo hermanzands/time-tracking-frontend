@@ -317,6 +317,20 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-detail-body{font-size:15px;line-height:1.8;color:var(--text);}
 .forum-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
 @media(max-width:640px){.forum-row{grid-template-columns:40px 1fr;}.forum-row-stat{display:none;}}
+.forum-reply{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;}
+.forum-reply:first-child{border-top:none;}
+.forum-reply-body{flex:1;min-width:0;}
+.forum-reply-meta{font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.forum-reply-author{font-weight:700;color:var(--text);font-size:13px;}
+.forum-reply-content{font-size:14px;line-height:1.6;color:var(--text);}
+.forum-reply-actions{display:flex;gap:6px;margin-top:6px;}
+.forum-reply-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.forum-reply-btn:hover{color:var(--danger);background:rgba(255,85,102,.08);}
+.forum-replies-wrap{border:1px solid var(--border);border-radius:14px;margin-top:20px;overflow:hidden;}
+.forum-replies-header{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding:12px 20px;background:rgba(124,111,247,.05);border-bottom:1px solid var(--border);}
+.forum-reply-box{margin-top:16px;display:flex;gap:10px;align-items:flex-start;}
+.forum-reply-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;resize:none;min-height:44px;max-height:160px;outline:none;transition:border-color .15s;}
+.forum-reply-input:focus{border-color:var(--accent);}
 .editor-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(124,111,247,.15);color:var(--accent);border:1px solid rgba(124,111,247,.3);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;}
 .editor-tag button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0;line-height:1;opacity:.7;}
 .editor-tag button:hover{opacity:1;}
@@ -1029,6 +1043,10 @@ function showApp() {
   loadClockStatus();
   loadStats();
   sendHeartbeat();
+  // Pre-load employees silently so forum editor picker works immediately
+  fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
+    if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
+  }).catch(() => {});
 }
 
 function go(panel) {
@@ -1802,6 +1820,73 @@ function switchStockTab(tab) {
   loadStockAlerts();
 }
 
+
+async function loadReplies(postId) {
+  const list = document.getElementById('forum-replies-list');
+  if (!list) return;
+  try {
+    const r = await fetch(API + '/api/forum/' + postId + '/replies', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) { list.innerHTML = '<div style="padding:16px 20px;color:var(--muted);font-size:13px;">Could not load replies.</div>'; return; }
+    const replies = d.replies || [];
+    const countEl = document.getElementById('forum-reply-count');
+    if (countEl) countEl.textContent = replies.length ? '(' + replies.length + ')' : '';
+    if (replies.length === 0) {
+      list.innerHTML = '<div style="padding:16px 20px;color:var(--muted);font-size:13px;">No replies yet. Be the first!</div>';
+      return;
+    }
+    list.innerHTML = replies.map(rep => {
+      const isAdmin = ['manager','owner'].includes(user.role);
+      const canDel = rep.user_id === user.id || isAdmin;
+      return `<div class="forum-reply" id="reply-${rep.id}">
+        <div class="avatar avatar-sm" style="flex-shrink:0;"><span class="avatar-letter">${(rep.author_name||'?')[0].toUpperCase()}</span></div>
+        <div class="forum-reply-body">
+          <div class="forum-reply-meta">
+            <span class="forum-reply-author">${escapeHtml(rep.author_name||'Unknown')}</span>
+            <span>${getTimeAgo(new Date(rep.created_at))}</span>
+          </div>
+          <div class="forum-reply-content">${escapeHtml(rep.content)}</div>
+          ${canDel ? `<div class="forum-reply-actions"><button class="forum-reply-btn" onclick="deleteReply('${rep.id}','${postId}')">🗑️ Delete</button></div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = '<div style="padding:16px 20px;color:var(--muted);font-size:13px;">Failed to load replies.</div>'; }
+}
+
+async function submitReply(postId) {
+  const input = document.getElementById('reply-input-' + postId);
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+  input.disabled = true;
+  try {
+    const r = await fetch(API + '/api/forum/' + postId + '/replies', {
+      method: 'POST', headers: hdr(), body: JSON.stringify({content})
+    });
+    const d = await r.json();
+    if (d.success) {
+      input.value = '';
+      await loadReplies(postId);
+      // Update reply count in the post list
+      const p = forumPosts.find(p => p.id === postId);
+      if (p) { p.reply_count = (p.reply_count || 0) + 1; }
+    } else { toast(d.error || 'Failed to reply', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+  input.disabled = false;
+  input.focus();
+}
+
+async function deleteReply(replyId, postId) {
+  const confirmed = await showModal({icon:'🗑️', title:'Delete Reply?', message:'This will permanently delete this reply.', confirmText:'Delete', danger:true});
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/forum/replies/' + replyId, {method:'DELETE', headers:hdr()});
+    const d = await r.json();
+    if (d.success) { toast('Reply deleted'); await loadReplies(postId); }
+    else toast(d.error || 'Failed', 'err');
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function loadForumPosts() {
   renderForumSections(null);
   try {
@@ -1889,8 +1974,20 @@ function openForumPost(postId) {
       ${canEdit ? `<button class="btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="openEditPost('${post.id}')">✏️ Edit</button>` : ''}
       ${canDelete ? `<button class="btn-ghost" style="font-size:12px;padding:6px 12px;background:rgba(255,85,102,.1);border-color:rgba(255,85,102,.2);color:var(--danger);" onclick="deleteForumPost('${post.id}')">🗑️ Delete</button>` : ''}
     </div>
+  </div>
+  <div class="forum-replies-wrap" id="forum-replies-wrap">
+    <div class="forum-replies-header">💬 Replies <span id="forum-reply-count" style="color:var(--muted);font-weight:400;font-size:11px;"></span></div>
+    <div id="forum-replies-list"><div style="padding:20px;text-align:center;color:var(--muted);"><span class="spinner"></span></div></div>
+    <div style="padding:14px 16px;border-top:1px solid var(--border);">
+      <div class="forum-reply-box">
+        <div class="avatar avatar-sm" style="flex-shrink:0;margin-top:2px;"><span class="avatar-letter">${user.nickname[0].toUpperCase()}</span></div>
+        <textarea class="forum-reply-input" id="reply-input-${post.id}" placeholder="Write a reply..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitReply('${post.id}');}"></textarea>
+        <button class="btn btn-primary btn-sm" style="flex-shrink:0;margin-top:2px;" onclick="submitReply('${post.id}')">Reply</button>
+      </div>
+    </div>
   </div>`;
   document.getElementById('forum-detail-content').innerHTML = html;
+  loadReplies(postId);
 }
 
 // WYSIWYG helpers
