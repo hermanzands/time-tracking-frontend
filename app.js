@@ -1681,7 +1681,8 @@ function renderReimbursements(items) {
     const timeAgo = getTimeAgo(new Date(item.created_at));
     const statusColor = item.status === 'paid' ? 'var(--green)' : 'var(--amber)';
     const statusIcon = item.status === 'paid' ? '✅' : '⏳';
-    let html = `<div class="reimburse-item ${item.status}">
+    let html = `<div class="reimburse-item ${item.status}" style="position:relative;">
+      <button onclick="deleteReimbursement('${item.id}')" style="position:absolute;top:8px;right:8px;z-index:2;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;backdrop-filter:blur(4px);">✕</button>
       <div class="reimburse-photo-wrap">
         <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
       </div>
