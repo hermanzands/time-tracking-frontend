@@ -326,6 +326,15 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-reply-actions{display:flex;gap:6px;margin-top:6px;}
 .forum-reply-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;}
 .forum-reply-btn:hover{color:var(--danger);background:rgba(255,85,102,.08);}
+.color-picker-popup{position:fixed;z-index:10000;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:none;flex-direction:column;gap:10px;min-width:220px;}
+.color-picker-popup.show{display:flex;}
+.color-picker-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.color-swatch{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0;}
+.color-swatch:hover{transform:scale(1.2);border-color:rgba(255,255,255,.4);}
+.color-picker-custom{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--border);}
+.color-picker-custom label{font-size:11px;color:var(--muted);white-space:nowrap;}
+.color-picker-custom input[type=color]{width:32px;height:28px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;}
+.color-picker-custom input[type=text]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;}
 .forum-replies-wrap{border:1px solid var(--border);border-radius:14px;margin-top:20px;overflow:hidden;}
 .forum-replies-header{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding:12px 20px;background:rgba(124,111,247,.05);border-bottom:1px solid var(--border);}
 .forum-reply-box{margin-top:16px;display:flex;gap:10px;align-items:flex-start;}
@@ -744,8 +753,11 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
                   <option value="7">Huge</option>
                 </select>
                 <div class="forum-toolbar-sep"></div>
-                <span style="font-size:11px;color:var(--muted);line-height:28px;">Color:</span>
-                <input type="color" id="forum-color-picker" value="#ffffff" title="Pick any color" onchange="forumSetColor(this.value)">
+                <button onmousedown="event.preventDefault();toggleColorPicker(event)" id="forum-color-btn" title="Text color" style="display:flex;align-items:center;gap:5px;min-width:52px;position:relative;">
+                  <span style="font-size:13px;">A</span>
+                  <span id="forum-color-swatch" style="display:inline-block;width:14px;height:4px;border-radius:2px;background:#a78bfa;"></span>
+                  <span style="font-size:9px;color:var(--muted);">▼</span>
+                </button>
                 <div class="forum-toolbar-sep"></div>
                 <button onmousedown="event.preventDefault();forumInsertImage()" title="Insert image">🖼️ Image</button>
               </div>
@@ -788,6 +800,35 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 </div>
 
 <!-- CUSTOM CONFIRMATION MODAL -->
+
+<div id="color-picker-popup" class="color-picker-popup" onclick="event.stopPropagation()">
+  <div class="color-picker-swatches" id="color-swatches"></div>
+  <div class="color-picker-custom">
+    <label>Custom:</label>
+    <input type="color" id="color-custom-native" value="#ffffff" oninput="onCustomColorInput(this.value)">
+    <input type="text" id="color-custom-hex" placeholder="#ffffff" maxlength="7" oninput="onCustomHexInput(this.value)">
+    <button class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;" onclick="applyCustomColor()">✓</button>
+  </div>
+</div>
+
+<div id="image-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeImageModal()">
+  <div class="modal-box" style="max-width:460px;">
+    <div style="font-size:22px;margin-bottom:6px;">🖼️</div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:6px;">Insert Image</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">Paste a direct image URL (jpg, png, gif, webp)</p>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Image URL</label>
+      <input id="image-modal-url" type="url" placeholder="https://example.com/photo.jpg" style="width:100%;" onkeydown="if(event.key==='Enter')confirmImageModal()">
+    </div>
+    <div id="image-modal-preview" style="display:none;margin-bottom:12px;text-align:center;">
+      <img id="image-modal-img" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border);" src="">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+      <button class="btn-ghost" onclick="closeImageModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmImageModal()">Insert</button>
+    </div>
+  </div>
+</div>
 <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this) closeModal()">
   <div class="modal-box">
     <div id="modal-icon" class="modal-icon"></div>
@@ -1887,6 +1928,80 @@ async function deleteReply(replyId, postId) {
   } catch(e) { toast('Connection error', 'err'); }
 }
 
+
+// === COLOR PICKER ===
+const COLOR_PALETTE = [
+  '#ffffff','#d1d5db','#9ca3af','#6b7280','#374151','#1f2937','#111827','#000000',
+  '#fca5a5','#f87171','#ef4444','#dc2626','#b91c1c','#fbbf24','#f59e0b','#d97706',
+  '#6ee7b7','#34d399','#10b981','#059669','#047857','#93c5fd','#60a5fa','#3b82f6',
+  '#a78bfa','#8b5cf6','#7c3aed','#c084fc','#e879f9','#f472b6','#fb7185','#fdba74',
+];
+let colorPickerOpen = false;
+
+function buildColorSwatches() {
+  const wrap = document.getElementById('color-swatches');
+  if (!wrap || wrap.children.length) return;
+  COLOR_PALETTE.forEach(hex => {
+    const s = document.createElement('div');
+    s.className = 'color-swatch';
+    s.style.background = hex;
+    s.title = hex;
+    s.onmousedown = (e) => { e.preventDefault(); applyColor(hex); };
+    wrap.appendChild(s);
+  });
+}
+
+function toggleColorPicker(e) {
+  buildColorSwatches();
+  const popup = document.getElementById('color-picker-popup');
+  if (colorPickerOpen) { closeColorPicker(); return; }
+  const btn = document.getElementById('forum-color-btn');
+  const rect = btn.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.max(8, rect.left - 80) + 'px';
+  popup.classList.add('show');
+  colorPickerOpen = true;
+}
+
+function closeColorPicker() {
+  document.getElementById('color-picker-popup').classList.remove('show');
+  colorPickerOpen = false;
+}
+
+function applyColor(hex) {
+  closeColorPicker();
+  const editor = document.getElementById('forum-body-input');
+  editor.focus();
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
+  document.execCommand('foreColor', false, hex);
+  document.getElementById('forum-color-swatch').style.background = hex;
+}
+
+function onCustomColorInput(hex) {
+  document.getElementById('color-custom-hex').value = hex;
+}
+
+function onCustomHexInput(val) {
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById('color-custom-native').value = val;
+  }
+}
+
+function applyCustomColor() {
+  const hex = document.getElementById('color-custom-hex').value.trim() || document.getElementById('color-custom-native').value;
+  if (hex) applyColor(hex);
+}
+
+document.addEventListener('click', (e) => {
+  if (colorPickerOpen && !e.target.closest('#color-picker-popup') && !e.target.closest('#forum-color-btn')) {
+    closeColorPicker();
+  }
+});
+
 async function loadForumPosts() {
   renderForumSections(null);
   try {
@@ -2017,11 +2132,47 @@ function forumSetFontSize(size) {
 }
 
 function forumInsertImage() {
-  const url = prompt('Paste image URL (jpg, png, gif, webp):');
-  if (!url || !url.trim()) return;
+  // Save selection before opening modal
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
+  document.getElementById('image-modal-url').value = '';
+  document.getElementById('image-modal-preview').style.display = 'none';
+  document.getElementById('image-modal-img').src = '';
+  document.getElementById('image-modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('image-modal-url').focus(), 50);
+}
+
+// Live preview when URL is typed
+document.addEventListener('DOMContentLoaded', () => {
+  const urlInput = document.getElementById('image-modal-url');
+  if (urlInput) urlInput.addEventListener('input', () => {
+    const v = urlInput.value.trim();
+    const preview = document.getElementById('image-modal-preview');
+    const img = document.getElementById('image-modal-img');
+    if (v.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i) || v.startsWith('https://')) {
+      img.src = v;
+      img.onload = () => { preview.style.display = 'block'; };
+      img.onerror = () => { preview.style.display = 'none'; };
+    } else { preview.style.display = 'none'; }
+  });
+});
+
+function closeImageModal() {
+  document.getElementById('image-modal-overlay').classList.remove('show');
+}
+
+function confirmImageModal() {
+  const url = document.getElementById('image-modal-url').value.trim();
+  if (!url) return;
+  closeImageModal();
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  document.execCommand('insertHTML', false, `<img src="${url.trim()}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block;border:1px solid var(--border);" onerror="this.style.display='none'">`);
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
+  document.execCommand('insertHTML', false, `<img src="${url}" style="max-width:100%;border-radius:10px;margin:8px 0;display:block;border:1px solid var(--border);" onerror="this.style.display='none'">`);
 }
 
 function showForumIndex() {
