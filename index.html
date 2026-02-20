@@ -105,6 +105,7 @@
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
       <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
       <button class="nav-item" id="si-stock" onclick="go('stock')"><span class="icon">📦</span>Stock</button>
+      <button class="nav-item" id="si-reimburse" onclick="go('reimburse')"><span class="icon">🧾</span>Reimbursements</button>
       <button class="nav-item" id="si-forum" onclick="go('forum')"><span class="icon">💬</span>Forum</button>
     </aside>
 
@@ -432,6 +433,47 @@
               <button class="btn btn-primary btn-sm" onclick="submitForumPost()">Publish Post</button>
               <button class="btn-ghost btn-sm" onclick="showForumIndex()">Cancel</button>
               <div class="err-box" id="forum-err" style="margin:0;flex:1;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- REIMBURSEMENTS -->
+      <div class="panel" id="panel-reimburse">
+        <div class="page-title">Reimbursements</div>
+        <div class="page-sub">Submit and track expense reimbursements</div>
+        <div class="form-card">
+          <div class="form-card-title">🧾 Submit Receipt</div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Upload a photo of your receipt and enter the amount</div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div id="reimburse-photo-preview" style="display:none;">
+              <img id="reimburse-photo-img" style="width:100%;max-height:420px;border-radius:14px;border:1px solid var(--border);object-fit:contain;background:var(--surface2);">
+            </div>
+            <div>
+              <input type="file" id="reimburse-photo-input" accept="image/*" style="display:none" onchange="previewReimbursePhoto(this)">
+              <button onclick="document.getElementById('reimburse-photo-input').click()" class="btn btn-ghost" style="width:100%;">📷 Choose Receipt Photo</button>
+            </div>
+            <div class="field">
+              <label>Amount (€)</label>
+              <input type="number" id="reimburse-amount-input" placeholder="e.g. 24.50" min="0.01" step="0.01" oninput="updateReimburseSubmitButton()" style="width:100%;">
+            </div>
+            <button id="btn-submit-reimburse" onclick="submitReimbursement()" class="btn btn-primary btn-sm" disabled>➕ Submit Request</button>
+            <div class="err-box" id="reimburse-err"></div>
+          </div>
+        </div>
+        <div class="admin-only hidden" id="reimburse-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+          <button class="stock-tab active" data-tab="pending" onclick="switchReimburseTab('pending')">Pending <span id="reimburse-pending-count" class="stock-tab-badge">0</span></button>
+          <button class="stock-tab" data-tab="approved" onclick="switchReimburseTab('approved')">Approved <span id="reimburse-approved-count" class="stock-tab-badge">0</span></button>
+          <button class="stock-tab" data-tab="rejected" onclick="switchReimburseTab('rejected')">Rejected <span id="reimburse-rejected-count" class="stock-tab-badge">0</span></button>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title" id="reimburse-list-title">Your Requests</div>
+          <div id="reimburse-list" class="stock-alerts-list">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
+              <div style="font-size:48px;margin-bottom:12px;">🧾</div>
+              <div style="font-weight:600;margin-bottom:6px;">No Reimbursements</div>
+              <div style="font-size:13px;">Upload a receipt to request reimbursement</div>
             </div>
           </div>
         </div>
