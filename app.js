@@ -274,6 +274,7 @@ function go(panel) {
   if (panel === 'employees') loadEmployees();
   if (panel === 'profile') loadProfile();
   if (panel === 'forum') loadForumPosts();
+  if (panel === 'reimburse') loadReimbursements();
 }
 
 
@@ -1589,4 +1590,160 @@ async function togglePinPost(postId, currentlyPinned) {
     if (d.success) { toast(currentlyPinned ? 'Post unpinned' : '📌 Post pinned'); await loadForumPosts(); openForumPost(postId); }
     else toast(d.error || 'Failed', 'err');
   } catch(e) { toast('Connection error', 'err'); }
+}
+
+// ========================================================================
+// REIMBURSEMENTS — Submit receipts, approve/reject
+// ========================================================================
+
+let currentReimburseTab = 'pending', reimbursePhotoData = null;
+
+function previewReimbursePhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('Image too large. Max 5MB', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    reimbursePhotoData = e.target.result;
+    document.getElementById('reimburse-photo-img').src = reimbursePhotoData;
+    document.getElementById('reimburse-photo-preview').style.display = 'block';
+    updateReimburseSubmitButton();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateReimburseSubmitButton() {
+  const btn = document.getElementById('btn-submit-reimburse');
+  const amount = parseFloat(document.getElementById('reimburse-amount-input')?.value);
+  btn.disabled = !reimbursePhotoData || !amount || amount <= 0;
+}
+
+async function submitReimbursement() {
+  const amount = parseFloat(document.getElementById('reimburse-amount-input').value);
+  const errEl = document.getElementById('reimburse-err');
+  const btn = document.getElementById('btn-submit-reimburse');
+  if (!reimbursePhotoData) { showErr(errEl, 'Please upload a receipt photo'); return; }
+  if (!amount || amount <= 0) { showErr(errEl, 'Please enter a valid amount'); return; }
+  btn.innerHTML = '<span class="spinner"></span> Submitting...'; btn.disabled = true; errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/reimbursements', {
+      method: 'POST', headers: hdr(),
+      body: JSON.stringify({ image_data: reimbursePhotoData, amount })
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Reimbursement submitted!');
+      reimbursePhotoData = null;
+      document.getElementById('reimburse-photo-input').value = '';
+      document.getElementById('reimburse-photo-preview').style.display = 'none';
+      document.getElementById('reimburse-amount-input').value = '';
+      loadReimbursements();
+    } else { showErr(errEl, d.error || 'Failed to submit'); btn.disabled = false; }
+  } catch(e) { showErr(errEl, 'Connection error'); btn.disabled = false; }
+  btn.innerHTML = '➕ Submit Request';
+}
+
+function switchReimburseTab(tab) {
+  currentReimburseTab = tab;
+  document.querySelectorAll('#reimburse-manager-tabs .stock-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  const title = document.getElementById('reimburse-list-title');
+  if (title) title.textContent = tab === 'pending' ? 'Pending Requests' : tab === 'approved' ? 'Approved Requests' : 'Rejected Requests';
+  loadReimbursements();
+}
+
+async function loadReimbursements() {
+  const list = document.getElementById('reimburse-list'); if (!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner"></span></div>';
+  try {
+    const isAdmin = ['manager','owner'].includes(user.role);
+    const url = API + '/api/reimbursements' + (isAdmin ? '?status=' + currentReimburseTab : '');
+    const r = await fetch(url, {headers: hdr()});
+    const d = await r.json();
+    if (d.success && d.reimbursements) {
+      renderReimbursements(d.reimbursements);
+      updateReimburseCounts();
+    } else {
+      renderReimbursements([]);
+    }
+  } catch(e) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);">Failed to load</div>'; }
+}
+
+function renderReimbursements(items) {
+  const list = document.getElementById('reimburse-list');
+  if (items.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;"><div style="font-size:48px;margin-bottom:12px;">🧾</div><div style="font-weight:600;margin-bottom:6px;">No reimbursements</div></div>';
+    return;
+  }
+  const isAdmin = ['manager','owner'].includes(user.role);
+  list.innerHTML = items.map(item => {
+    const timeAgo = getTimeAgo(new Date(item.created_at));
+    const statusColor = item.status === 'approved' ? 'var(--green)' : item.status === 'rejected' ? 'var(--danger)' : 'var(--amber)';
+    const statusIcon = item.status === 'approved' ? '✅' : item.status === 'rejected' ? '❌' : '⏳';
+    let html = `<div class="reimburse-item ${item.status}">
+      <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
+      <div class="reimburse-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div class="reimburse-amount">€${parseFloat(item.amount).toFixed(2)}</div>
+          <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusIcon} ${item.status.toUpperCase()}</span>
+        </div>
+        <div class="reimburse-meta">`;
+    if (isAdmin) html += `<span><div class="avatar" style="width:20px;height:20px;font-size:10px;display:inline-flex;"><span class="avatar-letter">${(item.user_nickname||'?')[0].toUpperCase()}</span></div> ${escapeHtml(item.user_nickname||'Unknown')}</span> · `;
+    html += `<span>📅 ${timeAgo}</span>`;
+    if (item.status === 'approved' && item.reviewed_by_nickname) html += ` · <span>✅ Approved by ${escapeHtml(item.reviewed_by_nickname)}</span>`;
+    if (item.status === 'rejected' && item.reviewed_by_nickname) html += ` · <span>❌ Rejected by ${escapeHtml(item.reviewed_by_nickname)}</span>`;
+    html += `</div>`;
+    if (item.note) html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">"${escapeHtml(item.note)}"</div>`;
+    if (isAdmin && item.status === 'pending') {
+      html += `<div class="reimburse-actions">
+        <button onclick="reviewReimbursement('${item.id}','approved')" class="btn-approve">✅ Approve</button>
+        <button onclick="reviewReimbursement('${item.id}','rejected')" class="btn-reject">❌ Reject</button>
+      </div>`;
+    }
+    html += `</div></div>`;
+    return html;
+  }).join('');
+
+  // Store items for lightbox lookup
+  window._reimburseItems = items;
+}
+
+function openReimburseLightbox(id) {
+  const item = (window._reimburseItems||[]).find(i => i.id === id);
+  if (!item) return;
+  const lb = document.createElement('div');
+  lb.id = 'reimburse-lightbox';
+  lb.onclick = () => lb.remove();
+  lb.innerHTML = `<img src="${item.image_data}" alt="Receipt">`;
+  document.body.appendChild(lb);
+}
+
+async function reviewReimbursement(id, status) {
+  const label = status === 'approved' ? 'approve' : 'reject';
+  const confirmed = await showModal({
+    icon: status === 'approved' ? '✅' : '❌',
+    title: status === 'approved' ? 'Approve Reimbursement?' : 'Reject Reimbursement?',
+    message: `Are you sure you want to ${label} this reimbursement request?`,
+    confirmText: status === 'approved' ? 'Approve' : 'Reject',
+    danger: status === 'rejected'
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/reimbursements/' + id + '/review', {
+      method: 'PATCH', headers: hdr(), body: JSON.stringify({ status })
+    });
+    const d = await r.json();
+    if (d.success) { toast(status === 'approved' ? '✅ Approved!' : '❌ Rejected'); loadReimbursements(); }
+    else { toast(d.error || 'Failed', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
+async function updateReimburseCounts() {
+  if (!['manager','owner'].includes(user.role)) return;
+  try {
+    const r = await fetch(API + '/api/reimbursements?status=pending', {headers: hdr()});
+    const d = await r.json();
+    const pc = document.getElementById('reimburse-pending-count');
+    if (pc) pc.textContent = d.reimbursements?.length || 0;
+  } catch(e) {}
 }
