@@ -190,7 +190,7 @@ function renderPaymentNotifications() {
     html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;">Payment Received</div>';
     html += '<div style="font-size:11px;color:var(--muted);">' + fmtDate(n.period_start) + ' – ' + fmtDate(n.period_end) + '</div></div>';
     html += '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div></div>';
-    html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green);font-size:15px;">€' + (Number(n.amount)||0).toFixed(2) + '</div></div>';
+    html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green);font-size:15px;">$' + (Number(n.amount)||0).toFixed(2) + '</div></div>';
   });
   list.innerHTML = html;
 }
@@ -352,7 +352,7 @@ async function loadMyPayments() {
     const d = await r.json();
     if (!d.success || !d.payments || d.payments.length === 0) { tb.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">💵</div><p>No payments recorded yet</p></div></td></tr>'; return; }
     let html = '';
-    d.payments.forEach(p => { html += '<tr><td>' + fmtDate(p.period_start) + ' – ' + fmtDate(p.period_end) + '</td><td>' + Number(p.total_hours).toFixed(1) + 'h</td><td style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green)">€' + (Number(p.amount)||0).toFixed(2) + '</td>' + (['manager','owner'].includes(user.role) ? '<td><button onclick="deletePayment(\'' + p.id + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 12px;font-size:12px;">🗑️</button></td></tr>' : '') + ''; });
+    d.payments.forEach(p => { html += '<tr><td>' + fmtDate(p.period_start) + ' – ' + fmtDate(p.period_end) + '</td><td>' + Number(p.total_hours).toFixed(1) + 'h</td><td style="font-family:\'Oxanium\',sans-serif;font-weight:700;color:var(--green)">$' + (Number(p.amount)||0).toFixed(2) + '</td>' + (['manager','owner'].includes(user.role) ? '<td><button onclick="deletePayment(\'' + p.id + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 12px;font-size:12px;">🗑️</button></td></tr>' : '') + ''; });
     tb.innerHTML = html;
     loadNotifications();
   } catch(e) { tb.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
@@ -535,7 +535,7 @@ async function calcPayments() {
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
         html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div></div></div>';
-        html += '<div class="pay-amount">€' + (Number(p.amount)||0).toFixed(2) + '</div></div>';
+        html += '<div class="pay-amount">$' + (Number(p.amount)||0).toFixed(2) + '</div></div>';
       });
       list.innerHTML = html;
       d.distributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
@@ -1687,7 +1687,7 @@ function renderReimbursements(items) {
       </div>
       <div class="reimburse-body">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--accent);letter-spacing:-0.5px;">$${parseFloat(item.amount).toFixed(2)}</div>
+          <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:20px;color:var(--green);">$${parseFloat(item.amount).toFixed(2)}</div>
           <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;font-size:10px;">${statusIcon} ${item.status.toUpperCase()}</span>
         </div>`;
     if (isAdmin) {
