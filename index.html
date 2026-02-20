@@ -232,7 +232,7 @@ tr:hover td{background:rgba(124,111,247,.03);}
 .pending-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#fff;flex-shrink:0;}
 .pending-info{flex:1;}
 .pending-name{font-weight:600;font-size:15px;margin-bottom:4px;}
-.pending-email{font-size:13px;color:var(--muted);margin-bottom:4px;}
+
 .pending-time{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
 .pending-time-dot{width:4px;height:4px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite;}
 .pending-actions{display:flex;gap:10px;flex-shrink:0;}
@@ -317,6 +317,12 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-detail-body{font-size:15px;line-height:1.8;color:var(--text);}
 .forum-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
 @media(max-width:640px){.forum-row{grid-template-columns:40px 1fr;}.forum-row-stat{display:none;}}
+.editor-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(124,111,247,.15);color:var(--accent);border:1px solid rgba(124,111,247,.3);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;}
+.editor-tag button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0;line-height:1;opacity:.7;}
+.editor-tag button:hover{opacity:1;}
+.editor-pick-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;transition:background .15s;}
+.editor-pick-btn:hover{background:rgba(124,111,247,.15);border-color:var(--accent);color:var(--accent);}
+.editor-pick-btn.selected{background:rgba(124,111,247,.15);border-color:var(--accent);color:var(--accent);opacity:.4;pointer-events:none;}
 
 </style>
 </head>
@@ -491,11 +497,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="profile-role-txt"></div>
           <button onclick="removeAvatar()" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑 Remove Picture</button>
         </div>
-        <div class="form-card">
-          <div class="form-card-title">📧 Update Email</div>
-                    <button class="btn btn-primary btn-sm" onclick="updateProfile()">Save Email</button>
-          <div class="err-box" id="profile-err"></div>
-        </div>
+
         <div class="form-card">
           <div class="form-card-title">🔒 Change Password</div>
           <div class="field"><label>Current Password</label>
@@ -523,7 +525,6 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
           <div class="form-card-title">➕ Add New Worker</div>
           <div class="form-row">
             <div class="field"><label>Full Name</label><input id="r-nick" type="text" placeholder="e.g. Henk Miller"></div>
-            <div class="field"><label>Email (optional)</label><input id="r-email" type="email" placeholder="john@example.com"></div>
           </div>
           <div class="form-row">
             <div class="field"><label>SID</label><input id="r-sid" type="text" placeholder="e.g. 12345"></div>
@@ -736,10 +737,11 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
               </div>
               <div id="forum-body-input" class="forum-editor" contenteditable="true" data-placeholder="Write something..." style="min-height:200px;"></div>
             </div>
-            <div class="field" style="margin-bottom:14px;" id="forum-editors-field" style="display:none;">
+            <div class="field" style="margin-bottom:14px;" id="forum-editors-field">
               <label>Allow others to edit <span style="color:var(--muted);font-weight:400;font-size:12px;">(optional)</span></label>
-              <input id="forum-editors-input" type="text" placeholder="Enter usernames separated by commas e.g. john, sarah" style="width:100%;">
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;">These people will be able to edit this post</div>
+              <div id="forum-editors-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:10px;"></div>
+              <div id="forum-editors-dropdown" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;"></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px;">Click a name to add them. Click ✕ to remove.</div>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
               <button class="btn btn-primary btn-sm" onclick="submitForumPost()">Publish Post</button>
@@ -882,18 +884,17 @@ async function registerSelf() {
 
 async function resetPassword() {
   const nick = document.getElementById('forgot-nick').value.trim();
-  const email = document.getElementById('forgot-email').value.trim();
   const errEl = document.getElementById('forgot-err');
   const btn = document.getElementById('btn-forgot');
-  if (!nick || !email) { showErr(errEl, 'Please fill in both fields'); return; }
+  if (!nick) { showErr(errEl, 'Please fill in your username'); return; }
   btn.innerHTML = '<span class="spinner"></span> Sending...'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    const r = await fetch(API + '/api/auth/forgot-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, email: email}) });
+    const r = await fetch(API + '/api/auth/forgot-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick}) });
     const d = await r.json();
     authTab('signin');
     const el = document.getElementById('login-err');
     el.style.display = 'block'; el.style.background = 'rgba(0,229,160,.1)'; el.style.borderColor = 'rgba(0,229,160,.3)'; el.style.color = 'var(--green)';
-    el.textContent = '✅ If an account exists with that username and email, a password reset link has been sent.';
+    el.textContent = '✅ If that username exists, please call Henk to reset your password.';
   } catch (e) { showErr(errEl, 'Connection error'); }
   btn.innerHTML = 'Reset Password'; btn.disabled = false;
 }
@@ -1129,7 +1130,6 @@ function loadProfile() {
   document.getElementById('profile-name').textContent = user.nickname;
   document.getElementById('profile-role-txt').textContent = user.role;
   document.getElementById('avatar-letter').textContent = user.nickname[0].toUpperCase();
-  document.getElementById('profile-email').value = user.email || '';
   const savedAvatar = localStorage.getItem('avatar_' + user.id);
   if (savedAvatar) { document.getElementById('avatar-img').src = savedAvatar; document.getElementById('avatar-img').style.display = 'block'; }
   else { document.getElementById('avatar-img').style.display = 'none'; }
@@ -1146,7 +1146,7 @@ function removeAvatar() { if (!user) return; localStorage.removeItem('avatar_' +
 
 async function updateProfile() {
   const errEl = document.getElementById('profile-err'); errEl.style.display = 'none';
-  try { const r = await fetch(API + '/api/users/' + user.id, {method:'PATCH',headers:hdr(),body:JSON.stringify({email})}); const d = await r.json(); if (d.success) { user.email = email; localStorage.setItem('wt_user', JSON.stringify(user)); toast('✅ Email updated!'); } else { showErr(errEl, d.error || 'Failed to update'); } } catch(e) { showErr(errEl, 'Connection error'); }
+  toast('Nothing to update');
 }
 
 async function changePassword() {
@@ -1185,18 +1185,18 @@ async function loadWorkers() {
 }
 
 async function registerWorker() {
-  const displayName = document.getElementById('r-nick').value.trim(), email = document.getElementById('r-email').value.trim();
+  const displayName = document.getElementById('r-nick').value.trim();
   const sid = document.getElementById('r-sid').value.trim(), phone = document.getElementById('r-phone').value.trim();
   const pass = document.getElementById('r-pass').value, role = document.getElementById('r-role').value;
   const errEl = document.getElementById('reg-err'), btn = document.getElementById('btn-add-worker');
   if (!displayName || !pass) { showErr(errEl, 'Name and password are required'); return; }
   btn.innerHTML = '<span class="spinner"></span> Adding...'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    const r = await fetch(API + '/api/auth/register', {method:'POST',headers:hdr(),body:JSON.stringify({nickname:displayName,password:pass,email:email||undefined,role,sid:sid||undefined,phone:phone||undefined})});
+    const r = await fetch(API + '/api/auth/register', {method:'POST',headers:hdr(),body:JSON.stringify({nickname:displayName,password:pass,role,sid:sid||undefined,phone:phone||undefined})});
     const d = await r.json();
     if (d.success) {
       toast('✅ ' + displayName + ' added!');
-      ['r-nick','r-email','r-pass'].forEach(id => { document.getElementById(id).value = ''; });
+      ['r-nick','r-pass'].forEach(id => { document.getElementById(id).value = ''; });
       if (d.user && d.user.id) await fetch(API + '/api/users/' + d.user.id + '/activate', {method:'POST',headers:hdr()});
       loadWorkers();
     } else { showErr(errEl, d.error || 'Failed to add worker'); }
@@ -1449,7 +1449,7 @@ function renderPendingEmployees(pending) {
     const diffMs = now-registeredTime, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
     let timeAgo = diffDays>0?diffDays+'d ago':diffHours>0?diffHours+'h ago':diffMins>0?diffMins+'m ago':'Just now';
     html += '<div class="pending-item"><div class="pending-avatar">' + initial + '</div><div class="pending-info"><div class="pending-name">' + emp.nickname + '</div>';
-    // email removed
+    
     html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div></div>';
     html += '<div class="pending-actions"><button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✓ Approve</button><button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✕ Reject</button></div></div>';
   });
@@ -1530,98 +1530,7 @@ function renderStockAlerts(alerts) {
   list.innerHTML = html;
 }
 
-function updateStockCounts(allAlerts) { if (!['manager','owner'].includes(user.role)) return; fetchStockCounts(); }
-
-async function fetchStockCounts() {
-  try {
-    const [pendingRes, completedRes] = await Promise.all([fetch(API + '/api/stock-alerts?status=pending',{headers:hdr()}), fetch(API + '/api/stock-alerts?status=restocked',{headers:hdr()})]);
-    const pendingData = await pendingRes.json(), completedData = await completedRes.json();
-    const pc = document.getElementById('stock-pending-count'), cc = document.getElementById('stock-completed-count');
-    if (pc) pc.textContent = pendingData.alerts?.length || 0;
-    if (cc) cc.textContent = completedData.alerts?.length || 0;
-  } catch(e) {}
-}
-
-function switchStockTab(tab) {
-  currentStockTab = tab;
-  document.querySelectorAll('.stock-tab').forEach(t => { t.classList.toggle('active', t.dataset.tab === tab); });
-  const title = document.getElementById('stock-list-title'); if (title) title.textContent = tab === 'pending' ? 'Pending Alerts' : 'Completed Restocks';
-  loadStockAlerts();
-}
-
-async function markRestocked(alertId) {
-  const confirmed = await showModal({icon:'✅',title:'Mark as Restocked?',message:'Confirm that this item has been restocked.',confirmText:'Mark Restocked',danger:false});
-  if (!confirmed) return;
-  try { const r = await fetch(API + '/api/stock-alerts/' + alertId + '/restock', {method:'PATCH',headers:hdr()}); const d = await r.json(); if (d.success) { toast('✅ Marked as restocked!'); loadStockAlerts(); } else { toast(d.error || 'Failed to update', 'err'); } } catch(e) { toast('Connection error', 'err'); }
-}
-
-async function deleteStockAlert(alertId) {
-  const confirmed = await showModal({icon:'🗑️',title:'Delete Stock Alert?',message:'This will permanently delete this stock alert.',confirmText:'Delete',danger:true});
-  if (!confirmed) return;
-  try { const r = await fetch(API + '/api/stock-alerts/' + alertId, {method:'DELETE',headers:hdr()}); const d = await r.json(); if (d.success) { toast('🗑️ Alert deleted'); loadStockAlerts(); } else { toast(d.error || 'Failed to delete', 'err'); } } catch(e) { toast('Connection error', 'err'); }
-}
-
-function getTimeAgo(date) {
-  const now = new Date(), diffMs = now-date, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
-  if (diffDays>0) return diffDays+'d ago'; if (diffHours>0) return diffHours+'h ago'; if (diffMins>0) return diffMins+'m ago'; return 'Just now';
-}
-
-// === EMPLOYEE DIRECTORY ===
-let allEmployees = [], editingEmployeeId = null;
-
-async function loadEmployees() {
-  const grid = document.getElementById('employees-grid'); if (!grid) return;
-  grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
-  try {
-    const r = await fetch(API + '/api/users', {headers:hdr()}); const d = await r.json();
-    if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
-    allEmployees = d.users.filter(u => u.is_active);
-    if (allEmployees.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active employees yet</p></div>'; return; }
-    renderEmployees(allEmployees);
-  } catch(e) { grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load employees</p></div>'; }
-}
-
-function renderEmployees(employees) {
-  const grid = document.getElementById('employees-grid'); if (!grid) return;
-  const roleOrder = {owner:0,manager:1,employee:2,farmer:3};
-  const sorted = [...employees].sort((a,b) => (roleOrder[a.role]||99)-(roleOrder[b.role]||99));
-  let html = '';
-  sorted.forEach(emp => {
-    const initial = (emp.nickname||'?')[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
-    html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
-    html += '<div class="employee-card-header"><div class="employee-avatar-large"><span class="avatar-letter">' + initial + '</span><img class="avatar-img emp-av-' + safeId + '"></div>';
-    html += '<div class="employee-header-info"><div class="employee-name">' + emp.nickname + '</div><span class="badge badge-' + emp.role + '">' + emp.role + '</span></div></div>';
-    html += '<div class="employee-details">';
-    if (emp.sid) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">🆔</div><div class="employee-detail-content"><div class="employee-detail-label">Employee ID</div><div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div></div></div>'; }
-    if (emp.phone) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">📞</div><div class="employee-detail-content"><div class="employee-detail-label">Phone</div><div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div></div></div>'; }
-    html += '<div class="employee-detail-row"><div class="employee-detail-icon">📅</div><div class="employee-detail-content"><div class="employee-detail-label">Joined</div><div class="employee-detail-value">' + fmtDate(emp.created_at) + '</div></div></div>';
-    html += '</div></div>';
-  });
-  grid.innerHTML = html;
-  sorted.forEach(emp => { const saved = localStorage.getItem('avatar_' + emp.id); if (saved) { const safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.emp-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } });
-}
-
-function filterEmployees(searchText) {
-  if (!searchText) { renderEmployees(allEmployees); return; }
-  const search = searchText.toLowerCase();
-  renderEmployees(allEmployees.filter(emp => emp.nickname?.toLowerCase().includes(search) || emp.sid?.toLowerCase().includes(search) || emp.phone?.toLowerCase().includes(search) || emp.email?.toLowerCase().includes(search)));
-}
-
-async function openEmployeeModal(employeeId) {
-  event.stopPropagation();
-  if (!['manager', 'owner'].includes(user.role)) return;
-  editingEmployeeId = employeeId;
-  const emp = allEmployees.find(e => e.id === employeeId);
-  if (!emp) return;
-  const confirmed = await showEmployeeEditModal(emp);
-  if (confirmed) loadEmployees();
-}
-
-function exportEmployees() {
-  if (allEmployees.length === 0) { toast('No employees to export', 'err'); return; }
-  let csv = 'Name,Employee ID,Phone,Email,Role,Joined\
-';
-  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + (emp.email||'').replace(/"/g,'""') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\
+function updateStockCounts(allAlerts) { if (!['manager"') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\
 '; });
   const blob = new Blob([csv], {type:'text/csv'}), url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = 'employees-' + new Date().toISOString().split('T')[0] + '.csv'; a.click(); URL.revokeObjectURL(url);
@@ -1736,7 +1645,6 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Full Name</label><input id="emp-edit-name" type="text" value="' + escapeHtml(emp.nickname) + '"></div>';
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
-    html += '<div class="field"><label>Email</label><input id="emp-edit-email" type="email" placeholder="employee@company.com" value="' + escapeHtml(emp.email || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
     ['employee','farmer','manager','owner'].forEach(r => {
       html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
@@ -1763,7 +1671,6 @@ function showEmployeeEditModal(emp) {
       const name  = document.getElementById('emp-edit-name').value.trim();
       const sid   = document.getElementById('emp-edit-sid').value.trim();
       const phone = document.getElementById('emp-edit-phone').value.trim();
-      const email = document.getElementById('emp-edit-email').value.trim();
       const role  = document.getElementById('emp-edit-role').value;
 
       if (!name) { toast('Name is required', 'err'); return; }
@@ -1773,7 +1680,221 @@ function showEmployeeEditModal(emp) {
       try {
         const r = await fetch(API + '/api/users/' + emp.id, {
           method: 'PATCH', headers: hdr(),
-          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, email: email||null, role })
+          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, role })
+        });
+        const d = await r.json();
+        if (d.success) { toast('✅ Employee updated!'); overlay.classList.remove('show'); resolve(true); }
+        else { toast(d.error || 'Failed to update', 'err'); confirmBtn.disabled = false; confirmBtn.textContent = 'Save Changes'; }
+      } catch(e) { toast('Connection error', 'err'); confirmBtn.disabled = false; confirmBtn.textContent = 'Save Changes'; }
+    };
+  });
+}
+
+let allEmployees = [], editingEmployeeId = null;
+
+async function loadEmployees() {
+  const grid = document.getElementById('employees-grid'); if (!grid) return;
+  grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const r = await fetch(API + '/api/users', {headers:hdr()}); const d = await r.json();
+    if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No employees yet</p></div>'; return; }
+    allEmployees = d.users.filter(u => u.is_active);
+    if (allEmployees.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active employees yet</p></div>'; return; }
+    renderEmployees(allEmployees);
+  } catch(e) { grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load employees</p></div>'; }
+}
+
+function renderEmployees(employees) {
+  const grid = document.getElementById('employees-grid'); if (!grid) return;
+  const roleOrder = {owner:0,manager:1,employee:2,farmer:3};
+  const sorted = [...employees].sort((a,b) => (roleOrder[a.role]||99)-(roleOrder[b.role]||99));
+  let html = '';
+  sorted.forEach(emp => {
+    const initial = (emp.nickname||'?')[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
+    html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
+    html += '<div class="employee-card-header"><div class="employee-avatar-large"><span class="avatar-letter">' + initial + '</span><img class="avatar-img emp-av-' + safeId + '"></div>';
+    html += '<div class="employee-header-info"><div class="employee-name">' + emp.nickname + '</div><span class="badge badge-' + emp.role + '">' + emp.role + '</span></div></div>';
+    html += '<div class="employee-details">';
+    if (emp.sid) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">🆔</div><div class="employee-detail-content"><div class="employee-detail-label">Employee ID</div><div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div></div></div>'; }
+    if (emp.phone) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">📞</div><div class="employee-detail-content"><div class="employee-detail-label">Phone</div><div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div></div></div>'; }
+    html += '<div class="employee-detail-row"><div class="employee-detail-icon">📅</div><div class="employee-detail-content"><div class="employee-detail-label">Joined</div><div class="employee-detail-value">' + fmtDate(emp.created_at) + '</div></div></div>';
+    html += '</div></div>';
+  });
+  grid.innerHTML = html;
+  sorted.forEach(emp => { const saved = localStorage.getItem('avatar_' + emp.id); if (saved) { const safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.emp-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } });
+}
+
+function filterEmployees(searchText) {
+  if (!searchText) { renderEmployees(allEmployees); return; }
+  const search = searchText.toLowerCase();
+  renderEmployees(allEmployees.filter(emp => emp.nickname?.toLowerCase().includes(search) || emp.sid?.toLowerCase().includes(search) || emp.phone?.toLowerCase().includes(search)));
+}
+
+async function openEmployeeModal(employeeId) {
+  event.stopPropagation();
+  if (!['manager', 'owner'].includes(user.role)) return;
+  editingEmployeeId = employeeId;
+  const emp = allEmployees.find(e => e.id === employeeId);
+  if (!emp) return;
+  const confirmed = await showEmployeeEditModal(emp);
+  if (confirmed) loadEmployees();
+}
+
+function exportEmployees() {
+  if (allEmployees.length === 0) { toast('No employees to export', 'err'); return; }
+  let csv = 'Name,Employee ID,Phone,Role,Joined\
+';
+  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\
+'; });
+  const blob = new Blob([csv], {type:'text/csv'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'employees-' + new Date().toISOString().split('T')[0] + '.csv'; a.click(); URL.revokeObjectURL(url);
+  toast('📥 CSV exported!');
+}
+
+// === EDIT TIME ENTRY ===
+// ✅ FIXED: showEditTimeModal now injects buttons INTO html before setting innerHTML
+let editingEntryId = null;
+
+async function editTimeEntry(entryId) {
+  editingEntryId = entryId;
+  const entry = allEntriesData[entryId];
+  if (!entry) { toast('Entry not found. Please refresh the page.', 'err'); return; }
+  const confirmed = await showEditTimeModal(entry);
+  if (confirmed) { loadAllEntries(); toast('✅ Time entry updated!'); }
+}
+
+function showEditTimeModal(entry) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+
+    const clockInDate  = new Date(entry.clock_in);
+    const clockOutDate = entry.clock_out ? new Date(entry.clock_out) : new Date();
+
+    const ciDateStr = clockInDate.toISOString().split('T')[0];
+    const ciTimeStr = clockInDate.toTimeString().slice(0, 5);
+    const coDateStr = clockOutDate.toISOString().split('T')[0];
+    const coTimeStr = clockOutDate.toTimeString().slice(0, 5);
+
+    let html = '';
+    html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">✏️ Edit Time Entry</div>';
+    html += '<div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Editing entry for: <strong style="color:var(--text)">' + (entry.nickname || 'Unknown') + '</strong></div>';
+    html += '<div style="display:flex;flex-direction:column;gap:16px;">';
+    html += '<div><div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">CLOCK IN</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+    html += '<div class="field" style="margin-bottom:0;"><label>Date</label><input id="edit-ci-date" type="date" value="' + ciDateStr + '"></div>';
+    html += '<div class="field" style="margin-bottom:0;"><label>Time</label><input id="edit-ci-time" type="time" value="' + ciTimeStr + '"></div>';
+    html += '</div></div>';
+    html += '<div><div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">CLOCK OUT</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+    html += '<div class="field" style="margin-bottom:0;"><label>Date</label><input id="edit-co-date" type="date" value="' + coDateStr + '"></div>';
+    html += '<div class="field" style="margin-bottom:0;"><label>Time</label><input id="edit-co-time" type="time" value="' + coTimeStr + '"></div>';
+    html += '</div></div>';
+    html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">';
+    html += '<input type="checkbox" id="edit-still-active" ' + (entry.status === 'active' ? 'checked' : '') + ' onchange="toggleClockOutFields(this.checked)">';
+    html += '<span style="font-size:13px;">Still clocked in (no clock out yet)</span></label>';
+    html += '</div>'; // close fields div
+
+    // ✅ KEY FIX: Buttons are injected INTO html BEFORE box.innerHTML is set
+    html += '<div class="modal-buttons" style="margin-top:20px;">';
+    html += '<button id="et-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
+    html += '<button id="et-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
+    html += '</div>';
+
+    box.innerHTML = html; // Safe — buttons are already in the html above
+
+    window.toggleClockOutFields = function(isActive) {
+      const coD = document.getElementById('edit-co-date'), coT = document.getElementById('edit-co-time');
+      coD.disabled = isActive; coT.disabled = isActive;
+      coD.style.opacity = isActive ? '0.5' : '1'; coT.style.opacity = isActive ? '0.5' : '1';
+    };
+    toggleClockOutFields(entry.status === 'active');
+
+    const cancelBtn  = document.getElementById('et-cancel-btn');  // ✅ Exists now
+    const confirmBtn = document.getElementById('et-confirm-btn'); // ✅ Exists now
+
+    overlay.classList.add('show');
+
+    cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
+
+    confirmBtn.onclick = async () => {
+      const ciDate     = document.getElementById('edit-ci-date').value;
+      const ciTime     = document.getElementById('edit-ci-time').value;
+      const coDate     = document.getElementById('edit-co-date').value;
+      const coTime     = document.getElementById('edit-co-time').value;
+      const stillActive = document.getElementById('edit-still-active').checked;
+
+      if (!ciDate || !ciTime) { toast('Clock in date and time required', 'err'); return; }
+      if (!stillActive && (!coDate || !coTime)) { toast('Clock out date and time required', 'err'); return; }
+
+      const clockIn  = new Date(ciDate + 'T' + ciTime);
+      const clockOut = stillActive ? null : new Date(coDate + 'T' + coTime);
+
+      if (clockOut && clockOut <= clockIn) { toast('Clock out must be after clock in', 'err'); return; }
+
+      confirmBtn.innerHTML = '<span class="spinner"></span>'; confirmBtn.disabled = true;
+
+      try {
+        const r = await fetch(API + '/api/time-entries/' + editingEntryId, {
+          method: 'PATCH', headers: hdr(),
+          body: JSON.stringify({ clock_in: clockIn.toISOString(), clock_out: clockOut ? clockOut.toISOString() : null })
+        });
+        const d = await r.json();
+        if (d.success) { overlay.classList.remove('show'); resolve(true); }
+        else { toast(d.error || 'Failed to update', 'err'); confirmBtn.disabled = false; confirmBtn.textContent = 'Save Changes'; }
+      } catch(e) { toast('Connection error', 'err'); confirmBtn.disabled = false; confirmBtn.textContent = 'Save Changes'; }
+    };
+  });
+}
+
+// ✅ FIXED: showEmployeeEditModal now injects buttons INTO html before setting innerHTML
+function showEmployeeEditModal(emp) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+
+    let html = '';
+    html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">Edit Employee</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:16px;">';
+    html += '<div class="field"><label>Full Name</label><input id="emp-edit-name" type="text" value="' + escapeHtml(emp.nickname) + '"></div>';
+    html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
+    html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
+    html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
+    ['employee','farmer','manager','owner'].forEach(r => {
+      html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+    });
+    html += '</select></div>';
+    html += '</div>'; // close fields div
+
+    // ✅ KEY FIX: Buttons are injected INTO html BEFORE box.innerHTML is set
+    html += '<div class="modal-buttons" style="margin-top:20px;">';
+    html += '<button id="ee-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
+    html += '<button id="ee-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
+    html += '</div>';
+
+    box.innerHTML = html; // Safe — buttons are already in the html above
+
+    const cancelBtn  = document.getElementById('ee-cancel-btn');  // ✅ Exists now
+    const confirmBtn = document.getElementById('ee-confirm-btn'); // ✅ Exists now
+
+    overlay.classList.add('show');
+
+    cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
+
+    confirmBtn.onclick = async () => {
+      const name  = document.getElementById('emp-edit-name').value.trim();
+      const sid   = document.getElementById('emp-edit-sid').value.trim();
+      const phone = document.getElementById('emp-edit-phone').value.trim();
+      const role  = document.getElementById('emp-edit-role').value;
+
+      if (!name) { toast('Name is required', 'err'); return; }
+
+      confirmBtn.innerHTML = '<span class="spinner"></span>'; confirmBtn.disabled = true;
+
+      try {
+        const r = await fetch(API + '/api/users/' + emp.id, {
+          method: 'PATCH', headers: hdr(),
+          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, role })
         });
         const d = await r.json();
         if (d.success) { toast('✅ Employee updated!'); overlay.classList.remove('show'); resolve(true); }
@@ -1785,6 +1906,59 @@ function showEmployeeEditModal(emp) {
 
 // === FORUM ===
 let forumPosts = [], forumSectionState = {pinned: true, posts: true};
+
+
+async function deleteStockAlert(alertId) {
+  const confirmed = await showModal({icon:'🗑️',title:'Delete Stock Alert?',message:'This will permanently delete this stock alert.',confirmText:'Delete',danger:true});
+  if (!confirmed) return;
+  try { const r = await fetch(API + '/api/stock-alerts/' + alertId, {method:'DELETE',headers:hdr()}); const d = await r.json(); if (d.success) { toast('🗑️ Alert deleted'); loadStockAlerts(); } else { toast(d.error || 'Failed to delete', 'err'); } } catch(e) { toast('Connection error', 'err'); }
+}
+
+
+async function fetchStockCounts() {
+  try {
+    const [pendingRes, completedRes] = await Promise.all([fetch(API + '/api/stock-alerts?status=pending',{headers:hdr()}), fetch(API + '/api/stock-alerts?status=restocked',{headers:hdr()})]);
+    const pendingData = await pendingRes.json(), completedData = await completedRes.json();
+    const pc = document.getElementById('stock-pending-count'), cc = document.getElementById('stock-completed-count');
+    if (pc) pc.textContent = pendingData.alerts?.length || 0;
+    if (cc) cc.textContent = completedData.alerts?.length || 0;
+  } catch(e) {}
+}
+
+
+function getTimeAgo(date) {
+  const now = new Date(), diffMs = now-date, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
+  if (diffDays>0) return diffDays+'d ago'; if (diffHours>0) return diffHours+'h ago'; if (diffMins>0) return diffMins+'m ago'; return 'Just now';
+}
+
+
+async function markRestocked(alertId) {
+  const confirmed = await showModal({icon:'✅',title:'Mark as Restocked?',message:'Confirm that this item has been restocked.',confirmText:'Mark Restocked',danger:false});
+  if (!confirmed) return;
+  try { const r = await fetch(API + '/api/stock-alerts/' + alertId + '/restock', {method:'PATCH',headers:hdr()}); const d = await r.json(); if (d.success) { toast('✅ Marked as restocked!'); loadStockAlerts(); } else { toast(d.error || 'Failed to update', 'err'); } } catch(e) { toast('Connection error', 'err'); }
+}
+
+
+function renderForumContent(text) {
+  if (!text) return '';
+  let out = escapeHtml(text);
+  out = out.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  out = out.replace(/\*(.+?)\*/g, '<i>$1</i>');
+  out = out.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/g, '<span style="color:$1">$2</span>');
+  const sizeMap = {small:'11px', normal:'15px', large:'18px', huge:'24px'};
+  out = out.replace(/\[size=([^\]]+)\]([\s\S]*?)\[\/size\]/g, (m, sz, txt) => `<span style="font-size:${sizeMap[sz]||'15px'}">${txt}</span>`);
+  out = out.replace(/\[img\](https?:\/\/[^\s\[\]]+)\[\/img\]/g, '<img src="$1" onerror="this.style.display=\'none\'" style="max-width:100%;border-radius:10px;margin:10px 0;display:block;border:1px solid var(--border);">');
+  out = out.replace(/\n/g, '<br>');
+  return out;
+}
+
+
+function switchStockTab(tab) {
+  currentStockTab = tab;
+  document.querySelectorAll('.stock-tab').forEach(t => { t.classList.toggle('active', t.dataset.tab === tab); });
+  const title = document.getElementById('stock-list-title'); if (title) title.textContent = tab === 'pending' ? 'Pending Alerts' : 'Completed Restocks';
+  loadStockAlerts();
+}
 
 async function loadForumPosts() {
   renderForumSections(null);
@@ -1922,8 +2096,8 @@ function showForumNewPost() {
   document.getElementById('forum-edit-id').value = '';
   document.getElementById('forum-title-input').value = '';
   document.getElementById('forum-body-input').innerHTML = '';
-  document.getElementById('forum-editors-input').value = '';
   document.getElementById('forum-editors-field').style.display = 'block';
+  initEditorPicker([]);
   document.getElementById('forum-index-view').style.display = 'none';
   document.getElementById('forum-detail-view').style.display = 'none';
   document.getElementById('forum-new-view').style.display = 'block';
@@ -1937,15 +2111,61 @@ function openEditPost(postId) {
   document.getElementById('forum-edit-id').value = postId;
   document.getElementById('forum-title-input').value = post.title;
   document.getElementById('forum-body-input').innerHTML = post.content || '';
-  // Show editors field only if author
   const editorsField = document.getElementById('forum-editors-field');
   editorsField.style.display = isAuthor ? 'block' : 'none';
-  if (isAuthor) {
-    document.getElementById('forum-editors-input').value = (post.allowed_editors || []).join(', ');
-  }
+  if (isAuthor) initEditorPicker(post.allowed_editors || []);
   document.getElementById('forum-index-view').style.display = 'none';
   document.getElementById('forum-detail-view').style.display = 'none';
   document.getElementById('forum-new-view').style.display = 'block';
+}
+
+
+// Employee picker for "allow others to edit"
+let editorPickerSelected = [];
+
+function initEditorPicker(preselected) {
+  editorPickerSelected = [...preselected];
+  renderEditorTags();
+  renderEditorDropdown();
+}
+
+function renderEditorTags() {
+  const wrap = document.getElementById('forum-editors-tags');
+  if (!wrap) return;
+  wrap.innerHTML = editorPickerSelected.map(name =>
+    `<span class="editor-tag">${escapeHtml(name)}<button onclick="removeEditorTag('${name}')" title="Remove">✕</button></span>`
+  ).join('');
+}
+
+function renderEditorDropdown() {
+  const wrap = document.getElementById('forum-editors-dropdown');
+  if (!wrap) return;
+  const others = allEmployees.filter(e => e.id !== user.id);
+  if (others.length === 0) { wrap.innerHTML = '<span style="font-size:12px;color:var(--muted);">No other employees</span>'; return; }
+  wrap.innerHTML = others.map(e => {
+    const selected = editorPickerSelected.includes(e.nickname);
+    return `<button class="editor-pick-btn${selected ? ' selected' : ''}" onclick="toggleEditorTag('${e.nickname}')">${escapeHtml(e.nickname)}</button>`;
+  }).join('');
+}
+
+function toggleEditorTag(name) {
+  if (editorPickerSelected.includes(name)) {
+    editorPickerSelected = editorPickerSelected.filter(n => n !== name);
+  } else {
+    editorPickerSelected.push(name);
+  }
+  renderEditorTags();
+  renderEditorDropdown();
+}
+
+function removeEditorTag(name) {
+  editorPickerSelected = editorPickerSelected.filter(n => n !== name);
+  renderEditorTags();
+  renderEditorDropdown();
+}
+
+function getEditorPickerValues() {
+  return [...editorPickerSelected];
 }
 
 async function submitForumPost() {
@@ -1953,8 +2173,7 @@ async function submitForumPost() {
   const editor = document.getElementById('forum-body-input');
   const content = editor.innerHTML.trim();
   const editId = document.getElementById('forum-edit-id').value;
-  const editorsRaw = document.getElementById('forum-editors-input').value;
-  const allowed_editors = editorsRaw ? editorsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const allowed_editors = getEditorPickerValues();
   const errEl = document.getElementById('forum-err');
   if (!title) { showErr(errEl, 'Title is required'); return; }
   if (!content || content === '<br>') { showErr(errEl, 'Content is required'); return; }
