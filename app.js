@@ -1613,29 +1613,25 @@ function previewReimbursePhoto(input) {
 
 function updateReimburseSubmitButton() {
   const btn = document.getElementById('btn-submit-reimburse');
-  const amount = parseFloat(document.getElementById('reimburse-amount-input')?.value);
-  btn.disabled = !reimbursePhotoData || !amount || amount <= 0;
+  btn.disabled = !reimbursePhotoData;
 }
 
 async function submitReimbursement() {
-  const amount = parseFloat(document.getElementById('reimburse-amount-input').value);
   const errEl = document.getElementById('reimburse-err');
   const btn = document.getElementById('btn-submit-reimburse');
   if (!reimbursePhotoData) { showErr(errEl, 'Please upload a receipt photo'); return; }
-  if (!amount || amount <= 0) { showErr(errEl, 'Please enter a valid amount'); return; }
-  btn.innerHTML = '<span class="spinner"></span> Submitting...'; btn.disabled = true; errEl.style.display = 'none';
+  btn.innerHTML = '<span class="spinner"></span> Scanning receipt...'; btn.disabled = true; errEl.style.display = 'none';
   try {
     const r = await fetch(API + '/api/reimbursements', {
       method: 'POST', headers: hdr(),
-      body: JSON.stringify({ image_data: reimbursePhotoData, amount })
+      body: JSON.stringify({ image_data: reimbursePhotoData })
     });
     const d = await r.json();
     if (d.success) {
-      toast('✅ Reimbursement submitted!');
+      toast('✅ Reimbursement submitted! Detected: $' + parseFloat(d.amount).toFixed(2));
       reimbursePhotoData = null;
       document.getElementById('reimburse-photo-input').value = '';
       document.getElementById('reimburse-photo-preview').style.display = 'none';
-      document.getElementById('reimburse-amount-input').value = '';
       loadReimbursements();
     } else { showErr(errEl, d.error || 'Failed to submit'); btn.disabled = false; }
   } catch(e) { showErr(errEl, 'Connection error'); btn.disabled = false; }
@@ -1684,7 +1680,7 @@ function renderReimbursements(items) {
       <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
       <div class="reimburse-body">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div class="reimburse-amount">€${parseFloat(item.amount).toFixed(2)}</div>
+          <div class="reimburse-amount">$${parseFloat(item.amount).toFixed(2)}</div>
           <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusIcon} ${item.status.toUpperCase()}</span>
         </div>
         <div class="reimburse-meta">`;
