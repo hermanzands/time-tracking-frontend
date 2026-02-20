@@ -1682,15 +1682,24 @@ function renderReimbursements(items) {
     const statusColor = item.status === 'paid' ? 'var(--green)' : 'var(--amber)';
     const statusIcon = item.status === 'paid' ? '✅' : '⏳';
     let html = `<div class="reimburse-item ${item.status}">
-      <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
+      <div class="reimburse-photo-wrap">
+        <img src="${item.image_data}" class="reimburse-photo" onclick="openReimburseLightbox('${item.id}')" alt="Receipt">
+      </div>
       <div class="reimburse-body">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div class="reimburse-amount">$${parseFloat(item.amount).toFixed(2)}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--accent);letter-spacing:-0.5px;">$${parseFloat(item.amount).toFixed(2)}</div>
           <span class="badge" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusIcon} ${item.status.toUpperCase()}</span>
+        </div>`;
+    if (isAdmin) {
+      html += `<div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar" style="width:24px;height:24px;font-size:11px;display:inline-flex;flex-shrink:0;"><span class="avatar-letter">${(item.user_nickname||'?')[0].toUpperCase()}</span></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(item.user_nickname||'Unknown')}</div>
+          ${item.user_sid ? `<div style="font-size:11px;color:var(--muted);">SID: ${escapeHtml(item.user_sid)}</div>` : ''}
         </div>
-        <div class="reimburse-meta">`;
-    if (isAdmin) html += `<span><div class="avatar" style="width:20px;height:20px;font-size:10px;display:inline-flex;"><span class="avatar-letter">${(item.user_nickname||'?')[0].toUpperCase()}</span></div> ${escapeHtml(item.user_nickname||'Unknown')}</span> · `;
-    html += `<span>📅 ${timeAgo}</span>`;
+      </div>`;
+    }
+    html += `<div class="reimburse-meta"><span>📅 ${timeAgo}</span>`;
     if (item.status === 'paid' && item.reviewed_by_nickname) html += ` · <span>✅ Paid by ${escapeHtml(item.reviewed_by_nickname)}</span>`;
     html += `</div>`;
     if (item.note) html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">"${escapeHtml(item.note)}"</div>`;
