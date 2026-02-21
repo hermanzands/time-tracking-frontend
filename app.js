@@ -896,6 +896,7 @@ function showEditTimeModal(entry) {
     html += '</div>';
     html += '<div class="modal-buttons" style="margin-top:20px;">';
     html += '<button id="et-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
+    html += '<button id="et-delete-btn" class="modal-btn" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️ Delete</button>';
     html += '<button id="et-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
     html += '</div>';
     box.innerHTML = html;
@@ -907,6 +908,19 @@ function showEditTimeModal(entry) {
     toggleClockOutFields(entry.status === 'active');
     const cancelBtn  = document.getElementById('et-cancel-btn');
     const confirmBtn = document.getElementById('et-confirm-btn');
+    const deleteBtn  = document.getElementById('et-delete-btn');
+
+    deleteBtn.onclick = async () => {
+      overlay.classList.remove('show');
+      const confirmed = await showModal({icon:'🗑️', title:'Delete Entry?', message:'This will permanently delete this time entry.', confirmText:'Delete', danger:true});
+      if (!confirmed) { overlay.classList.add('show'); return; }
+      try {
+        const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
+        const d = await r.json();
+        if (d.success) { toast('🗑️ Entry deleted'); resolve(true); }
+        else { toast(d.error || 'Failed to delete', 'err'); overlay.classList.add('show'); }
+      } catch(e) { toast('Connection error', 'err'); overlay.classList.add('show'); }
+    };
     overlay.classList.add('show');
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
     confirmBtn.onclick = async () => {
