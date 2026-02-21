@@ -911,9 +911,8 @@ function showEditTimeModal(entry) {
     const deleteBtn  = document.getElementById('et-delete-btn');
 
     deleteBtn.onclick = async () => {
+      if (!window.confirm('Delete this time entry? This cannot be undone.')) return;
       overlay.classList.remove('show');
-      const confirmed = await showModal({icon:'🗑️', title:'Delete Entry?', message:'This will permanently delete this time entry.', confirmText:'Delete', danger:true});
-      if (!confirmed) { overlay.classList.add('show'); return; }
       try {
         const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
         const d = await r.json();
