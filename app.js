@@ -910,25 +910,26 @@ function showEditTimeModal(entry) {
     const confirmBtn = document.getElementById('et-confirm-btn');
     const deleteBtn  = document.getElementById('et-delete-btn');
 
-    deleteBtn.onclick = async () => {
-      // Save edit form HTML so we can restore it if user cancels
-      const savedHTML = box.innerHTML;
-      overlay.classList.remove('show');
-      const confirmed = await showModal({icon:'🗑️', title:'Delete Entry?', message:'This will permanently delete this time entry. This cannot be undone.', confirmText:'Delete', danger:true});
-      if (!confirmed) {
-        // Restore edit form and rewire events
-        box.innerHTML = savedHTML;
-        overlay.classList.add('show');
-        document.getElementById('et-cancel-btn').onclick = () => { overlay.classList.remove('show'); resolve(false); };
-        document.getElementById('et-delete-btn').onclick = deleteBtn.onclick;
-        return;
-      }
-      try {
-        const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
-        const d = await r.json();
-        if (d.success) { toast('🗑️ Entry deleted'); resolve(true); }
-        else { toast(d.error || 'Failed to delete', 'err'); box.innerHTML = savedHTML; overlay.classList.add('show'); }
-      } catch(e) { toast('Connection error', 'err'); box.innerHTML = savedHTML; overlay.classList.add('show'); }
+    deleteBtn.onclick = () => {
+      // Replace modal content with inline confirmation
+      box.innerHTML = `
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin-bottom:12px;">🗑️ Delete Entry?</div>
+        <div style="color:var(--muted);font-size:14px;margin-bottom:24px;">This will permanently delete this time entry. This cannot be undone.</div>
+        <div class="modal-buttons">
+          <button id="del-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="del-confirm-btn" class="modal-btn modal-btn-confirm">Delete</button>
+        </div>`;
+      document.getElementById('del-cancel-btn').onclick = () => { overlay.classList.remove('show'); resolve(false); };
+      document.getElementById('del-confirm-btn').onclick = async () => {
+        const btn = document.getElementById('del-confirm-btn');
+        btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+        try {
+          const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
+          const d = await r.json();
+          if (d.success) { overlay.classList.remove('show'); toast('🗑️ Entry deleted'); resolve(true); }
+          else { toast(d.error || 'Failed to delete', 'err'); overlay.classList.remove('show'); resolve(false); }
+        } catch(e) { toast('Connection error', 'err'); overlay.classList.remove('show'); resolve(false); }
+      };
     };
     overlay.classList.add('show');
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
