@@ -255,6 +255,42 @@ function showApp() {
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
     if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
   }).catch(() => {});
+  // Register push notifications
+  initPushNotifications();
+}
+
+// === PUSH NOTIFICATIONS ===
+const VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
+
+async function initPushNotifications() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    // Send subscription to backend
+    await fetch(API + '/api/push/subscribe', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+  } catch(e) {
+    console.log('Push notification setup failed:', e);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
 function go(panel) {
