@@ -405,12 +405,15 @@
                 <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• List</button>
                 <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1. List</button>
                 <div class="forum-toolbar-sep"></div>
-                <select onmousedown="forumEditorFocus()" onchange="forumSetFontSize(this.value)" title="Font size">
-                  <option value="">Size</option>
-                  <option value="2">Small</option>
-                  <option value="3" selected>Normal</option>
-                  <option value="5">Large</option>
-                  <option value="7">Huge</option>
+                <select onchange="forumSetFontSize(this.value)" title="Font size" style="width:52px;padding:4px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;">
+                  <option value="" disabled selected style="color:var(--muted);">—</option>
+                  <option value="1">8</option>
+                  <option value="2">10</option>
+                  <option value="3">12</option>
+                  <option value="4">14</option>
+                  <option value="5">18</option>
+                  <option value="6">24</option>
+                  <option value="7">36</option>
                 </select>
                 <div class="forum-toolbar-sep"></div>
                 <button onmousedown="event.preventDefault();toggleColorPicker(event)" id="forum-color-btn" title="Text color" style="display:flex;align-items:center;gap:5px;min-width:52px;position:relative;">
