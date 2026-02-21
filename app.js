@@ -501,6 +501,10 @@ function setDefaultDates() {
   const now = new Date(), s = document.getElementById('pay-start'), e = document.getElementById('pay-end');
   if (s && !s.value) s.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   if (e && !e.value) e.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  if (s && e) {
+    s.onchange = () => { if (s.value > e.value) e.value = s.value; };
+    e.onchange = () => { if (e.value < s.value) s.value = e.value; };
+  }
 }
 
 async function calcPayments() {
