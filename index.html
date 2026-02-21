@@ -566,8 +566,43 @@
 </div>
 
 <div id="toast"></div>
-
-
 <script src="app.js"></script>
+
+  <!-- MOBILE BOTTOM NAV -->
+<div class="mobile-nav" id="mobile-nav">
+  <button class="mobile-nav-item active" id="mob-clock" onclick="go('clock')">
+    <span class="mobile-nav-icon">⏱️</span>Clock
+    </button>
+    <button class="mobile-nav-item" id="mob-hours" onclick="go('hours')">
+      <span class="mobile-nav-icon">📋</span>Hours
+    </button>
+    <button class="mobile-nav-item" id="mob-earnings" onclick="go('earnings')">
+      <span class="mobile-nav-icon">💰</span>Pay
+    </button>
+    <button class="mobile-nav-item" id="mob-forum" onclick="go('forum')">
+      <span class="mobile-nav-icon">💬</span>Forum
+    </button>
+    <button class="mobile-nav-item" id="mob-stock" onclick="go('stock')">
+      <span class="mobile-nav-icon">📦</span>Stock
+    </button>
+    <button class="mobile-nav-item" id="mob-reimburse" onclick="go('reimburse')">
+      <span class="mobile-nav-icon">🧾</span>Expense
+    </button>
+    <button class="mobile-nav-item" id="mob-employees" onclick="go('employees')">
+      <span class="mobile-nav-icon">👥</span>Team
+    </button>
+    <button class="mobile-nav-item admin-only" id="mob-workers" onclick="go('workers')">
+      <span class="mobile-nav-icon">⚙️</span>Manage
+    </button>
+    <button class="mobile-nav-item admin-only" id="mob-allhours" onclick="go('allhours')">
+      <span class="mobile-nav-icon">🕐</span>All Hrs
+    </button>
+    <button class="mobile-nav-item admin-only" id="mob-payments" onclick="go('payments')">
+      <span class="mobile-nav-icon">💳</span>Payroll
+    </button>
+    <button class="mobile-nav-item" id="mob-profile" onclick="go('profile')">
+      <span class="mobile-nav-icon">👤</span>Profile
+    </button>
+  </div>
 </body>
 </html>
