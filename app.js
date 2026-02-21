@@ -1,5 +1,5 @@
 // ========================================================================
-// GLOBALS — API config, state, helpers, clock, etc
+// GLOBALS — API config, state, helpers, clock
 // ========================================================================
 
 const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
@@ -1323,7 +1323,7 @@ function openForumPost(postId) {
   const html = `<div class="forum-detail">
     <div class="forum-detail-title">${escapeHtml(post.title)}${post.is_pinned ? ' <span class="forum-pin-badge">📌 Pinned</span>' : ''}</div>
     <div class="forum-detail-meta">
-      <div class="avatar avatar-sm"><span class="avatar-letter">${(post.author_name||'?')[0].toUpperCase()}</span></div>
+      <div class="avatar avatar-sm"><span class="avatar-letter">${(post.author_name||'?')[0].toUpperCase()}</span><img class="avatar-img" ${post.user_id && localStorage.getItem('avatar_'+post.user_id) ? `src="${localStorage.getItem('avatar_'+post.user_id)}" style="display:block;"` : ''}></div>
       <div><div style="font-weight:600;font-size:13px;">${escapeHtml(post.author_name||'Unknown')}</div>
       <div style="font-size:11px;color:var(--muted);">${new Date(post.created_at).toLocaleDateString([],{day:'numeric',month:'short',year:'numeric'})} · ${new Date(post.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false})}</div></div>
       ${post.updated_at && post.updated_at !== post.created_at ? '<span style="font-size:11px;color:var(--muted);margin-left:8px;">(edited)</span>' : ''}
