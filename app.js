@@ -1806,23 +1806,49 @@ document.addEventListener('DOMContentLoaded', () => {
     bodyInput.addEventListener('mouseup', updateForumToolbarState);
     bodyInput.addEventListener('selectionchange', updateForumToolbarState);
 
-    // Backspace deletes table when cursor is at the very start of the line right after it
+    // Backspace: delete table if cursor is immediately after or before it
     bodyInput.addEventListener('keydown', e => {
-      if (e.key !== 'Backspace') return;
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
       const sel = window.getSelection();
-      if (!sel || !sel.rangeCount) return;
+      if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
       const range = sel.getRangeAt(0);
-      if (!range.collapsed || range.startOffset !== 0) return;
-      // Walk up to find the block-level element the cursor is in
       let node = range.startContainer;
-      while (node && node.parentNode !== bodyInput) node = node.parentNode;
-      if (!node) return;
-      // Check if the previous sibling is a table wrapper
-      const prev = node.previousSibling;
-      if (prev && prev.id && prev.id.startsWith('tbl')) {
-        e.preventDefault();
-        prev.remove();
+
+      // Check if cursor is right at the start of a node whose previous sibling is a table (Backspace)
+      // or right at the end of a node whose next sibling is a table (Delete)
+      const checkNode = (n) => {
+        while (n && n !== bodyInput) {
+          if (e.key === 'Backspace' && n.previousSibling?.id?.startsWith('tbl')) {
+            // Only delete if we're at the very start of this node
+            if (range.startOffset === 0) {
+              e.preventDefault();
+              n.previousSibling.remove();
+              return true;
+            }
+          }
+          if (e.key === 'Delete' && n.nextSibling?.id?.startsWith('tbl')) {
+            e.preventDefault();
+            n.nextSibling.remove();
+            return true;
+          }
+          n = n.parentNode;
+        }
+        return false;
+      };
+
+      // Also handle when cursor is directly adjacent to the table wrapper itself
+      if (node === bodyInput) {
+        const el = e.key === 'Backspace'
+          ? bodyInput.children[range.startOffset - 1]
+          : bodyInput.children[range.startOffset];
+        if (el?.id?.startsWith('tbl')) {
+          e.preventDefault();
+          el.remove();
+          return;
+        }
       }
+
+      checkNode(node);
     });
   }
 
