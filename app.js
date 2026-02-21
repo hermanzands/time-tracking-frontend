@@ -1,5 +1,5 @@
 // ========================================================================
-// GLOBALS — API config, state, helpers, clock
+// GLOBALS — API config, state, helpers, clock, etc
 // ========================================================================
 
 const API = 'https://time-tracking-backend-production-5baf.up.railway.app';
