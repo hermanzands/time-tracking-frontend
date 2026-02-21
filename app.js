@@ -40,7 +40,6 @@ function togglePwd(inputId, btn) { const inp = document.getElementById(inputId);
 // AUTH — Login, register, forgot password
 // ========================================================================
 
-// === AUTH ===
 function showForgotPassword() {
   document.getElementById('form-signin').classList.add('hidden');
   document.getElementById('form-register').classList.add('hidden');
@@ -122,7 +121,6 @@ async function resetPassword() {
 // APP — Navigation, notifications, routing
 // ========================================================================
 
-// === NOTIFICATIONS ===
 let notifications = [];
 let notifDropdownOpen = false;
 
@@ -229,7 +227,6 @@ function updateNotifBadge(count) {
   else { badge.classList.add('hidden'); }
 }
 
-// === APP ===
 function showApp() {
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
@@ -252,7 +249,6 @@ function showApp() {
   loadClockStatus();
   loadStats();
   sendHeartbeat();
-  // Pre-load employees silently so forum editor picker works immediately
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
     if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
   }).catch(() => {});
@@ -282,7 +278,6 @@ function go(panel) {
 // CLOCK — Clock in/out, my entries, my payments, profile
 // ========================================================================
 
-// === CLOCK ===
 async function loadClockStatus() {
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
@@ -327,7 +322,6 @@ async function loadStats() {
   } catch(e) {}
 }
 
-// === MY ENTRIES ===
 async function loadMyEntries() {
   const tb = document.getElementById('my-entries-body');
   tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
@@ -343,7 +337,6 @@ async function loadMyEntries() {
   } catch(e) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
 }
 
-// === MY PAYMENTS ===
 async function loadMyPayments() {
   const tb = document.getElementById('my-pay-body');
   tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
@@ -358,7 +351,6 @@ async function loadMyPayments() {
   } catch(e) { tb.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
 }
 
-// === PROFILE ===
 function loadProfile() {
   if (!user) return;
   document.getElementById('profile-name').textContent = user.nickname;
@@ -394,7 +386,6 @@ async function changePassword() {
 // WORKERS — Employee directory, all hours
 // ========================================================================
 
-// === WORKERS ===
 async function loadWorkers() {
   const grid = document.getElementById('workers-grid'); grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
@@ -458,7 +449,6 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
-// === ALL HOURS ===
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
   tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
@@ -507,7 +497,6 @@ function togglePerson(pid) {
 // PAYMENTS — Pay calculator
 // ========================================================================
 
-// === PAY CALCULATOR ===
 function setDefaultDates() {
   const now = new Date(), s = document.getElementById('pay-start'), e = document.getElementById('pay-end');
   if (s && !s.value) s.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -571,7 +560,6 @@ async function deletePayment(paymentId) {
 // CHAT — Online status, live chat, modal, clocked-in widget, pending approvals
 // ========================================================================
 
-// === ONLINE STATUS & CHAT ===
 let chatOpen = false, onlineUsers = new Set(), lastMessageId = null, chatPollInterval = null;
 
 async function sendHeartbeat() {
@@ -627,7 +615,6 @@ function initChat() {
   else { chatPanel.style.display = 'none'; }
 }
 
-// === CUSTOM MODAL ===
 let modalResolve = null;
 
 function showModal(options) {
@@ -640,7 +627,6 @@ function showModal(options) {
     const confirmBtn = document.getElementById('modal-confirm');
     confirmBtn.textContent = options.confirmText || 'Confirm';
     confirmBtn.className = 'modal-btn ' + (options.danger ? 'modal-btn-confirm' : 'modal-btn-primary');
-    // Restore standard modal structure
     document.getElementById('modal-cancel').textContent = 'Cancel';
     document.getElementById('modal-cancel').onclick = closeModal;
     confirmBtn.onclick = confirmModal;
@@ -652,7 +638,6 @@ function closeModal() { document.getElementById('modal-overlay').classList.remov
 function confirmModal() { document.getElementById('modal-overlay').classList.remove('show'); if (modalResolve) { modalResolve(true); modalResolve = null; } }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('modal-overlay').classList.contains('show')) closeModal(); });
 
-// === CLOCKED IN WIDGET ===
 async function loadClockedInUsers() {
   if (!user) return;
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
@@ -680,7 +665,6 @@ function renderClockedInUsers(entries) {
   entries.forEach(entry => { if (entry.user_id) { const saved = localStorage.getItem('avatar_' + entry.user_id); if (saved) { document.querySelectorAll('.clocked-av-' + entry.user_id.replace(/[^a-zA-Z0-9]/g,'_')).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
 }
 
-// === PENDING APPROVALS ===
 async function loadPendingEmployees() {
   if (!user || !['manager', 'owner'].includes(user.role)) return;
   try { const r = await fetch(API + '/api/users/pending', {headers:hdr()}); const d = await r.json(); if (d.success && d.pending) renderPendingEmployees(d.pending); } catch(e) {}
@@ -698,7 +682,6 @@ function renderPendingEmployees(pending) {
     const diffMs = now-registeredTime, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
     let timeAgo = diffDays>0?diffDays+'d ago':diffHours>0?diffHours+'h ago':diffMins>0?diffMins+'m ago':'Just now';
     html += '<div class="pending-item"><div class="pending-avatar">' + initial + '</div><div class="pending-info"><div class="pending-name">' + emp.nickname + '</div>';
-    
     html += '<div class="pending-time"><span class="pending-time-dot"></span>Registered ' + timeAgo + '</div></div>';
     html += '<div class="pending-actions"><button class="btn-approve" onclick="approveEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✓ Approve</button><button class="btn-reject" onclick="rejectEmployee(\'' + emp.id + '\', \'' + safeName + '\')">✕ Reject</button></div></div>';
   });
@@ -725,7 +708,6 @@ setInterval(loadClockedInUsers, 30000);
 // STOCK — Stock alerts, edit time entry
 // ========================================================================
 
-// === STOCK ALERTS ===
 let currentStockTab = 'pending', stockPhotoData = null;
 
 function previewStockPhoto(input) {
@@ -786,8 +768,6 @@ function renderStockAlerts(alerts) {
 
 function updateStockCounts(allAlerts) { if (!['manager','owner'].includes(user.role)) return; fetchStockCounts(); }
 
-// === EDIT TIME ENTRY ===
-// ✅ FIXED: showEditTimeModal now injects buttons INTO html before setting innerHTML
 let editingEntryId = null;
 
 async function editTimeEntry(entryId) {
@@ -802,15 +782,12 @@ function showEditTimeModal(entry) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('modal-overlay');
     const box = overlay.querySelector('.modal-box');
-
     const clockInDate  = new Date(entry.clock_in);
     const clockOutDate = entry.clock_out ? new Date(entry.clock_out) : new Date();
-
     const ciDateStr = clockInDate.toISOString().split('T')[0];
     const ciTimeStr = clockInDate.toTimeString().slice(0, 5);
     const coDateStr = clockOutDate.toISOString().split('T')[0];
     const coTimeStr = clockOutDate.toTimeString().slice(0, 5);
-
     let html = '';
     html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">✏️ Edit Time Entry</div>';
     html += '<div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Editing entry for: <strong style="color:var(--text)">' + (entry.nickname || 'Unknown') + '</strong></div>';
@@ -828,47 +805,34 @@ function showEditTimeModal(entry) {
     html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">';
     html += '<input type="checkbox" id="edit-still-active" ' + (entry.status === 'active' ? 'checked' : '') + ' onchange="toggleClockOutFields(this.checked)">';
     html += '<span style="font-size:13px;">Still clocked in (no clock out yet)</span></label>';
-    html += '</div>'; // close fields div
-
-    // ✅ KEY FIX: Buttons are injected INTO html BEFORE box.innerHTML is set
+    html += '</div>';
     html += '<div class="modal-buttons" style="margin-top:20px;">';
     html += '<button id="et-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
     html += '<button id="et-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
     html += '</div>';
-
-    box.innerHTML = html; // Safe — buttons are already in the html above
-
+    box.innerHTML = html;
     window.toggleClockOutFields = function(isActive) {
       const coD = document.getElementById('edit-co-date'), coT = document.getElementById('edit-co-time');
       coD.disabled = isActive; coT.disabled = isActive;
       coD.style.opacity = isActive ? '0.5' : '1'; coT.style.opacity = isActive ? '0.5' : '1';
     };
     toggleClockOutFields(entry.status === 'active');
-
-    const cancelBtn  = document.getElementById('et-cancel-btn');  // ✅ Exists now
-    const confirmBtn = document.getElementById('et-confirm-btn'); // ✅ Exists now
-
+    const cancelBtn  = document.getElementById('et-cancel-btn');
+    const confirmBtn = document.getElementById('et-confirm-btn');
     overlay.classList.add('show');
-
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
-
     confirmBtn.onclick = async () => {
       const ciDate     = document.getElementById('edit-ci-date').value;
       const ciTime     = document.getElementById('edit-ci-time').value;
       const coDate     = document.getElementById('edit-co-date').value;
       const coTime     = document.getElementById('edit-co-time').value;
       const stillActive = document.getElementById('edit-still-active').checked;
-
       if (!ciDate || !ciTime) { toast('Clock in date and time required', 'err'); return; }
       if (!stillActive && (!coDate || !coTime)) { toast('Clock out date and time required', 'err'); return; }
-
       const clockIn  = new Date(ciDate + 'T' + ciTime);
       const clockOut = stillActive ? null : new Date(coDate + 'T' + coTime);
-
       if (clockOut && clockOut <= clockIn) { toast('Clock out must be after clock in', 'err'); return; }
-
       confirmBtn.innerHTML = '<span class="spinner"></span>'; confirmBtn.disabled = true;
-
       try {
         const r = await fetch(API + '/api/time-entries/' + editingEntryId, {
           method: 'PATCH', headers: hdr(),
@@ -882,12 +846,10 @@ function showEditTimeModal(entry) {
   });
 }
 
-// ✅ FIXED: showEmployeeEditModal now injects buttons INTO html before setting innerHTML
 function showEmployeeEditModal(emp) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('modal-overlay');
     const box = overlay.querySelector('.modal-box');
-
     let html = '';
     html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">Edit Employee</div>';
     html += '<div style="display:flex;flex-direction:column;gap:16px;">';
@@ -899,33 +861,23 @@ function showEmployeeEditModal(emp) {
       html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
     });
     html += '</select></div>';
-    html += '</div>'; // close fields div
-
-    // ✅ KEY FIX: Buttons are injected INTO html BEFORE box.innerHTML is set
+    html += '</div>';
     html += '<div class="modal-buttons" style="margin-top:20px;">';
     html += '<button id="ee-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
     html += '<button id="ee-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
     html += '</div>';
-
-    box.innerHTML = html; // Safe — buttons are already in the html above
-
-    const cancelBtn  = document.getElementById('ee-cancel-btn');  // ✅ Exists now
-    const confirmBtn = document.getElementById('ee-confirm-btn'); // ✅ Exists now
-
+    box.innerHTML = html;
+    const cancelBtn  = document.getElementById('ee-cancel-btn');
+    const confirmBtn = document.getElementById('ee-confirm-btn');
     overlay.classList.add('show');
-
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
-
     confirmBtn.onclick = async () => {
       const name  = document.getElementById('emp-edit-name').value.trim();
       const sid   = document.getElementById('emp-edit-sid').value.trim();
       const phone = document.getElementById('emp-edit-phone').value.trim();
       const role  = document.getElementById('emp-edit-role').value;
-
       if (!name) { toast('Name is required', 'err'); return; }
-
       confirmBtn.innerHTML = '<span class="spinner"></span>'; confirmBtn.disabled = true;
-
       try {
         const r = await fetch(API + '/api/users/' + emp.id, {
           method: 'PATCH', headers: hdr(),
@@ -991,10 +943,8 @@ async function openEmployeeModal(employeeId) {
 
 function exportEmployees() {
   if (allEmployees.length === 0) { toast('No employees to export', 'err'); return; }
-  let csv = 'Name,Employee ID,Phone,Role,Joined\
-';
-  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\
-'; });
+  let csv = 'Name,Employee ID,Phone,Role,Joined\n';
+  allEmployees.forEach(emp => { csv += '"' + (emp.nickname||'').replace(/"/g,'""') + '","' + (emp.sid||'').replace(/"/g,'""') + '","' + (emp.phone||'').replace(/"/g,'""') + '","' + emp.role + '","' + fmtDate(emp.created_at) + '"\n'; });
   const blob = new Blob([csv], {type:'text/csv'}), url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = 'employees-' + new Date().toISOString().split('T')[0] + '.csv'; a.click(); URL.revokeObjectURL(url);
   toast('📥 CSV exported!');
@@ -1005,16 +955,13 @@ function exportEmployees() {
 // FORUM — Forum posts, replies, editor, color picker
 // ========================================================================
 
-// === FORUM ===
 let forumPosts = [], forumSectionState = {pinned: true, posts: true};
-
 
 async function deleteStockAlert(alertId) {
   const confirmed = await showModal({icon:'🗑️',title:'Delete Stock Alert?',message:'This will permanently delete this stock alert.',confirmText:'Delete',danger:true});
   if (!confirmed) return;
   try { const r = await fetch(API + '/api/stock-alerts/' + alertId, {method:'DELETE',headers:hdr()}); const d = await r.json(); if (d.success) { toast('🗑️ Alert deleted'); loadStockAlerts(); } else { toast(d.error || 'Failed to delete', 'err'); } } catch(e) { toast('Connection error', 'err'); }
 }
-
 
 async function fetchStockCounts() {
   try {
@@ -1026,19 +973,16 @@ async function fetchStockCounts() {
   } catch(e) {}
 }
 
-
 function getTimeAgo(date) {
   const now = new Date(), diffMs = now-date, diffMins = Math.floor(diffMs/1000/60), diffHours = Math.floor(diffMins/60), diffDays = Math.floor(diffHours/24);
   if (diffDays>0) return diffDays+'d ago'; if (diffHours>0) return diffHours+'h ago'; if (diffMins>0) return diffMins+'m ago'; return 'Just now';
 }
-
 
 async function markRestocked(alertId) {
   const confirmed = await showModal({icon:'✅',title:'Mark as Restocked?',message:'Confirm that this item has been restocked.',confirmText:'Mark Restocked',danger:false});
   if (!confirmed) return;
   try { const r = await fetch(API + '/api/stock-alerts/' + alertId + '/restock', {method:'PATCH',headers:hdr()}); const d = await r.json(); if (d.success) { toast('✅ Marked as restocked!'); loadStockAlerts(); } else { toast(d.error || 'Failed to update', 'err'); } } catch(e) { toast('Connection error', 'err'); }
 }
-
 
 function renderForumContent(text) {
   if (!text) return '';
@@ -1053,14 +997,12 @@ function renderForumContent(text) {
   return out;
 }
 
-
 function switchStockTab(tab) {
   currentStockTab = tab;
   document.querySelectorAll('.stock-tab').forEach(t => { t.classList.toggle('active', t.dataset.tab === tab); });
   const title = document.getElementById('stock-list-title'); if (title) title.textContent = tab === 'pending' ? 'Pending Alerts' : 'Completed Restocks';
   loadStockAlerts();
 }
-
 
 async function loadReplies(postId) {
   const list = document.getElementById('forum-replies-list');
@@ -1108,7 +1050,6 @@ async function submitReply(postId) {
     if (d.success) {
       input.value = '';
       await loadReplies(postId);
-      // Update reply count in the post list
       const p = forumPosts.find(p => p.id === postId);
       if (p) { p.reply_count = (p.reply_count || 0) + 1; }
     } else { toast(d.error || 'Failed to reply', 'err'); }
@@ -1155,11 +1096,9 @@ function cpDrawSV() {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const hueHex = hsvToHex(cpHue, 1, 1);
-  // white→hue horizontal
   const gradH = ctx.createLinearGradient(0,0,W,0);
   gradH.addColorStop(0,'#fff'); gradH.addColorStop(1,hueHex);
   ctx.fillStyle = gradH; ctx.fillRect(0,0,W,H);
-  // transparent→black vertical
   const gradV = ctx.createLinearGradient(0,0,0,H);
   gradV.addColorStop(0,'rgba(0,0,0,0)'); gradV.addColorStop(1,'#000');
   ctx.fillStyle = gradV; ctx.fillRect(0,0,W,H);
@@ -1181,7 +1120,6 @@ function cpUpdateCursors() {
   const svC = document.getElementById('cp-sv-cursor');
   const hC = document.getElementById('cp-hue-cursor');
   if(!sv||!svC||!hC) return;
-  const rect = sv.getBoundingClientRect();
   svC.style.left = (cpSat * 100) + '%';
   svC.style.top = ((1-cpVal) * 100) + '%';
   hC.style.left = (cpHue * 100) + '%';
@@ -1244,17 +1182,13 @@ function cpInitEvents() {
   const svCanvas = document.getElementById('cp-sv-canvas');
   const hueCanvas = document.getElementById('cp-hue-canvas');
   if(!svCanvas||!hueCanvas) return;
-
   svCanvas.addEventListener('mousedown', e => { cpDraggingSV=true; cpSetFromSVEvent(e,svCanvas); });
   hueCanvas.addEventListener('mousedown', e => { cpDraggingHue=true; cpSetFromHueEvent(e,hueCanvas); });
-
   document.addEventListener('mousemove', e => {
     if(cpDraggingSV) cpSetFromSVEvent(e,svCanvas);
     if(cpDraggingHue) cpSetFromHueEvent(e,hueCanvas);
   });
   document.addEventListener('mouseup', () => { cpDraggingSV=false; cpDraggingHue=false; });
-
-  // Touch
   svCanvas.addEventListener('touchstart', e=>{e.preventDefault();cpDraggingSV=true;cpSetFromSVEvent(e.touches[0],svCanvas);},{passive:false});
   hueCanvas.addEventListener('touchstart', e=>{e.preventDefault();cpDraggingHue=true;cpSetFromHueEvent(e.touches[0],hueCanvas);},{passive:false});
   document.addEventListener('touchmove', e=>{
@@ -1276,7 +1210,6 @@ function toggleColorPicker(e) {
   popup.style.left = Math.max(8, left) + 'px';
   popup.classList.add('show');
   colorPickerOpen = true;
-  // Draw after shown so canvas has dimensions
   requestAnimationFrame(() => {
     cpDrawSV(); cpDrawHue(); cpUpdateCursors(); cpUpdatePreview();
     cpInitEvents();
@@ -1293,6 +1226,15 @@ document.addEventListener('click', (e) => {
     closeColorPicker();
   }
 });
+
+// === FORUM TOOLBAR STATE ===
+function updateForumToolbarState() {
+  const commands = ['bold', 'italic', 'underline', 'strikeThrough'];
+  commands.forEach(cmd => {
+    const btn = document.getElementById('forum-btn-' + cmd);
+    if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+  });
+}
 
 async function loadForumPosts() {
   renderForumSections(null);
@@ -1397,7 +1339,6 @@ function openForumPost(postId) {
   loadReplies(postId);
 }
 
-// WYSIWYG helpers
 let forumEditorSavedRange = null;
 
 function forumEditorFocus() {
@@ -1416,6 +1357,7 @@ function forumSetColor(color) {
   document.execCommand('foreColor', false, color);
 }
 
+// ✅ FIXED font size — no execCommand, direct DOM manipulation
 function forumSetFontSizePx(px) {
   if (!px || px < 1) return;
   px = parseInt(px);
@@ -1426,17 +1368,17 @@ function forumSetFontSizePx(px) {
   const range = sel.getRangeAt(0);
 
   if (range.collapsed) {
-    // No selection — insert a styled span at cursor so next typed text uses this size
+    // No selection — place a sized span at cursor so next typed text uses this size
     const span = document.createElement('span');
     span.style.fontSize = px + 'px';
-    span.appendChild(document.createTextNode('\u200B')); // zero-width space placeholder
+    span.appendChild(document.createTextNode('\u200B'));
     range.insertNode(span);
     range.setStart(span.firstChild, 1);
     range.setEnd(span.firstChild, 1);
     sel.removeAllRanges();
     sel.addRange(range);
   } else {
-    // Has selection — wrap it in a sized span
+    // Has selection — wrap in sized span
     const contents = range.extractContents();
     const span = document.createElement('span');
     span.style.fontSize = px + 'px';
@@ -1449,7 +1391,6 @@ function forumSetFontSizePx(px) {
 }
 
 function forumInsertImage() {
-  // Save selection before opening modal
   const sel = window.getSelection();
   if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
   document.getElementById('image-modal-url').value = '';
@@ -1459,7 +1400,6 @@ function forumInsertImage() {
   setTimeout(() => document.getElementById('image-modal-url').focus(), 50);
 }
 
-// Live preview when URL is typed
 document.addEventListener('DOMContentLoaded', () => {
   const urlInput = document.getElementById('image-modal-url');
   if (urlInput) urlInput.addEventListener('input', () => {
@@ -1472,6 +1412,14 @@ document.addEventListener('DOMContentLoaded', () => {
       img.onerror = () => { preview.style.display = 'none'; };
     } else { preview.style.display = 'none'; }
   });
+
+  // Forum editor toolbar state
+  const bodyInput = document.getElementById('forum-body-input');
+  if (bodyInput) {
+    bodyInput.addEventListener('keyup', updateForumToolbarState);
+    bodyInput.addEventListener('mouseup', updateForumToolbarState);
+    bodyInput.addEventListener('selectionchange', updateForumToolbarState);
+  }
 });
 
 function closeImageModal() {
@@ -1526,8 +1474,6 @@ function openEditPost(postId) {
   document.getElementById('forum-new-view').style.display = 'block';
 }
 
-
-// Employee picker for "allow others to edit"
 let editorPickerSelected = [];
 
 function initEditorPicker(preselected) {
@@ -1585,9 +1531,7 @@ async function submitForumPost() {
   if (!title) { showErr(errEl, 'Title is required'); return; }
   if (!content || content === '<br>') { showErr(errEl, 'Content is required'); return; }
   try {
-    const body = editId
-      ? {title, content, allowed_editors}
-      : {title, content, allowed_editors};
+    const body = {title, content, allowed_editors};
     const r = editId
       ? await fetch(API + '/api/forum/' + editId, {method:'PATCH', headers:hdr(), body:JSON.stringify(body)})
       : await fetch(API + '/api/forum', {method:'POST', headers:hdr(), body:JSON.stringify(body)});
@@ -1737,8 +1681,6 @@ function renderReimbursements(items) {
     html += `</div></div>`;
     return html;
   }).join('') + '</div>';
-
-  // Store items for lightbox lookup
   window._reimburseItems = items;
 }
 
@@ -1754,11 +1696,8 @@ function openReimburseLightbox(id) {
 
 async function reviewReimbursement(id, status) {
   const confirmed = await showModal({
-    icon: '✅',
-    title: 'Mark as Paid?',
-    message: 'Mark this reimbursement as paid?',
-    confirmText: 'Mark Paid',
-    danger: false
+    icon: '✅', title: 'Mark as Paid?', message: 'Mark this reimbursement as paid?',
+    confirmText: 'Mark Paid', danger: false
   });
   if (!confirmed) return;
   try {
@@ -1773,11 +1712,8 @@ async function reviewReimbursement(id, status) {
 
 async function deleteReimbursement(id) {
   const confirmed = await showModal({
-    icon: '🗑️',
-    title: 'Delete Request?',
-    message: 'Are you sure you want to delete this reimbursement request?',
-    confirmText: 'Delete',
-    danger: true
+    icon: '🗑️', title: 'Delete Request?', message: 'Are you sure you want to delete this reimbursement request?',
+    confirmText: 'Delete', danger: true
   });
   if (!confirmed) return;
   try {
