@@ -1507,13 +1507,13 @@ function forumInsertTable() {
   });
   wrap.appendChild(bar);
 
-  // Floating hover delete button
-  const hoverDel = document.createElement('div');
-  hoverDel.className = 'tbl-hover-del';
-  hoverDel.textContent = '✕';
-  hoverDel.title = 'Delete table';
-  hoverDel.onmousedown = e => { e.preventDefault(); forumTableDelete(tableId); };
-  wrap.appendChild(hoverDel);
+  // Square delete button fixed to top-right corner of table
+  const delBtn = document.createElement('div');
+  delBtn.className = 'tbl-del-btn';
+  delBtn.textContent = '✕';
+  delBtn.title = 'Delete table';
+  delBtn.onmousedown = e => { e.preventDefault(); forumTableDelete(tableId); };
+  wrap.appendChild(delBtn);
 
   // Build table using DOM (not innerHTML) so IDs/events are preserved
   const table = document.createElement('table');
