@@ -754,7 +754,7 @@ function renderStockAlerts(alerts) {
   let html = '';
   alerts.forEach(alert => {
     const isRestocked = alert.status === 'restocked', timeAgo = getTimeAgo(new Date(alert.created_at)), showUser = ['manager','owner'].includes(user.role);
-    html += '<div class="stock-alert-item' + (isRestocked?' restocked':'') + '"><img src="' + alert.image_data + '" class="stock-alert-photo"><div class="stock-alert-content">';
+    html += '<div class="stock-alert-item' + (isRestocked?' restocked':'') + '" style="position:relative;"><button onclick="deleteStockAlert(\'' + alert.id + '\')" style="position:absolute;top:8px;right:8px;z-index:2;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;backdrop-filter:blur(4px);">✕</button><img src="' + alert.image_data + '" class="stock-alert-photo"><div class="stock-alert-content">';
     html += '<div class="stock-alert-header">';
     if (showUser) { html += '<div class="stock-alert-user"><span class="avatar" style="width:24px;height:24px;font-size:11px;"><span class="avatar-letter">' + (alert.user_nickname||'?')[0].toUpperCase() + '</span></span>' + alert.user_nickname + '</div>'; }
     html += '<span class="badge badge-' + alert.status + '">' + alert.status.toUpperCase() + '</span></div>';
