@@ -405,14 +405,40 @@
             </div>
             <div class="field" style="margin-bottom:14px;">
               <label>Content</label>
-              <div class="forum-toolbar">
-                <button id="forum-btn-bold" onmousedown="event.preventDefault();document.execCommand('bold');updateForumToolbarState();" title="Bold" style="font-weight:800;min-width:30px;">B</button>
-                <button id="forum-btn-italic" onmousedown="event.preventDefault();document.execCommand('italic');updateForumToolbarState();" title="Italic" style="font-style:italic;min-width:30px;">I</button>
-                <button id="forum-btn-underline" onmousedown="event.preventDefault();document.execCommand('underline');updateForumToolbarState();" title="Underline" style="text-decoration:underline;min-width:30px;">U</button>
-                <div class="forum-toolbar-sep"></div>
-                <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• List</button>
-                <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1. List</button>
-                <div class="forum-toolbar-sep"></div>
+<div class="forum-toolbar">
+  <!-- Text style -->
+  <button id="forum-btn-bold" onmousedown="event.preventDefault();document.execCommand('bold');updateForumToolbarState();" title="Bold" style="font-weight:800;min-width:30px;">B</button>
+  <button id="forum-btn-italic" onmousedown="event.preventDefault();document.execCommand('italic');updateForumToolbarState();" title="Italic" style="font-style:italic;min-width:30px;">I</button>
+  <button id="forum-btn-underline" onmousedown="event.preventDefault();document.execCommand('underline');updateForumToolbarState();" title="Underline" style="text-decoration:underline;min-width:30px;">U</button>
+  <button id="forum-btn-strikeThrough" onmousedown="event.preventDefault();document.execCommand('strikeThrough');updateForumToolbarState();" title="Strikethrough" style="text-decoration:line-through;min-width:30px;">S</button>
+  <div class="forum-toolbar-sep"></div>
+
+  <!-- Headings -->
+  <button onmousedown="event.preventDefault();forumInsertHeading(1)" title="Heading 1" style="font-weight:800;font-size:13px;">H1</button>
+  <button onmousedown="event.preventDefault();forumInsertHeading(2)" title="Heading 2" style="font-weight:700;font-size:12px;">H2</button>
+  <button onmousedown="event.preventDefault();forumInsertHeading(3)" title="Heading 3" style="font-weight:600;font-size:11px;">H3</button>
+  <div class="forum-toolbar-sep"></div>
+
+  <!-- Alignment -->
+  <button onmousedown="event.preventDefault();forumAlign('justifyLeft')" title="Align left">⬅</button>
+  <button onmousedown="event.preventDefault();forumAlign('justifyCenter')" title="Center">↔</button>
+  <button onmousedown="event.preventDefault();forumAlign('justifyRight')" title="Align right">➡</button>
+  <div class="forum-toolbar-sep"></div>
+
+  <!-- Lists -->
+  <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• List</button>
+  <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1. List</button>
+  <div class="forum-toolbar-sep"></div>
+
+  <!-- Color + Emoji + Image + Table -->
+  <button id="forum-color-btn" onmousedown="event.preventDefault();toggleColorPicker(event)" title="Text color" style="padding:4px 8px;display:flex;align-items:center;gap:5px;">
+    <span style="font-size:13px;font-weight:700;">A</span>
+    <span id="forum-color-swatch" style="display:inline-block;width:14px;height:4px;border-radius:2px;background:#a78bfa;"></span>
+  </button>
+  <button id="forum-emoji-btn" onmousedown="event.preventDefault();toggleEmojiPicker(event)" title="Emoji">😀</button>
+  <button onmousedown="event.preventDefault();forumInsertImage()" title="Insert image">🖼</button>
+  <button onmousedown="event.preventDefault();forumInsertTable()" title="Insert table">⊞ Table</button>
+</div>
                 
 <select onchange="forumSetFontSizePx(this.value)" title="Font size"
   style="width:52px;padding:3px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;">
@@ -518,7 +544,6 @@
 </div>
 
 <!-- CUSTOM CONFIRMATION MODAL -->
-
 <div id="color-picker-popup" class="color-picker-popup" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
   <div class="cp-sv-wrap">
     <canvas class="cp-sv-canvas" id="cp-sv-canvas" width="240" height="160"></canvas>
@@ -531,9 +556,9 @@
   <div class="cp-bottom">
     <div class="cp-preview" id="cp-preview"></div>
     <input class="cp-hex-input" id="cp-hex-input" maxlength="7" placeholder="#ffffff" oninput="cpHexInputChange(this.value)">
-    <button class="cp-apply" onmousedown="event.preventDefault();cpApply()">Apply</button>
   </div>
 </div>
+<button class="cp-apply" onmousedown="event.preventDefault();cpApply()">Apply</button>
 
 <div id="image-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeImageModal()">
   <div class="modal-box" style="max-width:460px;">
