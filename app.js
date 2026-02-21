@@ -365,14 +365,42 @@ function loadProfile() {
   else { document.getElementById('avatar-img').style.display = 'none'; }
 }
 
-function uploadAvatar(input) {
+async function uploadAvatar(input) {
   const file = input.files[0]; if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('Image too large. Max 5MB', 'err'); return; }
   const reader = new FileReader();
-  reader.onload = (e) => { const dataUrl = e.target.result; localStorage.setItem('avatar_' + user.id, dataUrl); document.getElementById('avatar-img').src = dataUrl; document.getElementById('avatar-img').style.display = 'block'; toast('✅ Profile picture updated!'); };
+  reader.onload = async (e) => {
+    const dataUrl = e.target.result;
+    try {
+      const r = await fetch(API + '/api/users/avatar', {
+        method: 'POST', headers: hdr(),
+        body: JSON.stringify({ avatar: dataUrl })
+      });
+      const d = await r.json();
+      if (d.success) {
+        localStorage.setItem('avatar_' + user.id, dataUrl);
+        document.getElementById('avatar-img').src = dataUrl;
+        document.getElementById('avatar-img').style.display = 'block';
+        toast('✅ Profile picture updated!');
+      } else { toast(d.error || 'Failed to save', 'err'); }
+    } catch(e) { toast('Connection error', 'err'); }
+  };
   reader.readAsDataURL(file);
 }
 
-function removeAvatar() { if (!user) return; localStorage.removeItem('avatar_' + user.id); document.getElementById('avatar-img').style.display = 'none'; document.getElementById('avatar-img').src = ''; toast('🗑️ Profile picture removed'); }
+async function removeAvatar() {
+  if (!user) return;
+  try {
+    const r = await fetch(API + '/api/users/avatar', { method: 'DELETE', headers: hdr() });
+    const d = await r.json();
+    if (d.success) {
+      localStorage.removeItem('avatar_' + user.id);
+      document.getElementById('avatar-img').style.display = 'none';
+      document.getElementById('avatar-img').src = '';
+      toast('🗑️ Profile picture removed');
+    } else { toast(d.error || 'Failed to remove', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+}
 
 async function updateProfile() {
   const errEl = document.getElementById('profile-err'); errEl.style.display = 'none';
