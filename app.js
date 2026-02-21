@@ -99,7 +99,6 @@ async function registerSelf() {
   btn.innerHTML = 'Create Account'; btn.disabled = false;
 }
 
-//test
 async function resetPassword() {
   const nick = document.getElementById('forgot-nick').value.trim();
   const errEl = document.getElementById('forgot-err');
