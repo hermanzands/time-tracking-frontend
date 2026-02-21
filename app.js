@@ -65,7 +65,7 @@ async function login() {
   try {
     const r = await fetch(API + '/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nickname: nick, password: pass}) });
     const d = await r.json();
-    if (d.success) { token = d.accessToken; user = d.user; localStorage.setItem('wt_token', token); localStorage.setItem('wt_user', JSON.stringify(user)); showApp(); }
+    if (d.success) { token = d.accessToken; user = d.user; localStorage.setItem('wt_token', token); localStorage.setItem('wt_user', JSON.stringify(user)); if (d.user.avatar) localStorage.setItem('avatar_' + d.user.id, d.user.avatar); showApp(); }
     else { showErr(errEl, d.error || 'Wrong username or password'); }
   } catch (e) { showErr(errEl, 'Cannot connect to server'); }
   btn.innerHTML = 'Sign In'; btn.disabled = false;
