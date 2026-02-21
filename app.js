@@ -1510,7 +1510,7 @@ function forumInsertTable() {
   // Build table using DOM (not innerHTML) so IDs/events are preserved
   const table = document.createElement('table');
   table.id = tableId + '-t';
-  table.style.cssText = 'width:100%;border-collapse:collapse;table-layout:auto;';
+  table.style.cssText = 'width:auto;min-width:200px;border-collapse:collapse;table-layout:auto;';
   for (let r = 0; r < 3; r++) {
     const tr = document.createElement('tr');
     for (let c = 0; c < 3; c++) {
