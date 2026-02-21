@@ -398,9 +398,9 @@
             <div class="field" style="margin-bottom:14px;">
               <label>Content</label>
               <div class="forum-toolbar">
-                <button id="forum-btn-bold" onmousedown="event.preventDefault();document.execCommand('bold')" title="Bold" style="font-weight:800;min-width:30px;">B</button>
-                <button id="forum-btn-italic" onmousedown="event.preventDefault();document.execCommand('italic')" title="Italic" style="font-style:italic;min-width:30px;">I</button>
-                <button id="forum-btn-underline" onmousedown="event.preventDefault();document.execCommand('underline')" title="Underline" style="text-decoration:underline;min-width:30px;">U</button>
+                <button id="forum-btn-bold" onmousedown="event.preventDefault();document.execCommand('bold');updateForumToolbarState();" title="Bold" style="font-weight:800;min-width:30px;">B</button>
+                <button id="forum-btn-italic" onmousedown="event.preventDefault();document.execCommand('italic');updateForumToolbarState();" title="Italic" style="font-style:italic;min-width:30px;">I</button>
+                <button id="forum-btn-underline" onmousedown="event.preventDefault();document.execCommand('underline');updateForumToolbarState();" title="Underline" style="text-decoration:underline;min-width:30px;">U</button>
                 <div class="forum-toolbar-sep"></div>
                 <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• List</button>
                 <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1. List</button>
