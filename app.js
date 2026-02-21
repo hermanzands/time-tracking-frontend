@@ -249,6 +249,9 @@ function showApp() {
   loadClockStatus();
   loadStats();
   sendHeartbeat();
+  const lastPanel = localStorage.getItem('wt_last_panel');
+  if (lastPanel && document.getElementById('panel-' + lastPanel)) go(lastPanel);
+  else go('clock');
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
     if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
   }).catch(() => {});
@@ -260,6 +263,7 @@ function go(panel) {
   const si = document.getElementById('si-' + panel);
   if (si) si.classList.add('active');
   document.getElementById('panel-' + panel).classList.add('active');
+  localStorage.setItem('wt_last_panel', panel);
   if (panel === 'hours') loadMyEntries();
   if (panel === 'earnings') loadMyPayments();
   if (panel === 'workers') { loadWorkers(); loadPendingEmployees(); }
