@@ -626,10 +626,10 @@ async function calcPayments() {
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
-        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% $' + p._managerBonus.toFixed(2) + '</span>' : '';
+        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% $' + Math.round(p._managerBonus) + '</span>' : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
         html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
-        html += '<div class="pay-amount">$' + (Number(p.amount)||0).toFixed(2) + '</div></div>';
+        html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
       d.distributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
