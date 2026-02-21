@@ -405,11 +405,21 @@
                 <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• List</button>
                 <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1. List</button>
                 <div class="forum-toolbar-sep"></div>
-                <input type="number" id="forum-font-size-input" min="8" max="72" value="14" title="Font size"
-                  style="width:52px;padding:4px 6px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;text-align:center;-moz-appearance:textfield;"
-                  onkeydown="if(event.key==='Enter'){forumSetFontSizePx(this.value);document.getElementById('forum-body-input').focus();}"
-                  onblur="forumSetFontSizePx(this.value)">
-                <div class="forum-toolbar-sep"></div>
+                
+<select onchange="forumSetFontSizePx(this.value);document.getElementById('forum-font-size-input').value=this.value;"
+  style="width:52px;padding:4px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+  <option value="" disabled selected style="color:var(--muted);">14</option>
+  <option value="8">8</option>
+  <option value="10">10</option>
+  <option value="12">12</option>
+  <option value="14" selected>14</option>
+  <option value="18">18</option>
+  <option value="24">24</option>
+  <option value="36">36</option>
+  <option value="48">48</option>
+  <option value="72">72</option>
+</select>
+                
                 <button onmousedown="event.preventDefault();toggleColorPicker(event)" id="forum-color-btn" title="Text color" style="display:flex;align-items:center;gap:5px;min-width:52px;position:relative;">
                   <span style="font-size:13px;">A</span>
                   <span id="forum-color-swatch" style="display:inline-block;width:14px;height:4px;border-radius:2px;background:#a78bfa;"></span>
