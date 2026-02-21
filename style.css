@@ -450,12 +450,23 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-editor th,.forum-editor td{border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;}
 .forum-editor th{background:#18182a;font-weight:700;}
 
-/* Table hover delete button */
+/* Table delete button — square, locked to top-right corner */
 .forum-editor [id^="tbl"] { position:relative; }
-.forum-editor [id^="tbl"] .tbl-hover-del {
-  display:none;position:absolute;top:-10px;right:-10px;
-  width:22px;height:22px;border-radius:50%;background:var(--danger);
-  color:#fff;font-size:13px;line-height:22px;text-align:center;
-  cursor:pointer;z-index:20;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.4);
+.tbl-del-btn {
+  position:absolute;
+  top:0;
+  right:0;
+  width:24px;height:24px;
+  background:var(--danger);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  z-index:20;
+  border-radius:0 0 0 6px;
+  opacity:0;
+  transition:opacity .15s;
+  user-select:none;
 }
-.forum-editor [id^="tbl"]:hover .tbl-hover-del { display:block; }
+.forum-editor [id^="tbl"]:hover .tbl-del-btn { opacity:1; }
