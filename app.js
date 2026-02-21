@@ -133,22 +133,12 @@ function toggleNotifications() {
 
 async function loadNotifications() {
   try {
-    if (['manager', 'owner'].includes(user.role)) {
-      const r = await fetch(API + '/api/users/notifications?limit=20', {headers: hdr()});
-      const d = await r.json();
-      if (d.success && d.notifications) {
-        notifications = d.notifications;
-        renderStockNotifications();
-        updateNotifBadge(d.notifications.filter(n => !n.is_read).length);
-      }
-      return;
-    }
-    const r = await fetch(API + '/api/payments/my-payments?limit=10', {headers: hdr()});
+    const r = await fetch(API + '/api/users/notifications?limit=20', {headers: hdr()});
     const d = await r.json();
-    if (d.success && d.payments) {
-      notifications = d.payments;
-      renderPaymentNotifications();
-      updateNotifBadge(notifications.length);
+    if (d.success && d.notifications) {
+      notifications = d.notifications;
+      renderStockNotifications();
+      updateNotifBadge(d.notifications.filter(n => !n.is_read).length);
     }
   } catch (e) {}
 }
@@ -260,7 +250,7 @@ function showApp() {
 }
 
 // === PUSH NOTIFICATIONS ===
-const VAPID_PUBLIC_KEY = 'BJ0_vtCNC6fg0lv_e-21-TsZuwwIL3Y7pwh3bBqCgrDzVUXL58rheCozNcjB-W5yqKBuzx4yf9Z3e1Xa5Kjsbao';
+const VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
 
 async function initPushNotifications() {
   try {
