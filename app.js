@@ -260,30 +260,63 @@ function showApp() {
 }
 
 // === PUSH NOTIFICATIONS ===
-const VAPID_PUBLIC_KEY = 'BJ0_vtCNC6fg0lv_e-21-TsZuwwIL3Y7pwh3bBqCgrDzVUXL58rheCozNcjB-W5yqKBuzx4yf9Z3e1Xa5Kjsbao';
+const VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
 
 async function initPushNotifications() {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
+    // Don't auto-request permission — show a button instead
+    if (Notification.permission === 'default') {
+      showPushPrompt();
+      return;
     }
-    // Send subscription to backend
-    await fetch(API + '/api/push/subscribe', {
-      method: 'POST',
-      headers: hdr(),
-      body: JSON.stringify({ subscription: sub.toJSON() })
-    });
+    if (Notification.permission !== 'granted') return;
+    await registerPushSubscription();
   } catch(e) {
     console.log('Push notification setup failed:', e);
   }
+}
+
+function showPushPrompt() {
+  // Only show once per session
+  if (sessionStorage.getItem('push_prompt_shown')) return;
+  sessionStorage.setItem('push_prompt_shown', '1');
+  const banner = document.createElement('div');
+  banner.id = 'push-prompt-banner';
+  banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid #444;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:340px;width:90%;';
+  banner.innerHTML = `
+    <span style="font-size:24px;">🔔</span>
+    <div style="flex:1;font-size:13px;color:#e0e0e0;">Enable push notifications to stay updated</div>
+    <button onclick="enablePushNotifications()" style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Enable</button>
+    <button onclick="document.getElementById('push-prompt-banner').remove()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;padding:0 4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+  // Auto-hide after 10 seconds
+  setTimeout(() => banner.remove(), 10000);
+}
+
+async function enablePushNotifications() {
+  document.getElementById('push-prompt-banner')?.remove();
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') { toast('Notifications blocked', 'err'); return; }
+  await registerPushSubscription();
+  toast('🔔 Notifications enabled!');
+}
+
+async function registerPushSubscription() {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
+  await fetch(API + '/api/push/subscribe', {
+    method: 'POST',
+    headers: hdr(),
+    body: JSON.stringify({ subscription: sub.toJSON() })
+  });
 }
 
 function urlBase64ToUint8Array(base64String) {
