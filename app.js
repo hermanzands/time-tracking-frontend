@@ -1507,6 +1507,14 @@ function forumInsertTable() {
   });
   wrap.appendChild(bar);
 
+  // Floating hover delete button
+  const hoverDel = document.createElement('div');
+  hoverDel.className = 'tbl-hover-del';
+  hoverDel.textContent = '✕';
+  hoverDel.title = 'Delete table';
+  hoverDel.onmousedown = e => { e.preventDefault(); forumTableDelete(tableId); };
+  wrap.appendChild(hoverDel);
+
   // Build table using DOM (not innerHTML) so IDs/events are preserved
   const table = document.createElement('table');
   table.id = tableId + '-t';
