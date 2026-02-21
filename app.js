@@ -516,14 +516,23 @@ async function calcPayments() {
       const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
       const farmerPool = total * 0.20;
       allFarmers.forEach(farmer => { const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id); if (!alreadyIncluded && allFarmers.length > 0) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:farmerPool/allFarmers.length,percentage:20/allFarmers.length}); });
+      // Manager 5% bonus on top of their hours-based pay
+      d.distributions.forEach(p => {
+        if (p.role === 'manager') {
+          const bonus = Number(p.amount) * 0.05;
+          p.amount = Number(p.amount) + bonus;
+          p._managerBonus = bonus;
+        }
+      });
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
       let html = '';
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
+        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% $' + p._managerBonus.toFixed(2) + '</span>' : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + '</div></div></div>';
+        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
         html += '<div class="pay-amount">$' + (Number(p.amount)||0).toFixed(2) + '</div></div>';
       });
       list.innerHTML = html;
@@ -533,6 +542,85 @@ async function calcPayments() {
     } else { showErr(errEl, d.error || 'Calculation failed'); }
   } catch(e) { showErr(errEl, 'Connection error'); }
   btn.innerHTML = 'Calculate'; btn.disabled = false;
+}
+
+// ── Add Hours modal (All Hours panel) ─────────────────────────────────────
+function showAddHoursModal() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+    const today = new Date().toISOString().split('T')[0];
+    let employeeOptions = allEmployees.map(e =>
+      `<option value="${e.id}">${escapeHtml(e.nickname)} (${e.role})</option>`
+    ).join('');
+    box.innerHTML = `
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">➕ Add Hours</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="field" style="margin-bottom:0;"><label>Employee</label><select id="add-hours-employee">${employeeOptions}</select></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field" style="margin-bottom:0;"><label>Date</label><input id="add-hours-date" type="date" value="${today}"></div>
+          <div class="field" style="margin-bottom:0;"><label>Hours worked</label><input id="add-hours-amount" type="number" min="0.25" max="24" step="0.25" placeholder="e.g. 4.5"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field" style="margin-bottom:0;"><label>Clock in</label><input id="add-hours-start" type="time" value="08:00"></div>
+          <div class="field" style="margin-bottom:0;"><label>Clock out</label><input id="add-hours-end" type="time" value="16:00"></div>
+        </div>
+        <div id="add-hours-err" style="display:none;color:var(--danger);font-size:13px;padding:8px 12px;background:rgba(255,85,102,.1);border-radius:8px;border:1px solid rgba(255,85,102,.2);"></div>
+      </div>
+      <div class="modal-buttons" style="margin-top:20px;">
+        <button id="ah-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>
+        <button id="ah-confirm-btn" class="modal-btn modal-btn-primary">Add Hours</button>
+      </div>`;
+
+    // Auto-calc clock out when hours change
+    document.getElementById('add-hours-amount').addEventListener('input', () => {
+      const startVal = document.getElementById('add-hours-start').value;
+      const hrs = parseFloat(document.getElementById('add-hours-amount').value);
+      if (startVal && hrs > 0) {
+        const [h, m] = startVal.split(':').map(Number);
+        const endMins = h * 60 + m + Math.round(hrs * 60);
+        const endH = String(Math.floor(endMins / 60) % 24).padStart(2, '0');
+        const endM = String(endMins % 60).padStart(2, '0');
+        document.getElementById('add-hours-end').value = endH + ':' + endM;
+      }
+    });
+
+    overlay.classList.add('show');
+
+    document.getElementById('ah-cancel-btn').onclick = () => { overlay.classList.remove('show'); resolve(false); };
+    document.getElementById('ah-confirm-btn').onclick = async () => {
+      const userId  = document.getElementById('add-hours-employee').value;
+      const date    = document.getElementById('add-hours-date').value;
+      const startT  = document.getElementById('add-hours-start').value;
+      const endT    = document.getElementById('add-hours-end').value;
+      const errEl   = document.getElementById('add-hours-err');
+      if (!userId || !date || !startT || !endT) { errEl.textContent = 'Please fill in all fields'; errEl.style.display = 'block'; return; }
+      const clockIn  = new Date(date + 'T' + startT);
+      const clockOut = new Date(date + 'T' + endT);
+      if (clockOut <= clockIn) { errEl.textContent = 'Clock out must be after clock in'; errEl.style.display = 'block'; return; }
+      const btn = document.getElementById('ah-confirm-btn');
+      btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+      try {
+        const r = await fetch(API + '/api/time-entries', {
+          method: 'POST', headers: hdr(),
+          body: JSON.stringify({ user_id: userId, clock_in: clockIn.toISOString(), clock_out: clockOut.toISOString() })
+        });
+        const d = await r.json();
+        if (d.success) { overlay.classList.remove('show'); resolve(true); }
+        else { errEl.textContent = d.error || 'Failed to add hours'; errEl.style.display = 'block'; btn.innerHTML = 'Add Hours'; btn.disabled = false; }
+      } catch(e) { errEl.textContent = 'Connection error'; errEl.style.display = 'block'; btn.innerHTML = 'Add Hours'; btn.disabled = false; }
+    };
+  });
+}
+
+async function openAddHoursModal() {
+  if (allEmployees.length === 0) {
+    const r = await fetch(API + '/api/users', {headers: hdr()});
+    const d = await r.json();
+    if (d.success) allEmployees = d.users.filter(u => u.is_active);
+  }
+  const confirmed = await showAddHoursModal();
+  if (confirmed) { toast('✅ Hours added!'); loadAllEntries(); }
 }
 
 async function processPayments() {
