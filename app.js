@@ -507,6 +507,7 @@ async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
   if (!start || !end || !total || total <= 0) { showErr(errEl, 'Please fill in all fields'); return; }
+  if (new Date(start) > new Date(end)) { showErr(errEl, 'Start date cannot be after end date'); return; }
   btn.innerHTML = '<span class="spinner"></span> Calculating...'; btn.disabled = true; errEl.style.display = 'none';
   try {
     const r = await fetch(API + '/api/payments/calculate', {method:'POST',headers:hdr(),body:JSON.stringify({period_start:start,period_end:end,total_amount:total})});
