@@ -1021,8 +1021,10 @@ async function loadReplies(postId) {
     list.innerHTML = replies.map(rep => {
       const isAdmin = ['manager','owner'].includes(user.role);
       const canDel = rep.user_id === user.id || isAdmin;
+      const repSafeId = rep.user_id ? rep.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
+
       return `<div class="forum-reply" id="reply-${rep.id}">
-        <div class="avatar avatar-sm" style="flex-shrink:0;"><span class="avatar-letter">${(rep.author_name||'?')[0].toUpperCase()}</span></div>
+        <div class="avatar avatar-sm" style="flex-shrink:0;"><span class="avatar-letter">${(rep.author_name||'?')[0].toUpperCase()}</span><img class="avatar-img forum-rep-av-${repSafeId}"></div>
         <div class="forum-reply-body">
           <div class="forum-reply-meta">
             <span class="forum-reply-author">${escapeHtml(rep.author_name||'Unknown')}</span>
@@ -1033,6 +1035,15 @@ async function loadReplies(postId) {
         </div>
       </div>`;
     }).join('');
+    // Load avatars from localStorage
+    replies.forEach(rep => {
+      if (!rep.user_id) return;
+      const saved = localStorage.getItem('avatar_' + rep.user_id);
+      if (saved) {
+        const safeId = rep.user_id.replace(/[^a-zA-Z0-9]/g,'_');
+        document.querySelectorAll('.forum-rep-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; });
+      }
+    });
   } catch(e) { list.innerHTML = '<div style="padding:16px 20px;color:var(--muted);font-size:13px;">Failed to load replies.</div>'; }
 }
 
@@ -1329,7 +1340,7 @@ function openForumPost(postId) {
     <div id="forum-replies-list"><div style="padding:20px;text-align:center;color:var(--muted);"><span class="spinner"></span></div></div>
     <div style="padding:14px 16px;border-top:1px solid var(--border);">
       <div class="forum-reply-box">
-        <div class="avatar avatar-sm" style="flex-shrink:0;margin-top:2px;"><span class="avatar-letter">${user.nickname[0].toUpperCase()}</span></div>
+        <div class="avatar avatar-sm" style="flex-shrink:0;margin-top:2px;"><span class="avatar-letter">${user.nickname[0].toUpperCase()}</span><img class="avatar-img" id="forum-reply-box-avatar" ${localStorage.getItem('avatar_'+user.id) ? `src="${localStorage.getItem('avatar_'+user.id)}" style="display:block;"` : ''}></div>
         <textarea class="forum-reply-input" id="reply-input-${post.id}" placeholder="Write a reply..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitReply('${post.id}');}"></textarea>
         <button class="btn btn-primary btn-sm" style="flex-shrink:0;margin-top:2px;" onclick="submitReply('${post.id}')">Reply</button>
       </div>
