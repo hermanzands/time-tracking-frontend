@@ -610,14 +610,47 @@ async function calcPayments() {
     if (d.success && d.distributions) {
       const workersRes = await fetch(API + '/api/users', {headers: hdr()}); const workersData = await workersRes.json();
       const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
+      const allManagers = workersData.success ? workersData.users.filter(u => u.role === 'manager') : [];
+
+      // Add farmers who didn't work (still get flat share)
       const farmerPool = total * 0.20;
-      allFarmers.forEach(farmer => { const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id); if (!alreadyIncluded && allFarmers.length > 0) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:farmerPool/allFarmers.length,percentage:20/allFarmers.length}); });
-      // Manager 5% bonus on top of their hours-based pay
+      allFarmers.forEach(farmer => {
+        const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id);
+        if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:0,percentage:0});
+      });
+
+      // Manager flat bonus: 5% of total split among all managers
+      const managerBonusPool = total * 0.05;
+      const managerCount = allManagers.length;
+
+      // Recalculate hours pool: 55% split by hours among everyone who worked (employees + managers)
+      // Backend already gives owner 20% and remaining 80% to others by hours
+      // We need to override with: owners=20%, farmers=20%, manager bonus=5%, hours pool=55%
+      const hoursPool = total * 0.55;
+      const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p.role) && Number(p.total_hours) > 0);
+      const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
+
+      // Reset all non-owner/non-farmer amounts
       d.distributions.forEach(p => {
-        if (p.role === 'manager') {
-          const bonus = Number(p.amount) * 0.05;
-          p.amount = Number(p.amount) + bonus;
-          p._managerBonus = bonus;
+        if (p.role === 'owner') {
+          // Keep owner amount as-is from backend (20% split)
+        } else if (p.role === 'farmer') {
+          // Flat farmer share
+          const activeFarmers = allFarmers.length || 1;
+          p.amount = Math.round(farmerPool / activeFarmers);
+          p.percentage = 20 / activeFarmers;
+        } else {
+          // Manager or employee — hours-based share of 55%
+          const hours = Number(p.total_hours) || 0;
+          const hoursShare = totalWorkedHours > 0 ? (hours / totalWorkedHours) * hoursPool : 0;
+          p.amount = Math.round(hoursShare);
+          p._hoursAmount = Math.round(hoursShare);
+          // Add manager flat bonus on top
+          if (p.role === 'manager' && managerCount > 0) {
+            const bonus = Math.round(managerBonusPool / managerCount);
+            p.amount = Math.round(hoursShare) + bonus;
+            p._managerBonus = bonus;
+          }
         }
       });
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
@@ -626,7 +659,7 @@ async function calcPayments() {
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
-        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% $' + Math.round(p._managerBonus) + '</span>' : '';
+        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+$' + p._managerBonus + ' bonus</span>' : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
         html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
         html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
