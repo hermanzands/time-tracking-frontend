@@ -1457,42 +1457,105 @@ document.addEventListener('click', (e) => {
 function forumInsertTable() {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  let html = '<table style="width:100%;border-collapse:collapse;margin:12px 0;">';
-  for (let r = 0; r < 3; r++) {
-    html += '<tr>';
-    for (let c = 0; c < 3; c++) {
-      const style = 'border:1px solid #444;padding:8px 12px;min-width:60px;';
-      if (r === 0) html += `<th contenteditable="true" style="${style}background:#18182a;font-weight:700;">Header</th>`;
-      else html += `<td contenteditable="true" style="${style}">Cell</td>`;
-    }
-    html += '</tr>';
-  }
-  html += '</table><p><br></p>';
-  document.execCommand('insertHTML', false, html);
 
-  // Wire up column resize after insert
-  setTimeout(() => initTableResize(editor), 100);
+  // Insert a wrapper paragraph first so user can type before/after table
+  const tableId = 'tbl' + Date.now();
+  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
+
+  let rows = '';
+  for (let r = 0; r < 3; r++) {
+    let cells = '';
+    for (let c = 0; c < 3; c++) {
+      if (r === 0) cells += `<th style="${cellStyle}background:#18182a;font-weight:700;">Header</th>`;
+      else cells += `<td style="${cellStyle}">Cell</td>`;
+    }
+    rows += `<tr>${cells}</tr>`;
+  }
+
+  const html = `<p><br></p>
+<div style="position:relative;margin:12px 0;" id="${tableId}">
+  <div style="display:flex;gap:4px;margin-bottom:6px;" contenteditable="false">
+    <button onmousedown="event.preventDefault();forumTableAddRow('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">+ Row</button>
+    <button onmousedown="event.preventDefault();forumTableAddCol('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">+ Col</button>
+    <button onmousedown="event.preventDefault();forumTableDelRow('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">- Row</button>
+    <button onmousedown="event.preventDefault();forumTableDelCol('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">- Col</button>
+    <button onmousedown="event.preventDefault();forumTableDelete('${tableId}')" style="font-size:11px;padding:3px 8px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);color:#ff5566;border-radius:5px;cursor:pointer;">🗑 Delete</button>
+  </div>
+  <table id="${tableId}-t" style="width:100%;border-collapse:collapse;table-layout:fixed;">${rows}</table>
+</div>
+<p><br></p>`;
+
+  document.execCommand('insertHTML', false, html);
+  setTimeout(() => forumTableInitResize(tableId), 50);
 }
 
-function initTableResize(editor) {
-  editor.querySelectorAll('table').forEach(table => {
-    if (table.dataset.resizeInit) return;
-    table.dataset.resizeInit = '1';
-    table.querySelectorAll('th, td').forEach(cell => {
-      cell.style.position = 'relative';
-      const handle = document.createElement('div');
-      handle.style.cssText = 'position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:10;';
-      handle.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        const startX = e.clientX;
-        const startW = cell.offsetWidth;
-        const onMove = (ev) => { cell.style.width = Math.max(40, startW + ev.clientX - startX) + 'px'; };
-        const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
-      });
-      cell.appendChild(handle);
+function forumTableAddRow(tableId) {
+  const table = document.getElementById(tableId + '-t');
+  if (!table) return;
+  const cols = table.rows[0]?.cells.length || 3;
+  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
+  const tr = document.createElement('tr');
+  for (let c = 0; c < cols; c++) {
+    const td = document.createElement('td');
+    td.setAttribute('style', cellStyle);
+    td.textContent = 'Cell';
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+  forumTableInitResize(tableId);
+}
+
+function forumTableAddCol(tableId) {
+  const table = document.getElementById(tableId + '-t');
+  if (!table) return;
+  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
+  Array.from(table.rows).forEach((row, i) => {
+    const cell = i === 0 ? document.createElement('th') : document.createElement('td');
+    cell.setAttribute('style', cellStyle + (i === 0 ? 'background:#18182a;font-weight:700;' : ''));
+    cell.textContent = i === 0 ? 'Header' : 'Cell';
+    row.appendChild(cell);
+  });
+  forumTableInitResize(tableId);
+}
+
+function forumTableDelRow(tableId) {
+  const table = document.getElementById(tableId + '-t');
+  if (!table || table.rows.length <= 1) return;
+  table.deleteRow(table.rows.length - 1);
+}
+
+function forumTableDelCol(tableId) {
+  const table = document.getElementById(tableId + '-t');
+  if (!table || (table.rows[0]?.cells.length || 0) <= 1) return;
+  Array.from(table.rows).forEach(row => { if (row.cells.length > 0) row.deleteCell(row.cells.length - 1); });
+}
+
+function forumTableDelete(tableId) {
+  const wrap = document.getElementById(tableId);
+  if (wrap) wrap.remove();
+}
+
+function forumTableInitResize(tableId) {
+  const table = document.getElementById(tableId + '-t');
+  if (!table) return;
+  table.querySelectorAll('th, td').forEach(cell => {
+    // Remove old handle if any
+    cell.querySelector('.col-resize-handle')?.remove();
+    cell.style.position = 'relative';
+    const handle = document.createElement('div');
+    handle.className = 'col-resize-handle';
+    handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent;';
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startW = cell.offsetWidth;
+      const onMove = ev => { cell.style.width = Math.max(40, startW + ev.clientX - startX) + 'px'; };
+      const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
+    cell.appendChild(handle);
   });
 }
 
@@ -1684,6 +1747,22 @@ document.addEventListener('DOMContentLoaded', () => {
     bodyInput.addEventListener('mouseup', updateForumToolbarState);
     bodyInput.addEventListener('selectionchange', updateForumToolbarState);
   }
+
+  // Populate emoji picker
+  const ep = document.getElementById('emoji-picker-popup');
+  if (ep) {
+    EMOJIS.forEach(em => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn';
+      btn.textContent = em;
+      btn.onmousedown = (e) => { e.preventDefault(); insertEmoji(em); };
+      ep.appendChild(btn);
+    });
+  }
+
+  // Disable browser object resize on forum editor
+  try { document.execCommand('enableObjectResizing', false, false); } catch(e) {}
+  try { document.execCommand('enableInlineTableEditing', false, false); } catch(e) {}
 });
 
 function closeImageModal() {
