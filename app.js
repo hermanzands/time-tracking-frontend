@@ -1805,6 +1805,25 @@ document.addEventListener('DOMContentLoaded', () => {
     bodyInput.addEventListener('keyup', updateForumToolbarState);
     bodyInput.addEventListener('mouseup', updateForumToolbarState);
     bodyInput.addEventListener('selectionchange', updateForumToolbarState);
+
+    // Backspace deletes table when cursor is at the very start of the line right after it
+    bodyInput.addEventListener('keydown', e => {
+      if (e.key !== 'Backspace') return;
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      if (!range.collapsed || range.startOffset !== 0) return;
+      // Walk up to find the block-level element the cursor is in
+      let node = range.startContainer;
+      while (node && node.parentNode !== bodyInput) node = node.parentNode;
+      if (!node) return;
+      // Check if the previous sibling is a table wrapper
+      const prev = node.previousSibling;
+      if (prev && prev.id && prev.id.startsWith('tbl')) {
+        e.preventDefault();
+        prev.remove();
+      }
+    });
   }
 
   // Populate emoji picker
