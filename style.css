@@ -158,6 +158,8 @@ tr:hover td{background:rgba(124,111,247,.03);}
 /* MANAGEMENT CHAT */
 .chat-panel{position:fixed;bottom:24px;right:24px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;display:flex;flex-direction:column;max-height:500px;transition:all .3s;}
 .chat-panel.minimized{max-height:56px;}
+.chat-panel.minimized .chat-messages,
+.chat-panel.minimized .chat-input-wrap{display:none;}
 .chat-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
 .chat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
 .chat-messages{flex:1;overflow-y:auto;padding:16px;max-height:320px;}
