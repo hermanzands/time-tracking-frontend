@@ -1420,13 +1420,18 @@ function forumSetFontSizePx(px) {
   if (!px || px < 1) return;
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  document.execCommand('fontSize', false, 7);
-  editor.querySelectorAll('font[size="7"]').forEach(el => {
+  // Mark pre-existing font[size="7"] so we don't touch them
+  editor.querySelectorAll('font[size="7"]').forEach(el => el.setAttribute('data-pre', '1'));
+  document.execCommand('fontSize', false, '7');
+  // Only replace the newly created ones
+  editor.querySelectorAll('font[size="7"]:not([data-pre])').forEach(el => {
     const span = document.createElement('span');
     span.style.fontSize = px + 'px';
     span.innerHTML = el.innerHTML;
     el.parentNode.replaceChild(span, el);
   });
+  // Clean up markers
+  editor.querySelectorAll('font[size="7"][data-pre]').forEach(el => el.removeAttribute('data-pre'));
 }
 
 function forumInsertImage() {
