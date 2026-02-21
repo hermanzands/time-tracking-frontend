@@ -1414,18 +1414,34 @@ const EMOJIS = [
 ];
 
 function toggleEmojiPicker(e) {
-  const popup = document.getElementById('emoji-picker-popup');
+  e.stopPropagation();
+  e.preventDefault();
+  // Create popup dynamically if it doesn't exist yet
+  let popup = document.getElementById('emoji-picker-popup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'emoji-picker-popup';
+    popup.className = 'emoji-picker-popup';
+    popup.addEventListener('click', ev => ev.stopPropagation());
+    EMOJIS.forEach(em => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn';
+      btn.textContent = em;
+      btn.onmousedown = (ev) => { ev.preventDefault(); insertEmoji(em); };
+      popup.appendChild(btn);
+    });
+    document.body.appendChild(popup);
+  }
   if (emojiPickerOpen) { closeEmojiPicker(); return; }
   const btn = document.getElementById('forum-emoji-btn');
   const rect = btn.getBoundingClientRect();
+  const popupW = 224;
   let left = rect.left;
-  const popupW = 220;
   if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
   popup.style.top = (rect.bottom + 6) + 'px';
   popup.style.left = Math.max(8, left) + 'px';
   popup.classList.add('show');
   emojiPickerOpen = true;
-  // Save selection
   const sel = window.getSelection();
   if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
 }
@@ -1453,51 +1469,92 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Stop clicks inside emoji popup from bubbling to document
+document.addEventListener('DOMContentLoaded', () => {
+  const ep = document.getElementById('emoji-picker-popup');
+  if (ep) ep.addEventListener('click', e => e.stopPropagation());
+});
+
+// === TABLE INSERT + RESIZE ===
 // === TABLE INSERT + RESIZE ===
 function forumInsertTable() {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-
-  // Insert a wrapper paragraph first so user can type before/after table
   const tableId = 'tbl' + Date.now();
-  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
+  const cs = 'border:1px solid #444;padding:8px 12px;position:relative;';
 
-  let rows = '';
+  // Build wrapper div
+  const wrap = document.createElement('div');
+  wrap.id = tableId;
+  wrap.style.cssText = 'margin:12px 0;';
+
+  // Build toolbar (contenteditable=false so it doesn't get edited)
+  const bar = document.createElement('div');
+  bar.contentEditable = 'false';
+  bar.style.cssText = 'display:flex;gap:4px;margin-bottom:6px;user-select:none;';
+  [
+    ['+ Row', () => forumTableAddRow(tableId)],
+    ['+ Col', () => forumTableAddCol(tableId)],
+    ['− Row', () => forumTableDelRow(tableId)],
+    ['− Col', () => forumTableDelCol(tableId)],
+    ['🗑', () => forumTableDelete(tableId), 'rgba(255,85,102,.15)', 'rgba(255,85,102,.3)', '#ff5566'],
+  ].forEach(([label, fn, bg, border, color]) => {
+    const b = document.createElement('span');
+    b.textContent = label;
+    b.style.cssText = `font-size:11px;padding:3px 8px;background:${bg||'#18182a'};border:1px solid ${border||'#444'};color:${color||'#aaa'};border-radius:5px;cursor:pointer;`;
+    b.onmousedown = e => { e.preventDefault(); fn(); };
+    bar.appendChild(b);
+  });
+  wrap.appendChild(bar);
+
+  // Build table using DOM (not innerHTML) so IDs/events are preserved
+  const table = document.createElement('table');
+  table.id = tableId + '-t';
+  table.style.cssText = 'width:100%;border-collapse:collapse;table-layout:auto;';
   for (let r = 0; r < 3; r++) {
-    let cells = '';
+    const tr = document.createElement('tr');
     for (let c = 0; c < 3; c++) {
-      if (r === 0) cells += `<th style="${cellStyle}background:#18182a;font-weight:700;">Header</th>`;
-      else cells += `<td style="${cellStyle}">Cell</td>`;
+      const cell = r === 0 ? document.createElement('th') : document.createElement('td');
+      cell.setAttribute('style', cs + (r === 0 ? 'background:#18182a;font-weight:700;' : ''));
+      cell.textContent = r === 0 ? 'Header' : 'Cell';
+      tr.appendChild(cell);
     }
-    rows += `<tr>${cells}</tr>`;
+    table.appendChild(tr);
   }
+  wrap.appendChild(table);
 
-  const html = `<p><br></p>
-<div style="position:relative;margin:12px 0;" id="${tableId}">
-  <div style="display:flex;gap:4px;margin-bottom:6px;" contenteditable="false">
-    <button onmousedown="event.preventDefault();forumTableAddRow('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">+ Row</button>
-    <button onmousedown="event.preventDefault();forumTableAddCol('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">+ Col</button>
-    <button onmousedown="event.preventDefault();forumTableDelRow('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">- Row</button>
-    <button onmousedown="event.preventDefault();forumTableDelCol('${tableId}')" style="font-size:11px;padding:3px 8px;background:#18182a;border:1px solid #444;color:#aaa;border-radius:5px;cursor:pointer;">- Col</button>
-    <button onmousedown="event.preventDefault();forumTableDelete('${tableId}')" style="font-size:11px;padding:3px 8px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);color:#ff5566;border-radius:5px;cursor:pointer;">🗑 Delete</button>
-  </div>
-  <table id="${tableId}-t" style="width:100%;border-collapse:collapse;table-layout:fixed;">${rows}</table>
-</div>
-<p><br></p>`;
-
-  document.execCommand('insertHTML', false, html);
-  setTimeout(() => forumTableInitResize(tableId), 50);
+  // Insert at cursor position
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount && editor.contains(sel.getRangeAt(0).startContainer)) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const before = document.createElement('p'); before.innerHTML = '<br>';
+    const after = document.createElement('p'); after.innerHTML = '<br>';
+    range.insertNode(after);
+    range.insertNode(wrap);
+    range.insertNode(before);
+    const newRange = document.createRange();
+    newRange.setStart(after, 0);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  } else {
+    const p1 = document.createElement('p'); p1.innerHTML = '<br>';
+    const p2 = document.createElement('p'); p2.innerHTML = '<br>';
+    editor.appendChild(p1);
+    editor.appendChild(wrap);
+    editor.appendChild(p2);
+  }
+  forumTableInitResize(tableId);
 }
 
 function forumTableAddRow(tableId) {
   const table = document.getElementById(tableId + '-t');
   if (!table) return;
   const cols = table.rows[0]?.cells.length || 3;
-  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
   const tr = document.createElement('tr');
   for (let c = 0; c < cols; c++) {
     const td = document.createElement('td');
-    td.setAttribute('style', cellStyle);
+    td.setAttribute('style', 'border:1px solid #444;padding:8px 12px;position:relative;');
     td.textContent = 'Cell';
     tr.appendChild(td);
   }
@@ -1508,10 +1565,9 @@ function forumTableAddRow(tableId) {
 function forumTableAddCol(tableId) {
   const table = document.getElementById(tableId + '-t');
   if (!table) return;
-  const cellStyle = 'border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;';
   Array.from(table.rows).forEach((row, i) => {
     const cell = i === 0 ? document.createElement('th') : document.createElement('td');
-    cell.setAttribute('style', cellStyle + (i === 0 ? 'background:#18182a;font-weight:700;' : ''));
+    cell.setAttribute('style', 'border:1px solid #444;padding:8px 12px;position:relative;' + (i === 0 ? 'background:#18182a;font-weight:700;' : ''));
     cell.textContent = i === 0 ? 'Header' : 'Cell';
     row.appendChild(cell);
   });
@@ -1531,25 +1587,26 @@ function forumTableDelCol(tableId) {
 }
 
 function forumTableDelete(tableId) {
-  const wrap = document.getElementById(tableId);
-  if (wrap) wrap.remove();
+  document.getElementById(tableId)?.remove();
 }
 
 function forumTableInitResize(tableId) {
   const table = document.getElementById(tableId + '-t');
   if (!table) return;
+  // Freeze current pixel widths so columns resize independently
+  Array.from(table.rows[0]?.cells || []).forEach(cell => {
+    if (!cell.style.width) cell.style.width = cell.offsetWidth + 'px';
+  });
+  table.style.tableLayout = 'fixed';
   table.querySelectorAll('th, td').forEach(cell => {
-    // Remove old handle if any
     cell.querySelector('.col-resize-handle')?.remove();
     cell.style.position = 'relative';
     const handle = document.createElement('div');
     handle.className = 'col-resize-handle';
-    handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent;';
+    handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;z-index:10;';
     handle.addEventListener('mousedown', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const startX = e.clientX;
-      const startW = cell.offsetWidth;
+      e.preventDefault(); e.stopPropagation();
+      const startX = e.clientX, startW = cell.offsetWidth;
       const onMove = ev => { cell.style.width = Math.max(40, startW + ev.clientX - startX) + 'px'; };
       const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
       document.addEventListener('mousemove', onMove);
@@ -1558,6 +1615,7 @@ function forumTableInitResize(tableId) {
     cell.appendChild(handle);
   });
 }
+
 
 async function loadForumPosts() {
   renderForumSections(null);
