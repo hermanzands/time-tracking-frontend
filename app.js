@@ -654,7 +654,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document
 
 // === CLOCKED IN WIDGET ===
 async function loadClockedInUsers() {
-  if (!user || !['manager', 'owner'].includes(user.role)) return;
+  if (!user) return;
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
 }
 
