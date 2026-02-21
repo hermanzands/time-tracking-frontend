@@ -1486,7 +1486,8 @@ function forumInsertTable() {
   // Build wrapper div
   const wrap = document.createElement('div');
   wrap.id = tableId;
-  wrap.style.cssText = 'margin:12px 0;';
+  wrap.contentEditable = 'false';
+  wrap.style.cssText = 'margin:12px 0;display:inline-block;';
 
   // Build toolbar (contenteditable=false so it doesn't get edited)
   const bar = document.createElement('div');
