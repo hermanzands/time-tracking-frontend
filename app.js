@@ -809,16 +809,26 @@ let currentStockTab = 'pending', stockPhotoData = null;
 
 function previewStockPhoto(input) {
   const file = input.files[0]; if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { toast('Image too large. Max 5MB', 'err'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('Image too large. Max 10MB', 'err'); return; }
   const reader = new FileReader();
-  reader.onload = (e) => { stockPhotoData = e.target.result; document.getElementById('stock-photo-img').src = stockPhotoData; document.getElementById('stock-photo-preview').style.display = 'block'; updateStockSubmitButton(); };
+  reader.onload = (e) => {
+    stockPhotoData = e.target.result;
+    document.getElementById('stock-photo-img').src = stockPhotoData;
+    document.getElementById('stock-photo-preview').style.display = 'block';
+    updateStockSubmitButton();
+  };
+  reader.onerror = () => { toast('Failed to read image, try another file', 'err'); };
   reader.readAsDataURL(file);
 }
 
-function updateStockSubmitButton() { const btn = document.getElementById('btn-submit-stock'), note = document.getElementById('stock-note-input').value.trim(); btn.disabled = !stockPhotoData || !note; }
+function updateStockSubmitButton() {
+  const btn = document.getElementById('btn-submit-stock');
+  if (!btn) return;
+  const note = document.getElementById('stock-note-input')?.value.trim();
+  btn.disabled = !stockPhotoData || !note;
+}
 
-if (document.getElementById('stock-note-input')) document.getElementById('stock-note-input').addEventListener('input', updateStockSubmitButton);
-
+// Wire up note input listener robustly
 async function submitStockAlert() {
   const note = document.getElementById('stock-note-input').value.trim(), errEl = document.getElementById('stock-err'), btn = document.getElementById('btn-submit-stock');
   if (!stockPhotoData) { showErr(errEl, 'Please upload a photo'); return; }
@@ -1533,6 +1543,10 @@ function forumInsertImage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Stock note input
+  const noteInput = document.getElementById('stock-note-input');
+  if (noteInput) noteInput.addEventListener('input', updateStockSubmitButton);
+
   const urlInput = document.getElementById('image-modal-url');
   if (urlInput) urlInput.addEventListener('input', () => {
     const v = urlInput.value.trim();
