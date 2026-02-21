@@ -264,6 +264,7 @@ function go(panel) {
   if (si) si.classList.add('active');
   document.getElementById('panel-' + panel).classList.add('active');
   localStorage.setItem('wt_last_panel', panel);
+  document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.toggle('active', b.id === 'mob-' + panel));
   if (panel === 'hours') loadMyEntries();
   if (panel === 'earnings') loadMyPayments();
   if (panel === 'workers') { loadWorkers(); loadPendingEmployees(); }
