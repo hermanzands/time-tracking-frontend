@@ -1416,11 +1416,17 @@ function forumSetColor(color) {
   document.execCommand('foreColor', false, color);
 }
 
-function forumSetFontSize(size) {
-  if (!size) return;
+function forumSetFontSizePx(px) {
+  if (!px || px < 1) return;
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  document.execCommand('fontSize', false, size);
+  document.execCommand('fontSize', false, 7);
+  editor.querySelectorAll('font[size="7"]').forEach(el => {
+    const span = document.createElement('span');
+    span.style.fontSize = px + 'px';
+    span.innerHTML = el.innerHTML;
+    el.parentNode.replaceChild(span, el);
+  });
 }
 
 function forumInsertImage() {
