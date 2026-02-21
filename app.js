@@ -911,14 +911,24 @@ function showEditTimeModal(entry) {
     const deleteBtn  = document.getElementById('et-delete-btn');
 
     deleteBtn.onclick = async () => {
-      if (!window.confirm('Delete this time entry? This cannot be undone.')) return;
+      // Save edit form HTML so we can restore it if user cancels
+      const savedHTML = box.innerHTML;
       overlay.classList.remove('show');
+      const confirmed = await showModal({icon:'🗑️', title:'Delete Entry?', message:'This will permanently delete this time entry. This cannot be undone.', confirmText:'Delete', danger:true});
+      if (!confirmed) {
+        // Restore edit form and rewire events
+        box.innerHTML = savedHTML;
+        overlay.classList.add('show');
+        document.getElementById('et-cancel-btn').onclick = () => { overlay.classList.remove('show'); resolve(false); };
+        document.getElementById('et-delete-btn').onclick = deleteBtn.onclick;
+        return;
+      }
       try {
         const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
         const d = await r.json();
         if (d.success) { toast('🗑️ Entry deleted'); resolve(true); }
-        else { toast(d.error || 'Failed to delete', 'err'); overlay.classList.add('show'); }
-      } catch(e) { toast('Connection error', 'err'); overlay.classList.add('show'); }
+        else { toast(d.error || 'Failed to delete', 'err'); box.innerHTML = savedHTML; overlay.classList.add('show'); }
+      } catch(e) { toast('Connection error', 'err'); box.innerHTML = savedHTML; overlay.classList.add('show'); }
     };
     overlay.classList.add('show');
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
