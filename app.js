@@ -1418,20 +1418,34 @@ function forumSetColor(color) {
 
 function forumSetFontSizePx(px) {
   if (!px || px < 1) return;
+  px = parseInt(px);
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  // Mark pre-existing font[size="7"] so we don't touch them
-  editor.querySelectorAll('font[size="7"]').forEach(el => el.setAttribute('data-pre', '1'));
-  document.execCommand('fontSize', false, '7');
-  // Only replace the newly created ones
-  editor.querySelectorAll('font[size="7"]:not([data-pre])').forEach(el => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+
+  if (range.collapsed) {
+    // No selection — insert a styled span at cursor so next typed text uses this size
     const span = document.createElement('span');
     span.style.fontSize = px + 'px';
-    span.innerHTML = el.innerHTML;
-    el.parentNode.replaceChild(span, el);
-  });
-  // Clean up markers
-  editor.querySelectorAll('font[size="7"][data-pre]').forEach(el => el.removeAttribute('data-pre'));
+    span.appendChild(document.createTextNode('\u200B')); // zero-width space placeholder
+    range.insertNode(span);
+    range.setStart(span.firstChild, 1);
+    range.setEnd(span.firstChild, 1);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    // Has selection — wrap it in a sized span
+    const contents = range.extractContents();
+    const span = document.createElement('span');
+    span.style.fontSize = px + 'px';
+    span.appendChild(contents);
+    range.insertNode(span);
+    range.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 }
 
 function forumInsertImage() {
