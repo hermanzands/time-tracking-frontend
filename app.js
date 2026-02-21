@@ -264,7 +264,6 @@ function go(panel) {
   if (si) si.classList.add('active');
   document.getElementById('panel-' + panel).classList.add('active');
   localStorage.setItem('wt_last_panel', panel);
-  document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.toggle('active', b.id === 'mob-' + panel));
   if (panel === 'hours') loadMyEntries();
   if (panel === 'earnings') loadMyPayments();
   if (panel === 'workers') { loadWorkers(); loadPendingEmployees(); }
@@ -1309,7 +1308,7 @@ function cpApply() {
 }
 
 function applyColor(hex) {
-  closeColorPicker();
+  closeColorPicker(false);
   const editor = document.getElementById('forum-body-input');
   editor.focus();
   if (forumEditorSavedRange) {
@@ -1359,14 +1358,25 @@ function toggleColorPicker(e) {
   });
 }
 
-function closeColorPicker() {
+function closeColorPicker(andApply = false) {
   document.getElementById('color-picker-popup').classList.remove('show');
   colorPickerOpen = false;
+  if (andApply) {
+    const editor = document.getElementById('forum-body-input');
+    editor.focus();
+    if (forumEditorSavedRange) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(forumEditorSavedRange);
+    }
+    document.execCommand('foreColor', false, cpCurrentColor);
+    document.getElementById('forum-color-swatch').style.background = cpCurrentColor;
+  }
 }
 
 document.addEventListener('click', (e) => {
   if (colorPickerOpen && !e.target.closest('#color-picker-popup') && !e.target.closest('#forum-color-btn')) {
-    closeColorPicker();
+    closeColorPicker(true);
   }
 });
 
@@ -1376,6 +1386,113 @@ function updateForumToolbarState() {
   commands.forEach(cmd => {
     const btn = document.getElementById('forum-btn-' + cmd);
     if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+  });
+}
+
+// === HEADINGS ===
+function forumInsertHeading(level) {
+  const editor = document.getElementById('forum-body-input');
+  editor.focus();
+  document.execCommand('formatBlock', false, 'H' + level);
+}
+
+// === ALIGNMENT ===
+function forumAlign(cmd) {
+  const editor = document.getElementById('forum-body-input');
+  editor.focus();
+  document.execCommand(cmd);
+}
+
+// === EMOJI PICKER ===
+let emojiPickerOpen = false;
+const EMOJIS = [
+  '😀','😂','😍','🥰','😎','🤔','😅','😭','🔥','💯',
+  '👍','👎','👏','🙌','🤝','💪','✅','❌','⚠️','💡',
+  '📦','📋','💰','💳','⏱️','📅','🗑️','✏️','📌','🔧',
+  '🎉','🚀','⭐','💎','🏆','❤️','💚','💜','🧡','💙',
+  '🌿','🌱','🌾','🍃','🌻','☀️','🌙','⚡','🌊','🎯',
+];
+
+function toggleEmojiPicker(e) {
+  const popup = document.getElementById('emoji-picker-popup');
+  if (emojiPickerOpen) { closeEmojiPicker(); return; }
+  const btn = document.getElementById('forum-emoji-btn');
+  const rect = btn.getBoundingClientRect();
+  let left = rect.left;
+  const popupW = 220;
+  if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.max(8, left) + 'px';
+  popup.classList.add('show');
+  emojiPickerOpen = true;
+  // Save selection
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
+}
+
+function closeEmojiPicker() {
+  document.getElementById('emoji-picker-popup').classList.remove('show');
+  emojiPickerOpen = false;
+}
+
+function insertEmoji(emoji) {
+  closeEmojiPicker();
+  const editor = document.getElementById('forum-body-input');
+  editor.focus();
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
+  document.execCommand('insertText', false, emoji);
+}
+
+document.addEventListener('click', (e) => {
+  if (emojiPickerOpen && !e.target.closest('#emoji-picker-popup') && !e.target.closest('#forum-emoji-btn')) {
+    closeEmojiPicker();
+  }
+});
+
+// === TABLE INSERT + RESIZE ===
+function forumInsertTable() {
+  const editor = document.getElementById('forum-body-input');
+  editor.focus();
+  let html = '<table style="width:100%;border-collapse:collapse;margin:12px 0;">';
+  for (let r = 0; r < 3; r++) {
+    html += '<tr>';
+    for (let c = 0; c < 3; c++) {
+      const style = 'border:1px solid #444;padding:8px 12px;min-width:60px;';
+      if (r === 0) html += `<th contenteditable="true" style="${style}background:#18182a;font-weight:700;">Header</th>`;
+      else html += `<td contenteditable="true" style="${style}">Cell</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table><p><br></p>';
+  document.execCommand('insertHTML', false, html);
+
+  // Wire up column resize after insert
+  setTimeout(() => initTableResize(editor), 100);
+}
+
+function initTableResize(editor) {
+  editor.querySelectorAll('table').forEach(table => {
+    if (table.dataset.resizeInit) return;
+    table.dataset.resizeInit = '1';
+    table.querySelectorAll('th, td').forEach(cell => {
+      cell.style.position = 'relative';
+      const handle = document.createElement('div');
+      handle.style.cssText = 'position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:10;';
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startW = cell.offsetWidth;
+        const onMove = (ev) => { cell.style.width = Math.max(40, startW + ev.clientX - startX) + 'px'; };
+        const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+      cell.appendChild(handle);
+    });
   });
 }
 
