@@ -659,7 +659,7 @@ async function calcPayments() {
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
-        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+$' + p._managerBonus + ' bonus</span>' : '';
+        const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
         html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
         html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
