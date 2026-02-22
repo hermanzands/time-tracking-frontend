@@ -2185,7 +2185,7 @@ async function submitForumPost() {
       ? await fetch(API + '/api/forum/' + editId, {method:'PATCH', headers:hdr(), body:JSON.stringify(body)})
       : await fetch(API + '/api/forum', {method:'POST', headers:hdr(), body:JSON.stringify(body)});
     const d = await r.json();
-    if (d.success) { toast(editId ? '✅ Post updated!' : '✅ Post published!'); errEl.style.display = 'none'; await loadForumPosts(); showForumIndex(); }
+    if (d.success) { toast(editId ? '✅ Post updated!' : '✅ Post published!'); errEl.style.display = 'none'; await loadForumPosts(); if (editId) openForumPost(editId); else showForumIndex(); }
     else showErr(errEl, d.error || 'Failed to post');
   } catch(e) { showErr(errEl, 'Connection error'); }
 }
