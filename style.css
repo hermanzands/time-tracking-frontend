@@ -496,3 +496,19 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .forum-editor table{width:100%;border-collapse:collapse;margin:12px 0;}
 .forum-editor th,.forum-editor td{border:1px solid #444;padding:8px 12px;min-width:60px;position:relative;}
 .forum-editor th{background:#18182a;font-weight:700;}
+
+.forum-drag-handle {
+  font-size: 18px;
+  color: var(--muted);
+  cursor: grab;
+  padding: 2px 4px;
+  line-height: 1;
+  user-select: none;
+  transition: color .15s;
+}
+.forum-drag-handle:hover { color: var(--accent); }
+.forum-drag-handle:active { cursor: grabbing; }
+.forum-row.drag-over {
+  background: rgba(124,111,247,.1);
+  border-top: 2px solid var(--accent);
+}
