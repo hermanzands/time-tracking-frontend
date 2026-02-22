@@ -1764,6 +1764,7 @@ function renderForumSections(posts) {
   postsEl.innerHTML = regular.length === 0
     ? '<div style="padding:18px 20px;font-size:13px;color:var(--muted);">No posts yet — be the first!</div>'
     : regular.map(p => forumRowHTML(p)).join('');
+  attachForumRowEvents();
 }
 
 function forumRowHTML(post) {
@@ -1771,11 +1772,10 @@ function forumRowHTML(post) {
   const replyCount = post.reply_count || 0;
   const isAdmin = ['manager','owner'].includes(user.role);
   const dragHandle = (isAdmin && post.is_pinned) ? `
-    <div class="forum-drag-handle" title="Drag to reorder" onmousedown="event.stopPropagation()">⠿</div>` : '';
+    <div class="forum-drag-handle" title="Drag to reorder">⠿</div>` : '';
   return `<div class="forum-row${post.is_pinned && isAdmin ? ' draggable-post' : ''}" 
-    data-post-id="${post.id}" data-pinned="${post.is_pinned}"
-    onclick="openForumPost('${post.id}')"
-    ${post.is_pinned && isAdmin ? `draggable="true" ondragstart="forumDragStart(event)" ondragover="forumDragOver(event)" ondrop="forumDrop(event)" ondragend="forumDragEnd(event)"` : ''}>
+    data-post-id="${post.id}"
+    ${post.is_pinned && isAdmin ? `draggable="true"` : ''}>
     <div class="forum-row-icon${post.is_pinned?' pinned':''}">💬</div>
     <div class="forum-row-info">
       <div class="forum-row-title">${escapeHtml(post.title)}</div>
@@ -1799,34 +1799,52 @@ function forumRowHTML(post) {
   </div>`;
 }
 
-async function reorderPinnedPost(postId, direction) {
-  try {
-    await fetch(API + '/api/forum/' + postId + '/reorder', {
-      method: 'PATCH', headers: hdr(), body: JSON.stringify({ direction })
+// Attach drag events + click after rendering forum rows
+function attachForumRowEvents() {
+  document.querySelectorAll('.draggable-post').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (forumWasDragging) { forumWasDragging = false; return; }
+      openForumPost(row.dataset.postId);
     });
-    await loadForumPosts();
-  } catch(e) { toast('Failed to reorder', 'err'); }
+    row.addEventListener('dragstart', forumDragStart);
+    row.addEventListener('dragover', forumDragOver);
+    row.addEventListener('dragleave', forumDragLeave);
+    row.addEventListener('drop', forumDrop);
+    row.addEventListener('dragend', forumDragEnd);
+  });
+  // Non-draggable rows still need click
+  document.querySelectorAll('.forum-row:not(.draggable-post)').forEach(row => {
+    row.addEventListener('click', () => openForumPost(row.dataset.postId));
+  });
 }
 
-// ── Drag & drop for pinned posts ──
 let forumDragSrcId = null;
+let forumWasDragging = false;
 
 function forumDragStart(e) {
   forumDragSrcId = e.currentTarget.dataset.postId;
+  forumWasDragging = true;
   e.currentTarget.style.opacity = '0.4';
   e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', forumDragSrcId);
 }
 
 function forumDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.forum-row.draggable-post').forEach(r => r.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
+  document.querySelectorAll('.draggable-post').forEach(r => r.classList.remove('drag-over'));
+  if (e.currentTarget.dataset.postId !== forumDragSrcId) {
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+function forumDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
 }
 
 function forumDragEnd(e) {
   e.currentTarget.style.opacity = '';
-  document.querySelectorAll('.forum-row.draggable-post').forEach(r => r.classList.remove('drag-over'));
+  document.querySelectorAll('.draggable-post').forEach(r => r.classList.remove('drag-over'));
 }
 
 async function forumDrop(e) {
@@ -1835,8 +1853,7 @@ async function forumDrop(e) {
   const targetId = e.currentTarget.dataset.postId;
   if (!forumDragSrcId || forumDragSrcId === targetId) return;
 
-  // Build new order by swapping src into target's position
-  const rows = [...document.querySelectorAll('.forum-row.draggable-post')];
+  const rows = [...document.querySelectorAll('.draggable-post')];
   const ids = rows.map(r => r.dataset.postId);
   const srcIdx = ids.indexOf(forumDragSrcId);
   const tgtIdx = ids.indexOf(targetId);
@@ -1846,11 +1863,13 @@ async function forumDrop(e) {
   forumDragSrcId = null;
 
   try {
-    await fetch(API + '/api/forum/reorder-pinned', {
+    const r = await fetch(API + '/api/forum/reorder-pinned', {
       method: 'POST', headers: hdr(), body: JSON.stringify({ ids })
     });
+    const d = await r.json();
+    if (!d.success) toast('Failed to reorder', 'err');
     await loadForumPosts();
-  } catch(e) { toast('Failed to reorder', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
 }
 
 function toggleForumSection(section) {
