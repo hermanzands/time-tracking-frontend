@@ -421,6 +421,17 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
   /* Toast sits above bottom nav */
   #toast{bottom:76px;}
 
+  /* Notification dropdown full width on mobile */
+.notif-dropdown {
+  position: fixed;
+  top: 62px;
+  left: 8px;
+  right: 8px;
+  width: auto;
+  max-height: 70vh;
+  border-radius: 14px;
+}
+   
   /* Chat panel full width on mobile */
   .chat-panel{width:calc(100vw - 24px);right:12px;bottom:76px;}
 
