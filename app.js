@@ -1835,21 +1835,22 @@ async function forumDrop(e) {
   const targetId = e.currentTarget.dataset.postId;
   if (!forumDragSrcId || forumDragSrcId === targetId) return;
 
-  // Determine direction by position in list
+  // Build new order by swapping src into target's position
   const rows = [...document.querySelectorAll('.forum-row.draggable-post')];
-  const srcIdx = rows.findIndex(r => r.dataset.postId === forumDragSrcId);
-  const tgtIdx = rows.findIndex(r => r.dataset.postId === targetId);
-  const direction = srcIdx > tgtIdx ? 'up' : 'down';
+  const ids = rows.map(r => r.dataset.postId);
+  const srcIdx = ids.indexOf(forumDragSrcId);
+  const tgtIdx = ids.indexOf(targetId);
+  ids.splice(srcIdx, 1);
+  ids.splice(tgtIdx, 0, forumDragSrcId);
 
-  // Move step by step
-  const steps = Math.abs(srcIdx - tgtIdx);
-  for (let i = 0; i < steps; i++) {
-    await fetch(API + '/api/forum/' + forumDragSrcId + '/reorder', {
-      method: 'PATCH', headers: hdr(), body: JSON.stringify({ direction })
-    });
-  }
   forumDragSrcId = null;
-  await loadForumPosts();
+
+  try {
+    await fetch(API + '/api/forum/reorder-pinned', {
+      method: 'POST', headers: hdr(), body: JSON.stringify({ ids })
+    });
+    await loadForumPosts();
+  } catch(e) { toast('Failed to reorder', 'err'); }
 }
 
 function toggleForumSection(section) {
