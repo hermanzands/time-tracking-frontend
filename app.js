@@ -306,19 +306,26 @@ async function enablePushNotifications() {
 }
 
 async function registerPushSubscription() {
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const r = await fetch(API + '/api/push/subscribe', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ subscription: sub.toJSON() })
     });
+    const d = await r.json();
+    if (!d.success) console.error('Push subscribe failed:', d);
+    else console.log('Push subscription saved ✅');
+  } catch(e) {
+    console.error('registerPushSubscription error:', e);
   }
-  await fetch(API + '/api/push/subscribe', {
-    method: 'POST',
-    headers: hdr(),
-    body: JSON.stringify({ subscription: sub.toJSON() })
-  });
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -1057,6 +1064,38 @@ function renderStockAlerts(alerts) {
 function updateStockCounts(allAlerts) { if (!['manager','owner'].includes(user.role)) return; fetchStockCounts(); }
 
 let editingEntryId = null;
+
+// Update person header totals after a row is removed without full reload
+function updatePersonTotals() {
+  const tb = document.getElementById('all-entries-body');
+  if (!tb) return;
+  // Find all person header rows
+  tb.querySelectorAll('tr[onclick^="togglePerson"]').forEach(headerRow => {
+    const onclick = headerRow.getAttribute('onclick');
+    const pid = onclick.match(/togglePerson\('([^']+)'\)/)?.[1];
+    if (!pid) return;
+    const entryRows = tb.querySelectorAll('.entry-row-' + pid);
+    if (entryRows.length === 0) {
+      // No entries left, remove the header row too
+      headerRow.remove();
+      return;
+    }
+    // Recalculate total hours
+    let totalHrs = 0;
+    entryRows.forEach(row => {
+      const hoursCell = row.cells[3];
+      if (hoursCell) {
+        const txt = hoursCell.textContent.trim();
+        const h = txt.match(/(\d+)h/), m = txt.match(/(\d+)m/);
+        if (h) totalHrs += parseInt(h[1]);
+        if (m) totalHrs += parseInt(m[1]) / 60;
+      }
+    });
+    // Update the subtitle
+    const subtitle = headerRow.querySelector('div > div > div:last-child div:last-child');
+    if (subtitle) subtitle.textContent = entryRows.length + ' entries · ' + toHm(totalHrs) + ' total';
+  });
+}
 
 async function editTimeEntry(entryId) {
   editingEntryId = entryId;
