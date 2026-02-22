@@ -192,9 +192,12 @@ function viewNotification(notifId, notifType, relatedId) {
 }
 
 async function deleteNotification(notifId) {
+  // Remove instantly from DOM
+  notifications = notifications.filter(n => n.id !== notifId);
+  renderStockNotifications();
+  updateNotifBadge(notifications.filter(n => !n.is_read).length);
   try {
-    const r = await fetch(`${API}/api/notifications/${notifId}`, {method:'DELETE',headers:hdr()});
-    if (r.ok) { loadNotifications(); toast('🗑️ Notification deleted'); }
+    await fetch(`${API}/api/notifications/${notifId}`, {method:'DELETE',headers:hdr()});
   } catch(e) {}
 }
 
@@ -1062,12 +1065,21 @@ function showEditTimeModal(entry) {
       document.getElementById('del-confirm-btn').onclick = async () => {
         const btn = document.getElementById('del-confirm-btn');
         btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+        overlay.classList.remove('show');
+        // Instantly hide the row in the table
+        const entryRows = document.querySelectorAll(`[class*="entry-row"]`);
+        entryRows.forEach(row => {
+          if (row.innerHTML.includes(editingEntryId)) {
+            row.style.transition = 'opacity .2s'; row.style.opacity = '0';
+            setTimeout(() => row.remove(), 200);
+          }
+        });
         try {
           const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
           const d = await r.json();
-          if (d.success) { overlay.classList.remove('show'); toast('🗑️ Entry deleted'); resolve(true); }
-          else { toast(d.error || 'Failed to delete', 'err'); overlay.classList.remove('show'); resolve(false); }
-        } catch(e) { toast('Connection error', 'err'); overlay.classList.remove('show'); resolve(false); }
+          if (d.success) { toast('🗑️ Entry deleted'); resolve(true); }
+          else { toast(d.error || 'Failed to delete', 'err'); resolve(false); }
+        } catch(e) { toast('Connection error', 'err'); resolve(false); }
       };
     };
     overlay.classList.add('show');
@@ -1211,7 +1223,13 @@ let forumPosts = [], forumSectionState = {pinned: true, posts: true};
 async function deleteStockAlert(alertId) {
   const confirmed = await showModal({icon:'🗑️',title:'Delete Stock Alert?',message:'This will permanently delete this stock alert.',confirmText:'Delete',danger:true});
   if (!confirmed) return;
-  try { const r = await fetch(API + '/api/stock-alerts/' + alertId, {method:'DELETE',headers:hdr()}); const d = await r.json(); if (d.success) { toast('🗑️ Alert deleted'); loadStockAlerts(); } else { toast(d.error || 'Failed to delete', 'err'); } } catch(e) { toast('Connection error', 'err'); }
+  // Remove instantly from DOM
+  const el = document.querySelector(`[onclick*="${alertId}"]`)?.closest('.stock-alert-item');
+  if (el) { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }
+  try {
+    await fetch(API + '/api/stock-alerts/' + alertId, {method:'DELETE',headers:hdr()});
+    toast('🗑️ Alert deleted');
+  } catch(e) { toast('Connection error', 'err'); loadStockAlerts(); }
 }
 
 async function fetchStockCounts() {
@@ -2377,12 +2395,13 @@ async function deleteReimbursement(id) {
     confirmText: 'Delete', danger: true
   });
   if (!confirmed) return;
+  // Remove instantly from DOM
+  const el = document.querySelector(`.reimburse-item button[onclick*="${id}"]`)?.closest('.reimburse-item');
+  if (el) { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }
   try {
-    const r = await fetch(API + '/api/reimbursements/' + id, { method: 'DELETE', headers: hdr() });
-    const d = await r.json();
-    if (d.success) { toast('🗑️ Deleted'); loadReimbursements(); }
-    else { toast(d.error || 'Failed to delete', 'err'); }
-  } catch(e) { toast('Connection error', 'err'); }
+    await fetch(API + '/api/reimbursements/' + id, { method: 'DELETE', headers: hdr() });
+    toast('🗑️ Deleted');
+  } catch(e) { toast('Connection error', 'err'); loadReimbursements(); }
 }
 
 async function updateReimburseCounts() {
