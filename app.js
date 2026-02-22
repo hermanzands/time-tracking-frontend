@@ -2188,13 +2188,13 @@ async function submitForumPost() {
     if (d.success) {
       toast(editId ? '✅ Post updated!' : '✅ Post published!');
       errEl.style.display = 'none';
+      await loadForumPosts();
       if (editId) {
-        await loadForumPosts();
-        const updated = forumPosts.find(p => p.id === editId);
-        if (updated) openForumPost(editId);
-        else showForumIndex();
+        document.getElementById('forum-index-view').style.display = 'none';
+        document.getElementById('forum-new-view').style.display = 'none';
+        document.getElementById('forum-detail-view').style.display = 'block';
+        openForumPost(editId);
       } else {
-        await loadForumPosts();
         showForumIndex();
       }
     }
