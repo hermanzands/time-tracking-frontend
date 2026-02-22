@@ -453,6 +453,39 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
   .mobile-nav{display:none;}
 }
 
+@media (max-width: 700px) and (orientation: landscape) {
+  .mobile-nav {
+    /* Move nav to the side instead of bottom */
+    top: 62px;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: 60px;
+    height: auto;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+  .main {
+    padding-bottom: 20px;
+    padding-left: 74px;
+  }
+  .chat-panel {
+    bottom: 12px;
+    right: 12px;
+    width: calc(100vw - 84px);
+  }
+  #toast { bottom: 20px; }
+  .notif-dropdown {
+    top: 62px;
+    left: 68px;
+    right: 8px;
+    width: auto;
+  }
+}
+
 /* EMOJI PICKER */
 .emoji-picker-popup{position:fixed;z-index:10000;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:0 16px 60px rgba(0,0,0,.8);display:none;flex-wrap:wrap;gap:2px;width:220px;}
 .emoji-picker-popup.show{display:flex;}
