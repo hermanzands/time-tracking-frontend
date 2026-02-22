@@ -907,8 +907,12 @@ async function forceClockOut(userId) {
   try {
     const r = await fetch(API + '/api/time-entries/force-clock-out/' + userId, {method:'POST', headers:hdr()});
     const d = await r.json();
-    if (d.success) { toast('✅ Employee clocked out'); cacheInvalidate('allEntries'); loadClockedInUsers(); loadStats(); }
-    else { toast(d.error || 'Failed to clock out', 'err'); }
+    if (d.success) {
+      toast('✅ Employee clocked out');
+      cacheInvalidate('allEntries');
+      await loadClockedInUsers();
+      loadStats();
+    } else { toast(d.error || 'Failed to clock out', 'err'); }
   } catch(e) { toast('Connection error', 'err'); }
 }
 
