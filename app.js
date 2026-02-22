@@ -262,7 +262,7 @@ function showApp() {
 }
 
 // === PUSH NOTIFICATIONS ===
-const VAPID_PUBLIC_KEY = 'BJ0_vtCNC6fg0lv_e-21-TsZuwwIL3Y7pwh3bBqCgrDzVUXL58rheCozNcjB-W5yqKBuzx4yf9Z3e1Xa5Kjsbao';
+const VAPID_PUBLIC_KEY = 'BHOEJ-yhOEPT7sLzxU7IsNlyqgrQLcRoZbI8XC8KDtpwAC_15IxPY1NBblW9LXtxSzVk22fq0PgWqCiocy7vbac';
 
 async function initPushNotifications() {
   try {
