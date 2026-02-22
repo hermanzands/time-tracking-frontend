@@ -1771,14 +1771,17 @@ function forumRowHTML(post) {
   const replyCount = post.reply_count || 0;
   const isAdmin = ['manager','owner'].includes(user.role);
   const reorderBtns = (isAdmin && post.is_pinned) ? `
-    <div style="display:flex;flex-direction:column;gap:2px;margin-left:4px;" onclick="event.stopPropagation()">
-      <button onclick="reorderPinnedPost('${post.id}','up')" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:10px;padding:1px 5px;line-height:1.4;">▲</button>
-      <button onclick="reorderPinnedPost('${post.id}','down')" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:10px;padding:1px 5px;line-height:1.4;">▼</button>
+    <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0;" onclick="event.stopPropagation()">
+      <button onclick="reorderPinnedPost('${post.id}','up')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px;line-height:1;transition:color .15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">▲</button>
+      <button onclick="reorderPinnedPost('${post.id}','down')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px;line-height:1;transition:color .15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">▼</button>
     </div>` : '';
   return `<div class="forum-row" onclick="openForumPost('${post.id}')">
     <div class="forum-row-icon${post.is_pinned?' pinned':''}">💬</div>
     <div class="forum-row-info">
-      <div class="forum-row-title">${escapeHtml(post.title)}</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="forum-row-title">${escapeHtml(post.title)}</div>
+        ${reorderBtns}
+      </div>
       <div class="forum-row-sub">
         ${post.is_pinned ? '<span class="forum-row-badge pinned">📌 Pinned</span> ' : ''}
         <span style="color:var(--accent);font-weight:600;">${escapeHtml(post.author_name||'Unknown')}</span>
@@ -1793,7 +1796,6 @@ function forumRowHTML(post) {
       <span class="forum-row-stat-label">Posted</span>
       <span class="forum-row-stat-val" style="font-size:12px;font-weight:600;color:var(--muted);">${new Date(post.created_at).toLocaleDateString([],{month:'short',day:'numeric'})}</span>
     </div>
-    ${reorderBtns}
   </div>`;
 }
 
