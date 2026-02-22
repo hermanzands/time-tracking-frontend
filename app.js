@@ -1769,6 +1769,12 @@ function renderForumSections(posts) {
 function forumRowHTML(post) {
   const timeStr = getTimeAgo(new Date(post.created_at));
   const replyCount = post.reply_count || 0;
+  const isAdmin = ['manager','owner'].includes(user.role);
+  const reorderBtns = (isAdmin && post.is_pinned) ? `
+    <div style="display:flex;flex-direction:column;gap:2px;margin-left:4px;" onclick="event.stopPropagation()">
+      <button onclick="reorderPinnedPost('${post.id}','up')" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:10px;padding:1px 5px;line-height:1.4;">▲</button>
+      <button onclick="reorderPinnedPost('${post.id}','down')" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:10px;padding:1px 5px;line-height:1.4;">▼</button>
+    </div>` : '';
   return `<div class="forum-row" onclick="openForumPost('${post.id}')">
     <div class="forum-row-icon${post.is_pinned?' pinned':''}">💬</div>
     <div class="forum-row-info">
@@ -1787,7 +1793,17 @@ function forumRowHTML(post) {
       <span class="forum-row-stat-label">Posted</span>
       <span class="forum-row-stat-val" style="font-size:12px;font-weight:600;color:var(--muted);">${new Date(post.created_at).toLocaleDateString([],{month:'short',day:'numeric'})}</span>
     </div>
+    ${reorderBtns}
   </div>`;
+}
+
+async function reorderPinnedPost(postId, direction) {
+  try {
+    await fetch(API + '/api/forum/' + postId + '/reorder', {
+      method: 'PATCH', headers: hdr(), body: JSON.stringify({ direction })
+    });
+    await loadForumPosts();
+  } catch(e) { toast('Failed to reorder', 'err'); }
 }
 
 function toggleForumSection(section) {
