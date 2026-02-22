@@ -1124,19 +1124,23 @@ function showEditTimeModal(entry) {
         const btn = document.getElementById('del-confirm-btn');
         btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
         overlay.classList.remove('show');
-        // Instantly hide the row in the table
-        const entryRows = document.querySelectorAll(`[class*="entry-row"]`);
-        entryRows.forEach(row => {
-          if (row.innerHTML.includes(editingEntryId)) {
-            row.style.transition = 'opacity .2s'; row.style.opacity = '0';
-            setTimeout(() => row.remove(), 200);
-          }
-        });
         try {
           const r = await fetch(API + '/api/time-entries/' + editingEntryId, {method:'DELETE', headers:hdr()});
           const d = await r.json();
-          if (d.success) { toast('🗑️ Entry deleted'); resolve(true); }
-          else { toast(d.error || 'Failed to delete', 'err'); resolve(false); }
+          if (d.success) {
+            toast('🗑️ Entry deleted');
+            cacheInvalidate('allEntries');
+            // Find and remove just the deleted row smoothly
+            const allRows = document.querySelectorAll('tr');
+            allRows.forEach(row => {
+              if (row.innerHTML.includes('editTimeEntry(\'' + editingEntryId + '\')')) {
+                row.style.transition = 'opacity .2s';
+                row.style.opacity = '0';
+                setTimeout(() => { row.remove(); updatePersonTotals(); }, 200);
+              }
+            });
+            resolve(true);
+          } else { toast(d.error || 'Failed to delete', 'err'); resolve(false); }
         } catch(e) { toast('Connection error', 'err'); resolve(false); }
       };
     };
