@@ -901,6 +901,17 @@ function closeModal() { document.getElementById('modal-overlay').classList.remov
 function confirmModal() { document.getElementById('modal-overlay').classList.remove('show'); if (modalResolve) { modalResolve(true); modalResolve = null; } }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('modal-overlay').classList.contains('show')) closeModal(); });
 
+async function forceClockOut(userId) {
+  const confirmed = await showModal({icon:'⏏️', title:'Force Clock Out?', message:'This will clock out this employee immediately.', confirmText:'Clock Out', danger:false});
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/time-entries/force-clock-out/' + userId, {method:'POST', headers:hdr()});
+    const d = await r.json();
+    if (d.success) { toast('✅ Employee clocked out'); cacheInvalidate('allEntries'); loadClockedInUsers(); loadStats(); }
+    else { toast(d.error || 'Failed to clock out', 'err'); }
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function loadClockedInUsers() {
   if (!user) return;
   try { const r = await fetch(API + '/api/time-entries/active', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.entries) renderClockedInUsers(d.entries); } catch(e) {}
