@@ -262,7 +262,7 @@ function showApp() {
 }
 
 // === PUSH NOTIFICATIONS ===
-const VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
+const VAPID_PUBLIC_KEY = 'BJ0_vtCNC6fg0lv_e-21-TsZuwwIL3Y7pwh3bBqCgrDzVUXL58rheCozNcjB-W5yqKBuzx4yf9Z3e1Xa5Kjsbao';
 
 async function initPushNotifications() {
   try {
