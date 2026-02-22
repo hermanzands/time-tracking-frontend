@@ -7,6 +7,15 @@ let token = localStorage.getItem('wt_token');
 let user = JSON.parse(localStorage.getItem('wt_user') || 'null');
 let allEntriesData = {};
 
+// Simple data cache
+const _cache = {};
+function cacheSet(key, data) { _cache[key] = { data, ts: Date.now() }; }
+function cacheGet(key, maxAgeMs = 30000) { const c = _cache[key]; return c && (Date.now() - c.ts < maxAgeMs) ? c.data : null; }
+function cacheInvalidate(key) { delete _cache[key]; }
+
+// Track expanded persons in all-hours table
+const expandedPersons = new Set();
+
 window.onload = () => {
   tickClock();
   setInterval(tickClock, 1000);
@@ -481,9 +490,20 @@ async function changePassword() {
 // ========================================================================
 
 async function loadWorkers() {
-  const grid = document.getElementById('workers-grid'); grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  const grid = document.getElementById('workers-grid');
+  const cached = cacheGet('workers');
+  if (cached) renderWorkers(cached);
+  else grid.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const r = await fetch(API + '/api/users', {headers: hdr()}); const d = await r.json();
+    const r = await fetch(API + '/api/users', {headers: hdr()});
+    const d = await r.json();
+    cacheSet('workers', d);
+    renderWorkers(d);
+  } catch(e) { if (!cached) grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>'; }
+}
+
+function renderWorkers(d) {
+  const grid = document.getElementById('workers-grid');
     if (!d.success || !d.users || d.users.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No workers yet</p></div>'; return; }
     const activeUsers = d.users.filter(u => u.is_active);
     if (activeUsers.length === 0) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>No active workers yet</p></div>'; return; }
@@ -505,7 +525,6 @@ async function loadWorkers() {
     });
     grid.innerHTML = html;
     activeUsers.forEach(u => { const saved = localStorage.getItem('avatar_' + u.id); if (saved) { const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } });
-  } catch(e) { grid.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>'; }
 }
 
 async function registerWorker() {
@@ -529,12 +548,14 @@ async function registerWorker() {
 }
 
 async function updateRole(userId, newRole) {
+  cacheInvalidate('workers');
   try { const r = await fetch(API + '/api/users/' + userId, {method:'PATCH',headers:hdr(),body:JSON.stringify({role:newRole})}); const d = await r.json(); if (d.success) toast('✅ Role updated!'); else { toast(d.error || 'Failed to update role', 'err'); loadWorkers(); } } catch(e) { toast('Connection error', 'err'); loadWorkers(); }
 }
 
 async function deleteWorker(userId, name) {
   const confirmed = await showModal({icon:'🗑️',title:'Delete Worker?',message:'This will permanently delete ' + name + ' and all their data. This action cannot be undone.',confirmText:'Delete',danger:true});
   if (!confirmed) return;
+  cacheInvalidate('workers'); cacheInvalidate('allEntries');
   try {
     const r = await fetch(API + '/api/users/' + userId, {method:'DELETE',headers:hdr()});
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -546,19 +567,17 @@ async function deleteWorker(userId, name) {
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
 
-  // Remember which persons are currently expanded
-  const expandedPids = new Set();
-  document.querySelectorAll('[class^="entry-row-"]').forEach(row => {
-    if (row.style.display !== 'none') {
-      const cls = [...row.classList].find(c => c.startsWith('entry-row-'));
-      if (cls) expandedPids.add(cls.replace('entry-row-', ''));
-    }
-  });
+  // Show cached data instantly if available
+  const cached = cacheGet('allEntries');
+  if (!cached) {
+    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  }
 
-  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
-    const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()}); const d = await r.json();
+    const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()});
+    const d = await r.json();
     if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
+    cacheSet('allEntries', d);
     const byPerson = {};
     d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
     if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
@@ -585,13 +604,16 @@ async function loadAllEntries() {
     });
     tb.innerHTML = html;
     Object.entries(byPerson).forEach(([name, data]) => { if (data.user_id) { const saved = localStorage.getItem('avatar_' + data.user_id); if (saved) { const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
-    // Restore previously expanded persons
-    expandedPids.forEach(pid => {
+    // Restore expanded state from tracker
+    expandedPersons.forEach(pid => {
       const rows = document.querySelectorAll('.entry-row-' + pid);
       const arr = document.getElementById('arr_' + pid);
       if (rows.length) {
         rows.forEach(row => { row.style.display = ''; });
         if (arr) arr.style.transform = 'rotate(0deg)';
+      } else {
+        // Person no longer exists, remove from tracker
+        expandedPersons.delete(pid);
       }
     });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
@@ -603,6 +625,8 @@ function togglePerson(pid) {
   const isHidden = entries[0].style.display === 'none';
   entries.forEach(row => { row.style.display = isHidden ? '' : 'none'; });
   arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+  if (isHidden) expandedPersons.add(pid);
+  else expandedPersons.delete(pid);
 }
 
 
@@ -1024,7 +1048,7 @@ async function editTimeEntry(entryId) {
   const entry = allEntriesData[entryId];
   if (!entry) { toast('Entry not found. Please refresh the page.', 'err'); return; }
   const confirmed = await showEditTimeModal(entry);
-  if (confirmed) { loadAllEntries(); toast('✅ Time entry updated!'); }
+  if (confirmed) { cacheInvalidate('allEntries'); loadAllEntries(); toast('✅ Time entry updated!'); }
 }
 
 function showEditTimeModal(entry) {
