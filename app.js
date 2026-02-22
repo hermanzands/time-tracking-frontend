@@ -545,6 +545,16 @@ async function deleteWorker(userId, name) {
 
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
+
+  // Remember which persons are currently expanded
+  const expandedPids = new Set();
+  document.querySelectorAll('[class^="entry-row-"]').forEach(row => {
+    if (row.style.display !== 'none') {
+      const cls = [...row.classList].find(c => c.startsWith('entry-row-'));
+      if (cls) expandedPids.add(cls.replace('entry-row-', ''));
+    }
+  });
+
   tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   try {
     const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()}); const d = await r.json();
@@ -575,6 +585,15 @@ async function loadAllEntries() {
     });
     tb.innerHTML = html;
     Object.entries(byPerson).forEach(([name, data]) => { if (data.user_id) { const saved = localStorage.getItem('avatar_' + data.user_id); if (saved) { const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
+    // Restore previously expanded persons
+    expandedPids.forEach(pid => {
+      const rows = document.querySelectorAll('.entry-row-' + pid);
+      const arr = document.getElementById('arr_' + pid);
+      if (rows.length) {
+        rows.forEach(row => { row.style.display = ''; });
+        if (arr) arr.style.transform = 'rotate(0deg)';
+      }
+    });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
 }
 
