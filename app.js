@@ -1666,19 +1666,20 @@ function updateForumToolbarState() {
 function forumInsertHeading(level) {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
   const range = sel.getRangeAt(0);
-
-  // Find the block-level ancestor inside the editor
   let block = range.commonAncestorContainer;
   if (block.nodeType === 3) block = block.parentElement;
   while (block && block !== editor && !['P','DIV','H1','H2','H3','H4','H5','H6','LI'].includes(block.tagName)) {
     block = block.parentElement;
   }
-
   if (block && block !== editor) {
-    // If already this heading level, convert back to p
     if (block.tagName === 'H' + level) {
       const p = document.createElement('p');
       p.innerHTML = block.innerHTML;
@@ -1689,7 +1690,6 @@ function forumInsertHeading(level) {
       block.replaceWith(h);
     }
   } else {
-    // No block found — wrap selected text
     const h = document.createElement('h' + level);
     h.appendChild(range.extractContents());
     range.insertNode(h);
@@ -2256,11 +2256,17 @@ document.addEventListener('DOMContentLoaded', () => {
   try { document.execCommand('enableInlineTableEditing', false, false); } catch(e) {}
 
   // Prevent toolbar buttons from stealing focus — makes H1/H2/H3 work
-  document.querySelectorAll('.forum-toolbar button, .forum-toolbar select').forEach(el => {
+document.querySelectorAll('.forum-toolbar button').forEach(el => {
     el.addEventListener('mousedown', e => e.preventDefault());
   });
-});
-
+  const fontSizeSelect = document.getElementById('forum-font-size');
+  if (fontSizeSelect) {
+    fontSizeSelect.addEventListener('mousedown', () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
+    });
+  }
+  
 function closeImageModal() {
   document.getElementById('image-modal-overlay').classList.remove('show');
 }
