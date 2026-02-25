@@ -1572,6 +1572,7 @@ function applyColor(hex) {
     sel.removeAllRanges();
     sel.addRange(forumEditorSavedRange);
   }
+  
   document.execCommand('foreColor', false, hex);
   document.getElementById('forum-color-swatch').style.background = hex;
 }
@@ -1666,12 +1667,11 @@ function updateForumToolbarState() {
 function forumInsertHeading(level) {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
+const sel = window.getSelection();
   if (forumEditorSavedRange) {
-    const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(forumEditorSavedRange);
   }
-  const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
   const range = sel.getRangeAt(0);
   let block = range.commonAncestorContainer;
