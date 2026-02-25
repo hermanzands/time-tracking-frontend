@@ -298,6 +298,9 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
 /* Hide browser object resize UI */
 .forum-editor{-webkit-user-modify:read-write;}
 /* List indentation — stops items clipping at the edge */
+.forum-editor h1,.forum-detail-body h1{font-size:2em;font-weight:800;margin:12px 0;line-height:1.2;}
+.forum-editor h2,.forum-detail-body h2{font-size:1.5em;font-weight:700;margin:10px 0;line-height:1.3;}
+.forum-editor h3,.forum-detail-body h3{font-size:1.2em;font-weight:600;margin:8px 0;line-height:1.4;}
 .forum-editor ul,.forum-editor ol{padding-left:24px;margin:6px 0;}
 .forum-editor li{margin:2px 0;}
 /* Table — don't force 100% width so last column can be resized inward */
