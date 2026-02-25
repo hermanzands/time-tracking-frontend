@@ -1643,6 +1643,23 @@ function updateForumToolbarState() {
     const btn = document.getElementById('forum-btn-' + cmd);
     if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
   });
+
+  // Sync font size dropdown to cursor position
+  const fontSizeSelect = document.getElementById('forum-font-size');
+  if (fontSizeSelect) {
+    const node = window.getSelection()?.anchorNode;
+    const el = node?.nodeType === 3 ? node.parentElement : node;
+    const editor = document.getElementById('forum-body-input');
+    if (el && el !== editor) {
+      const px = parseInt(window.getComputedStyle(el).fontSize);
+      let closest = null, closestDiff = Infinity;
+      for (const opt of fontSizeSelect.options) {
+        const diff = Math.abs(parseInt(opt.value) - px);
+        if (diff < closestDiff) { closestDiff = diff; closest = opt.value; }
+      }
+      if (closest) fontSizeSelect.value = closest;
+    }
+  }
 }
 
 // === HEADINGS ===
