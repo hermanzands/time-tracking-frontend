@@ -262,18 +262,6 @@ function showApp() {
   initPushNotifications();
 }
 
-function ensureMobilePendingTab() {
-  if (document.getElementById('msi-pending')) return;
-  const mobileNav = document.querySelector('.mobile-nav');
-  if (!mobileNav) return;
-  const item = document.createElement('button');
-  item.className = 'mobile-nav-item nav-item';
-  item.id = 'msi-pending';
-  item.onclick = () => go('pending');
-  item.innerHTML = '<span class="mobile-nav-icon">⏳</span>Approvals';
-  mobileNav.appendChild(item);
-}
-
 // === PUSH NOTIFICATIONS ===
 const VAPID_PUBLIC_KEY = 'BHOEJ-yhOEPT7sLzxU7IsNlyqgrQLcRoZbI8XC8KDtpwAC_15IxPY1NBblW9LXtxSzVk22fq0PgWqCiocy7vbac';
 
