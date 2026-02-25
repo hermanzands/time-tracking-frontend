@@ -2258,14 +2258,15 @@ document.addEventListener('DOMContentLoaded', () => {
 document.querySelectorAll('.forum-toolbar button').forEach(el => {
     el.addEventListener('mousedown', e => e.preventDefault());
   });
-  const fontSizeSelect = document.getElementById('forum-font-size');
+const fontSizeSelect = document.getElementById('forum-font-size');
   if (fontSizeSelect) {
     fontSizeSelect.addEventListener('mousedown', () => {
       const sel = window.getSelection();
       if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
     });
   }
-  
+});
+
 function closeImageModal() {
   document.getElementById('image-modal-overlay').classList.remove('show');
 }
