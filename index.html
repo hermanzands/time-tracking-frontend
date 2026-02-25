@@ -353,7 +353,7 @@
         </div>
       </div>
     
-      <!-- FORUM -->
+  <!-- FORUM -->
       <div class="panel" id="panel-forum">
         <!-- INDEX VIEW -->
         <div id="forum-index-view">
@@ -417,7 +417,7 @@
   <button onmousedown="event.preventDefault();forumInsertHeading(3)" title="Heading 3" style="font-weight:600;font-size:11px;">H3</button>
   <div class="forum-toolbar-sep"></div>
   <!-- Font size -->
-  <select onchange="forumSetFontSizePx(this.value)" title="Font size" style="width:52px;padding:3px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+  <select id="forum-font-size" onchange="forumSetFontSizePx(this.value)" title="Font size" style="width:52px;padding:3px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;">
     <option value="8">8</option>
     <option value="10">10</option>
     <option value="12">12</option>
@@ -437,8 +437,8 @@
   <button onmousedown="event.preventDefault();forumAlign('justifyRight')" title="Align right">➡</button>
   <div class="forum-toolbar-sep"></div>
   <!-- Lists -->
-<button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• ≡</button>
-<button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1≡</button>
+  <button onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">• ≡</button>
+  <button onmousedown="event.preventDefault();document.execCommand('insertOrderedList')" title="Numbered list">1≡</button>
   <div class="forum-toolbar-sep"></div>
   <!-- Color + Emoji + Image + Table -->
   <button id="forum-color-btn" onmousedown="event.preventDefault();toggleColorPicker(event)" title="Text color" style="padding:4px 8px;display:flex;align-items:center;gap:5px;">
@@ -465,7 +465,6 @@
           </div>
         </div>
       </div>
-
 
       <!-- REIMBURSEMENTS -->
       <div class="panel" id="panel-reimburse">
