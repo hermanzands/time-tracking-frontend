@@ -1649,12 +1649,34 @@ function updateForumToolbarState() {
 function forumInsertHeading(level) {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  if (forumEditorSavedRange) {
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(forumEditorSavedRange);
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+
+  // Find the block-level ancestor inside the editor
+  let block = range.commonAncestorContainer;
+  if (block.nodeType === 3) block = block.parentElement;
+  while (block && block !== editor && !['P','DIV','H1','H2','H3','H4','H5','H6','LI'].includes(block.tagName)) {
+    block = block.parentElement;
   }
-  document.execCommand('formatBlock', false, 'h' + level);
+
+  if (block && block !== editor) {
+    // If already this heading level, convert back to p
+    if (block.tagName === 'H' + level) {
+      const p = document.createElement('p');
+      p.innerHTML = block.innerHTML;
+      block.replaceWith(p);
+    } else {
+      const h = document.createElement('h' + level);
+      h.innerHTML = block.innerHTML;
+      block.replaceWith(h);
+    }
+  } else {
+    // No block found — wrap selected text
+    const h = document.createElement('h' + level);
+    h.appendChild(range.extractContents());
+    range.insertNode(h);
+  }
 }
 
 // === ALIGNMENT ===
