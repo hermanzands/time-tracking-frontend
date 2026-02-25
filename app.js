@@ -245,6 +245,7 @@ function showApp() {
     }
     initChat();
     loadPendingEmployees();
+    ensureMobilePendingTab();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
   }
@@ -259,6 +260,18 @@ function showApp() {
   }).catch(() => {});
   // Register push notifications
   initPushNotifications();
+}
+
+function ensureMobilePendingTab() {
+  if (document.getElementById('msi-pending')) return;
+  const mobileNav = document.querySelector('.mobile-nav');
+  if (!mobileNav) return;
+  const item = document.createElement('button');
+  item.className = 'mobile-nav-item nav-item';
+  item.id = 'msi-pending';
+  item.onclick = () => go('pending');
+  item.innerHTML = '<span class="mobile-nav-icon">⏳</span>Approvals';
+  mobileNav.appendChild(item);
 }
 
 // === PUSH NOTIFICATIONS ===
@@ -340,6 +353,8 @@ function go(panel) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   const si = document.getElementById('si-' + panel);
   if (si) si.classList.add('active');
+  const msi = document.getElementById('msi-' + panel);
+  if (msi) msi.classList.add('active');
   document.getElementById('panel-' + panel).classList.add('active');
   localStorage.setItem('wt_last_panel', panel);
   if (panel === 'hours') loadMyEntries();
@@ -664,6 +679,8 @@ async function calcPayments() {
       const workersRes = await fetch(API + '/api/users', {headers: hdr()}); const workersData = await workersRes.json();
       const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
       const allManagers = workersData.success ? workersData.users.filter(u => u.role === 'manager') : [];
+      const userMap = {};
+      if (workersData.success) workersData.users.forEach(u => { userMap[u.id] = u; });
 
       // Add farmers who didn't work (still get flat share)
       const farmerPool = total * 0.20;
@@ -713,8 +730,10 @@ async function calcPayments() {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
         const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
+        const sid = userMap[p.user_id]?.sid;
+        const sidTag = sid ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ${escapeHtml(sid)}</div>` : '';
         html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div><div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
+        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
         html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
@@ -891,6 +910,16 @@ function showModal(options) {
   return new Promise((resolve) => {
     modalResolve = resolve;
     const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+    // Always rebuild so previous modals can't break it
+    box.innerHTML = `
+      <div id="modal-icon" class="modal-icon"></div>
+      <div id="modal-title" class="modal-title"></div>
+      <div id="modal-message" class="modal-message"></div>
+      <div class="modal-buttons">
+        <button id="modal-cancel" class="modal-btn modal-btn-cancel">Cancel</button>
+        <button id="modal-confirm" class="modal-btn modal-btn-primary">Confirm</button>
+      </div>`;
     document.getElementById('modal-icon').textContent = options.icon || '⚠️';
     document.getElementById('modal-title').textContent = options.title || 'Confirm Action';
     document.getElementById('modal-message').textContent = options.message || 'Are you sure?';
@@ -1632,7 +1661,12 @@ function updateForumToolbarState() {
 function forumInsertHeading(level) {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  document.execCommand('formatBlock', false, 'H' + level);
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
+  document.execCommand('formatBlock', false, 'h' + level);
 }
 
 // === ALIGNMENT ===
@@ -2127,6 +2161,12 @@ document.addEventListener('DOMContentLoaded', () => {
     bodyInput.addEventListener('mouseup', updateForumToolbarState);
     bodyInput.addEventListener('selectionchange', updateForumToolbarState);
 
+    // Save selection when editor loses focus so toolbar buttons can restore it
+    bodyInput.addEventListener('blur', () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) forumEditorSavedRange = sel.getRangeAt(0).cloneRange();
+    });
+
     // Backspace: delete table if cursor is immediately after or before it
     bodyInput.addEventListener('keydown', e => {
       if (e.key !== 'Backspace' && e.key !== 'Delete') return;
@@ -2185,9 +2225,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Disable browser object resize on forum editor
   try { document.execCommand('enableObjectResizing', false, false); } catch(e) {}
   try { document.execCommand('enableInlineTableEditing', false, false); } catch(e) {}
+
+  // Prevent toolbar buttons from stealing focus — makes H1/H2/H3 work
+  document.querySelectorAll('.forum-toolbar button, .forum-toolbar select').forEach(el => {
+    el.addEventListener('mousedown', e => e.preventDefault());
+  });
 });
 
 function closeImageModal() {
