@@ -2168,7 +2168,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Stock note input
   const noteInput = document.getElementById('stock-note-input');
   if (noteInput) noteInput.addEventListener('input', updateStockSubmitButton);
-}
   const urlInput = document.getElementById('image-modal-url');
   if (urlInput) urlInput.addEventListener('input', () => {
     const v = urlInput.value.trim();
