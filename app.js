@@ -1668,7 +1668,6 @@ function forumInsertHeading(level) {
   editor.focus();
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
-}
   const range = sel.getRangeAt(0);
   let block = range.commonAncestorContainer;
   if (block.nodeType === 3) block = block.parentElement;
