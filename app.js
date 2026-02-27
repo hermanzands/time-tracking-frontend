@@ -1659,35 +1659,6 @@ function updateForumToolbarState() {
     }
   }
 }
-// === HEADINGS ===
-function forumInsertHeading(level) {
-  const sizes = { 1: '2em', 2: '1.5em', 3: '1.2em' };
-  const weights = { 1: '800', 2: '700', 3: '600' };
-  const editor = document.getElementById('forum-body-input');
-  editor.focus();
-
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return;
-
-  // Toggle off if already this heading
-  let node = sel.anchorNode;
-  if (node && node.nodeType === 3) node = node.parentElement;
-  while (node && node !== editor) {
-    if (node.tagName === 'SPAN' && node.style.fontSize === sizes[level]) {
-      const parent = node.parentNode;
-      while (node.firstChild) parent.insertBefore(node.firstChild, node);
-      parent.removeChild(node);
-      return;
-    }
-    node = node.parentElement;
-  }
-
-  // Apply heading via insertHTML — most consistent across browsers
-  const selectedText = sel.toString();
-  document.execCommand('insertHTML', false,
-    `<span style="font-size:${sizes[level]};font-weight:${weights[level]};display:block;margin:8px 0;">${selectedText || '&#8203;'}</span>`
-  );
-}
 
 // === ALIGNMENT ===
 function forumAlign(cmd) {
