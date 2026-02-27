@@ -687,7 +687,6 @@ const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p
 const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
 
       // Reset all non-owner/non-farmer amounts
-const ownerPool = remaining * 0.20;
 const ownerCount = d.distributions.filter(p => p.role === 'owner').length;
 
 d.distributions.forEach(p => {
