@@ -671,7 +671,7 @@ async function calcPayments() {
       if (workersData.success) workersData.users.forEach(u => { userMap[u.id] = u; });
 
       // Add farmers who didn't work (still get flat share)
-      const farmerPool = total * 0.20;
+      const farmerPool = 50000;
       allFarmers.forEach(farmer => {
         const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id);
         if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:0,percentage:0});
@@ -694,9 +694,8 @@ async function calcPayments() {
           // Keep owner amount as-is from backend (20% split)
         } else if (p.role === 'farmer') {
           // Flat farmer share
-          const activeFarmers = allFarmers.length || 1;
-          p.amount = Math.round(farmerPool / activeFarmers);
-          p.percentage = 20 / activeFarmers;
+          p.amount = 50000;
+          p.percentage = 0;
         } else {
           // Manager or employee — hours-based share of 55%
           const hours = Number(p.total_hours) || 0;
@@ -1667,12 +1666,9 @@ function updateForumToolbarState() {
 function forumInsertHeading(level) {
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-const sel = window.getSelection();
-  if (forumEditorSavedRange) {
-    sel.removeAllRanges();
-    sel.addRange(forumEditorSavedRange);
-  }
+  const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
+}
   const range = sel.getRangeAt(0);
   let block = range.commonAncestorContainer;
   if (block.nodeType === 3) block = block.parentElement;
