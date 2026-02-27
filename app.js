@@ -1662,31 +1662,29 @@ function updateForumToolbarState() {
 
 // === HEADINGS ===
 function forumInsertHeading(level) {
+  const sizes = { 1: { size: '2em', weight: '800' }, 2: { size: '1.5em', weight: '700' }, 3: { size: '1.2em', weight: '600' } };
+  const { size, weight } = sizes[level];
   const editor = document.getElementById('forum-body-input');
   editor.focus();
+  if (forumEditorSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(forumEditorSavedRange);
+  }
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
   const range = sel.getRangeAt(0);
-  let block = range.commonAncestorContainer;
-  if (block.nodeType === 3) block = block.parentElement;
-  while (block && block !== editor && !['P','DIV','H1','H2','H3','H4','H5','H6','LI'].includes(block.tagName)) {
-    block = block.parentElement;
-  }
-  if (block && block !== editor) {
-    if (block.tagName === 'H' + level) {
-      const p = document.createElement('p');
-      p.innerHTML = block.innerHTML;
-      block.replaceWith(p);
-    } else {
-      const h = document.createElement('h' + level);
-      h.innerHTML = block.innerHTML;
-      block.replaceWith(h);
-    }
-  } else {
-    const h = document.createElement('h' + level);
-    h.appendChild(range.extractContents());
-    range.insertNode(h);
-  }
+  const contents = range.extractContents();
+  const span = document.createElement('span');
+  span.style.fontSize = size;
+  span.style.fontWeight = weight;
+  span.style.display = 'block';
+  span.style.margin = '8px 0';
+  span.appendChild(contents);
+  range.insertNode(span);
+  range.selectNodeContents(span);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 // === ALIGNMENT ===
