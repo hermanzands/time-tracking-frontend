@@ -677,39 +677,38 @@ async function calcPayments() {
         if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:0,percentage:0});
       });
 
-      // Manager flat bonus: 5% of total split among all managers
-      const managerBonusPool = total * 0.05;
-      const managerCount = allManagers.length;
+      const farmerFlat = 50000;
+      const remaining = Math.max(0, total - farmerFlat); // Everything after paying farmers
 
-      // Recalculate hours pool: 55% split by hours among everyone who worked (employees + managers)
-      // Backend already gives owner 20% and remaining 80% to others by hours
-      // We need to override with: owners=20%, farmers=20%, manager bonus=5%, hours pool=55%
-      const hoursPool = total * 0.55;
+      const managerBonusPool = remaining * 0.05;
+      const managerCount = allManagers.length;
+      const hoursPool = remaining * 0.70; // 70% of remaining for hours-based pay
       const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p.role) && Number(p.total_hours) > 0);
       const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
 
       // Reset all non-owner/non-farmer amounts
-      d.distributions.forEach(p => {
-        if (p.role === 'owner') {
-          // Keep owner amount as-is from backend (20% split)
-        } else if (p.role === 'farmer') {
-          // Flat farmer share
-          p.amount = 50000;
-          p.percentage = 0;
-        } else {
-          // Manager or employee — hours-based share of 55%
-          const hours = Number(p.total_hours) || 0;
-          const hoursShare = totalWorkedHours > 0 ? (hours / totalWorkedHours) * hoursPool : 0;
-          p.amount = Math.round(hoursShare);
-          p._hoursAmount = Math.round(hoursShare);
-          // Add manager flat bonus on top
-          if (p.role === 'manager' && managerCount > 0) {
-            const bonus = Math.round(managerBonusPool / managerCount);
-            p.amount = Math.round(hoursShare) + bonus;
-            p._managerBonus = bonus;
-          }
-        }
-      });
+const ownerPool = remaining * 0.20;
+const ownerCount = d.distributions.filter(p => p.role === 'owner').length;
+
+d.distributions.forEach(p => {
+  if (p.role === 'owner') {
+    p.amount = ownerCount > 0 ? Math.round(ownerPool / ownerCount) : 0;
+    p.percentage = ownerCount > 0 ? (0.20 / ownerCount) * 100 : 0;
+  } else if (p.role === 'farmer') {
+    p.amount = 50000;
+    p.percentage = 0;
+  } else {
+    const hours = Number(p.total_hours) || 0;
+    const hoursShare = totalWorkedHours > 0 ? (hours / totalWorkedHours) * hoursPool : 0;
+    p.amount = Math.round(hoursShare);
+    p._hoursAmount = Math.round(hoursShare);
+    if (p.role === 'manager' && managerCount > 0) {
+      const bonus = Math.round(managerBonusPool / managerCount);
+      p.amount = Math.round(hoursShare) + bonus;
+      p._managerBonus = bonus;
+    }
+  }
+});
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
       let html = '';
