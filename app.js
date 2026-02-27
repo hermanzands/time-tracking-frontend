@@ -245,7 +245,6 @@ function showApp() {
     }
     initChat();
     loadPendingEmployees();
-    ensureMobilePendingTab();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
   }
