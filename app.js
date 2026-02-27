@@ -44,6 +44,10 @@ function fmtDate(s) { return new Date(s).toLocaleDateString([], {month: 'short',
 function fmtTime(s) { return new Date(s).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}); }
 function togglePwd(inputId, btn) { const inp = document.getElementById(inputId); if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; } else { inp.type = 'password'; btn.textContent = '👁'; } }
 
+// Keep backend awake — ping every 10 minutes
+setInterval(() => {
+  fetch(API + '/api/health').catch(() => {});
+}, 10 * 60 * 1000);
 
 // ========================================================================
 // AUTH — Login, register, forgot password
