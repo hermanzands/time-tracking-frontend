@@ -1659,22 +1659,17 @@ function updateForumToolbarState() {
     }
   }
 }
-
 // === HEADINGS ===
 function forumInsertHeading(level) {
   const sizes = { 1: '2em', 2: '1.5em', 3: '1.2em' };
   const weights = { 1: '800', 2: '700', 3: '600' };
   const editor = document.getElementById('forum-body-input');
   editor.focus();
-  const sel = window.getSelection();
-  if (forumEditorSavedRange) {
-    sel.removeAllRanges();
-    sel.addRange(forumEditorSavedRange);
-  }
-  if (!sel || !sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
 
-  // Check if already wrapped in this heading size — if so, unwrap it
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+
+  // Toggle off if already this heading
   let node = sel.anchorNode;
   if (node && node.nodeType === 3) node = node.parentElement;
   while (node && node !== editor) {
@@ -1687,18 +1682,11 @@ function forumInsertHeading(level) {
     node = node.parentElement;
   }
 
-  // Apply heading
-  const contents = range.extractContents();
-  const span = document.createElement('span');
-  span.style.fontSize = sizes[level];
-  span.style.fontWeight = weights[level];
-  span.style.display = 'block';
-  span.style.margin = '8px 0';
-  span.appendChild(contents);
-  range.insertNode(span);
-  range.selectNodeContents(span);
-  sel.removeAllRanges();
-  sel.addRange(range);
+  // Apply heading via insertHTML — most consistent across browsers
+  const selectedText = sel.toString();
+  document.execCommand('insertHTML', false,
+    `<span style="font-size:${sizes[level]};font-weight:${weights[level]};display:block;margin:8px 0;">${selectedText || '&#8203;'}</span>`
+  );
 }
 
 // === ALIGNMENT ===
