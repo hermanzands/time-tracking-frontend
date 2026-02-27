@@ -411,11 +411,7 @@
   <button id="forum-btn-underline" onmousedown="event.preventDefault();document.execCommand('underline');updateForumToolbarState();" title="Underline" style="text-decoration:underline;min-width:30px;">U</button>
   <button id="forum-btn-strikeThrough" onmousedown="event.preventDefault();document.execCommand('strikeThrough');updateForumToolbarState();" title="Strikethrough" style="text-decoration:line-through;min-width:30px;">S</button>
   <div class="forum-toolbar-sep"></div>
-  <!-- Headings -->
-  <button onmousedown="event.preventDefault();forumInsertHeading(1)" title="Heading 1" style="font-weight:800;font-size:13px;">H1</button>
-  <button onmousedown="event.preventDefault();forumInsertHeading(2)" title="Heading 2" style="font-weight:700;font-size:12px;">H2</button>
-  <button onmousedown="event.preventDefault();forumInsertHeading(3)" title="Heading 3" style="font-weight:600;font-size:11px;">H3</button>
-  <div class="forum-toolbar-sep"></div>
+
   <!-- Font size -->
   <select id="forum-font-size" onchange="forumSetFontSizePx(this.value)" title="Font size" style="width:52px;padding:3px 2px;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;">
     <option value="8">8</option>
