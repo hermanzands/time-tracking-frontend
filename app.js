@@ -1666,12 +1666,11 @@ function forumInsertHeading(level) {
   const weights = { 1: '800', 2: '700', 3: '600' };
   const editor = document.getElementById('forum-body-input');
   editor.focus();
+  const sel = window.getSelection();
   if (forumEditorSavedRange) {
-    const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(forumEditorSavedRange);
   }
-  const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
   const range = sel.getRangeAt(0);
 
@@ -1680,7 +1679,6 @@ function forumInsertHeading(level) {
   if (node && node.nodeType === 3) node = node.parentElement;
   while (node && node !== editor) {
     if (node.tagName === 'SPAN' && node.style.fontSize === sizes[level]) {
-      // Unwrap: replace span with its contents
       const parent = node.parentNode;
       while (node.firstChild) parent.insertBefore(node.firstChild, node);
       parent.removeChild(node);
@@ -1689,7 +1687,7 @@ function forumInsertHeading(level) {
     node = node.parentElement;
   }
 
-  // Otherwise apply the heading
+  // Apply heading
   const contents = range.extractContents();
   const span = document.createElement('span');
   span.style.fontSize = sizes[level];
