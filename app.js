@@ -677,14 +677,14 @@ async function calcPayments() {
         if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:0,percentage:0});
       });
 
-      const farmerFlat = 50000;
-      const remaining = Math.max(0, total - farmerFlat); // Everything after paying farmers
-
-      const managerBonusPool = remaining * 0.05;
-      const managerCount = allManagers.length;
-      const hoursPool = remaining * 0.70; // 70% of remaining for hours-based pay
-      const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p.role) && Number(p.total_hours) > 0);
-      const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
+const farmerFlat = 50000;
+const remaining = Math.max(0, total - farmerFlat);
+const ownerPool = remaining * 0.20;
+const managerBonusPool = remaining * 0.05;
+const hoursPool = remaining - ownerPool - managerBonusPool;
+const managerCount = allManagers.length;
+const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p.role) && Number(p.total_hours) > 0);
+const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
 
       // Reset all non-owner/non-farmer amounts
 const ownerPool = remaining * 0.20;
