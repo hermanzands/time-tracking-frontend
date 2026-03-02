@@ -577,6 +577,24 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
+async function clearAllHours() {
+  if (user.role !== 'owner') return;
+  const confirmed = await showModal({
+    icon: '⚠️',
+    title: 'Clear All Hours?',
+    message: 'This will permanently delete ALL time entries for ALL employees. This cannot be undone.',
+    confirmText: 'Delete All',
+    danger: true
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/time-entries/all', {method: 'DELETE', headers: hdr()});
+    const d = await r.json();
+    if (d.success) { toast('🗑️ All hours cleared'); cacheInvalidate('allEntries'); loadAllEntries(); }
+    else toast(d.error || 'Failed to clear', 'err');
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
 
