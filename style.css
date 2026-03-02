@@ -515,3 +515,16 @@ table{width:100%;border-collapse:collapse;table-layout:fixed;}
   background: rgba(124,111,247,.1);
   border-top: 2px solid var(--accent);
 }
+
+button {
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+button:active {
+  transform: scale(0.96);
+}
