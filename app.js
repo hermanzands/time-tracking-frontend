@@ -1386,7 +1386,7 @@ function renderEmployees(employees) {
     const initial = displayName(emp)[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
     html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
     html += '<div class="employee-card-header"><div class="employee-avatar-large"><span class="avatar-letter">' + initial + '</span><img class="avatar-img emp-av-' + safeId + '"></div>';
-    html += '<div class="employee-header-info"><div class="employee-name">' + displayName(emp) + '</div>;
+    html += '<div class="employee-header-info"><div class="employee-name">' + displayName(emp) + '</div><span class="badge badge-' + emp.role + '">' + emp.role + '</span></div></div>';
     html += '<div class="employee-details">';
     if (emp.sid) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">🆔</div><div class="employee-detail-content"><div class="employee-detail-label">Employee ID</div><div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div></div></div>'; }
     if (emp.phone) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">📞</div><div class="employee-detail-content"><div class="employee-detail-label">Phone</div><div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div></div></div>'; }
