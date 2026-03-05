@@ -441,12 +441,35 @@ async function loadMyPayments() {
 
 function loadProfile() {
   if (!user) return;
-  document.getElementById('profile-name').textContent = user.nickname;
+  const displayName = user.display_name || user.nickname;
+  document.getElementById('profile-name').textContent = displayName;
   document.getElementById('profile-role-txt').textContent = user.role;
-  document.getElementById('avatar-letter').textContent = user.nickname[0].toUpperCase();
+  document.getElementById('avatar-letter').textContent = displayName[0].toUpperCase();
+  const displayNameInput = document.getElementById('profile-display-name');
+  if (displayNameInput) displayNameInput.value = user.display_name || '';
   const savedAvatar = localStorage.getItem('avatar_' + user.id);
   if (savedAvatar) { document.getElementById('avatar-img').src = savedAvatar; document.getElementById('avatar-img').style.display = 'block'; }
   else { document.getElementById('avatar-img').style.display = 'none'; }
+}
+
+async function updateDisplayName() {
+  const input = document.getElementById('profile-display-name');
+  const errEl = document.getElementById('display-name-err');
+  const display_name = input.value.trim();
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(API + '/api/users/me', {
+      method: 'PATCH', headers: hdr(),
+      body: JSON.stringify({ display_name })
+    });
+    const d = await r.json();
+    if (d.success) {
+      user.display_name = display_name;
+      localStorage.setItem('wt_user', JSON.stringify(user));
+      toast('✅ Display name updated!');
+      loadProfile();
+    } else { showErr(errEl, d.error || 'Failed to update'); }
+  } catch(e) { showErr(errEl, 'Connection error'); }
 }
 
 async function uploadAvatar(input) {
