@@ -1314,6 +1314,55 @@ function showEmployeeEditModal(emp) {
   });
 }
 
+function showSelfEditModal() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const box = overlay.querySelector('.modal-box');
+    let html = '';
+    html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">✏️ Edit My Info</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:16px;">';
+    html += '<div class="field"><label>Username (login)</label><input type="text" value="' + escapeHtml(user.nickname) + '" disabled style="opacity:0.5;cursor:not-allowed;"></div>';
+    html += '<div class="field"><label>Display Name</label><input id="self-edit-displayname" type="text" placeholder="How you appear to others" value="' + escapeHtml(user.display_name || '') + '"></div>';
+    html += '<div class="field"><label>Employee ID / SID</label><input id="self-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(user.sid || '') + '"></div>';
+    html += '<div class="field"><label>Phone Number</label><input id="self-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(user.phone || '') + '"></div>';
+    html += '</div>';
+    html += '<div class="modal-buttons" style="margin-top:20px;">';
+    html += '<button id="se-cancel-btn" class="modal-btn modal-btn-cancel">Cancel</button>';
+    html += '<button id="se-confirm-btn" class="modal-btn modal-btn-primary">Save Changes</button>';
+    html += '</div>';
+    box.innerHTML = html;
+    overlay.classList.add('show');
+    document.getElementById('se-cancel-btn').onclick = () => { overlay.classList.remove('show'); resolve(false); };
+    document.getElementById('se-confirm-btn').onclick = async () => {
+      const display_name = document.getElementById('self-edit-displayname').value.trim();
+      const sid = document.getElementById('self-edit-sid').value.trim();
+      const phone = document.getElementById('self-edit-phone').value.trim();
+      const btn = document.getElementById('se-confirm-btn');
+      btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+      try {
+        const r = await fetch(API + '/api/users/me', {
+          method: 'PATCH', headers: hdr(),
+          body: JSON.stringify({ display_name: display_name||null, sid: sid||null, phone: phone||null })
+        });
+        const d = await r.json();
+        if (d.success) {
+          user.display_name = display_name;
+          user.sid = sid;
+          user.phone = phone;
+          localStorage.setItem('wt_user', JSON.stringify(user));
+          overlay.classList.remove('show');
+          resolve(true);
+        } else { toast(d.error || 'Failed to update', 'err'); btn.disabled = false; btn.textContent = 'Save Changes'; }
+      } catch(e) { toast('Connection error', 'err'); btn.disabled = false; btn.textContent = 'Save Changes'; }
+    };
+  });
+}
+
+async function openSelfEditModal() {
+  const confirmed = await showSelfEditModal();
+  if (confirmed) { toast('✅ Profile updated!'); loadEmployees(); }
+}
+
 let allEmployees = [], editingEmployeeId = null;
 
 async function loadEmployees() {
