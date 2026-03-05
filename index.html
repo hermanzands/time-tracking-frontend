@@ -69,7 +69,6 @@
   </div>
 </div>
 
-<!-- Claude can remove this line -->  
 <!-- APP -->
 <div id="screen-app">
   <nav>
@@ -187,7 +186,18 @@
           <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="profile-role-txt"></div>
           <button onclick="removeAvatar()" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑 Remove Picture</button>
         </div>
-
+        
+        <div class="form-card">
+          <div class="form-card-title">✏️ Display Name</div>
+          <div class="field">
+            <label>Display Name</label>
+            <input id="profile-display-name" type="text" placeholder="How you appear to others">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Shown instead of your username throughout the app</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="updateDisplayName()">Save Display Name</button>
+          <div class="err-box" id="display-name-err"></div>
+        </div>
+        
         <div class="form-card">
           <div class="form-card-title">🔒 Change Password</div>
           <div class="field"><label>Current Password</label>
