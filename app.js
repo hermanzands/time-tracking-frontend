@@ -40,6 +40,7 @@ function toast(msg, type = 'ok') {
 function hdr() { return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}; }
 function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 function toHm(h) { const hrs = Math.floor(h); const mins = Math.round((h - hrs) * 60); if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
+function displayName(u) { return u.display_name || u.nickname || 'Unknown'; }
 function fmtDate(s) { return new Date(s).toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'}); }
 function fmtTime(s) { return new Date(s).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}); }
 function togglePwd(inputId, btn) { const inp = document.getElementById(inputId); if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; } else { inp.type = 'password'; btn.textContent = '👁'; } }
@@ -546,10 +547,10 @@ function renderWorkers(d) {
     let html = '';
     activeUsers.forEach(u => {
       const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_');
-      const safeName = u.nickname.replace(/'/g, "\\'");
+      const safeName = displayName(u).replace(/'/g, "\\'");
       html += '<div class="worker-card"><div class="worker-row">';
-      html += '<div class="avatar"><span class="avatar-letter">' + u.nickname[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
-      html += '<div class="worker-info"><div class="worker-name">' + u.nickname + '</div></div>';
+      html += '<div class="avatar"><span class="avatar-letter">' + displayName(u)[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
+      html += '<div class="worker-info"><div class="worker-name">' + displayName(u) + '</div></div>';
       const isOnline = onlineUsers.has(u.id);
       html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '"></div>';
       html += '</div><div class="worker-actions">';
@@ -633,7 +634,7 @@ async function loadAllEntries() {
     if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
     cacheSet('allEntries', d);
     const byPerson = {};
-    d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
+    d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.display_name || e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
     if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
     let html = '';
     Object.entries(byPerson).forEach(([name, data]) => {
@@ -761,8 +762,8 @@ d.distributions.forEach(p => {
         const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
         const sid = userMap[p.user_id]?.sid;
         const sidTag = sid ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ${escapeHtml(sid)}</div>` : '';
-        html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-        html += '<div><div style="font-weight:500">' + (p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
+        html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.display_name||p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
+       html += '<div><div style="font-weight:500">' + (p.display_name||p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
         html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
@@ -1275,7 +1276,8 @@ function showEmployeeEditModal(emp) {
     let html = '';
     html += '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px;">Edit Employee</div>';
     html += '<div style="display:flex;flex-direction:column;gap:16px;">';
-    html += '<div class="field"><label>Full Name</label><input id="emp-edit-name" type="text" value="' + escapeHtml(emp.nickname) + '"></div>';
+    html += '<div class="field"><label>Full Name (login)</label><input type="text" value="' + escapeHtml(emp.nickname) + '" disabled style="opacity:0.5;cursor:not-allowed;"></div>';
+    html += '<div class="field"><label>Display Name</label><input id="emp-edit-displayname" type="text" placeholder="How they appear to others" value="' + escapeHtml(emp.display_name || '') + '"></div>';
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
@@ -1294,16 +1296,15 @@ function showEmployeeEditModal(emp) {
     overlay.classList.add('show');
     cancelBtn.onclick = () => { overlay.classList.remove('show'); resolve(false); };
     confirmBtn.onclick = async () => {
-      const name  = document.getElementById('emp-edit-name').value.trim();
+      const display_name = document.getElementById('emp-edit-displayname').value.trim();
       const sid   = document.getElementById('emp-edit-sid').value.trim();
       const phone = document.getElementById('emp-edit-phone').value.trim();
       const role  = document.getElementById('emp-edit-role').value;
-      if (!name) { toast('Name is required', 'err'); return; }
       confirmBtn.innerHTML = '<span class="spinner"></span>'; confirmBtn.disabled = true;
       try {
         const r = await fetch(API + '/api/users/' + emp.id, {
           method: 'PATCH', headers: hdr(),
-          body: JSON.stringify({ nickname: name, sid: sid||null, phone: phone||null, role })
+          body: JSON.stringify({ display_name: display_name||null, sid: sid||null, phone: phone||null, role })
         });
         const d = await r.json();
         if (d.success) { toast('✅ Employee updated!'); overlay.classList.remove('show'); resolve(true); }
@@ -1333,10 +1334,10 @@ function renderEmployees(employees) {
   const sorted = [...employees].sort((a,b) => (roleOrder[a.role]||99)-(roleOrder[b.role]||99));
   let html = '';
   sorted.forEach(emp => {
-    const initial = (emp.nickname||'?')[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
+    const initial = displayName(emp)[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
     html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
     html += '<div class="employee-card-header"><div class="employee-avatar-large"><span class="avatar-letter">' + initial + '</span><img class="avatar-img emp-av-' + safeId + '"></div>';
-    html += '<div class="employee-header-info"><div class="employee-name">' + emp.nickname + '</div><span class="badge badge-' + emp.role + '">' + emp.role + '</span></div></div>';
+    html += '<div class="employee-header-info"><div class="employee-name">' + displayName(emp) + '</div>
     html += '<div class="employee-details">';
     if (emp.sid) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">🆔</div><div class="employee-detail-content"><div class="employee-detail-label">Employee ID</div><div class="employee-detail-value">' + escapeHtml(emp.sid) + '</div></div></div>'; }
     if (emp.phone) { html += '<div class="employee-detail-row"><div class="employee-detail-icon">📞</div><div class="employee-detail-content"><div class="employee-detail-label">Phone</div><div class="employee-detail-value">' + escapeHtml(emp.phone) + '</div></div></div>'; }
