@@ -113,9 +113,83 @@
       <button class="nav-item admin-only hidden" id="si-pending" onclick="go('pending')"><span class="icon">⏳</span>Pending Approvals</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
       <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
+      <button class="nav-item admin-only hidden" id="si-stats" onclick="go('stats')"><span class="icon">📈</span>Stats & Finance</button>
     </aside>
 
     <main class="main">
+      <!-- STATS & FINANCE -->
+<div class="panel" id="panel-stats">
+  <div class="page-title">Stats & Finance</div>
+  <div class="page-sub">Payout history and earnings overview</div>
+
+  <!-- Stat Cards -->
+  <div class="stats-row" id="stats-cards">
+    <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-green" id="stat-week">—</div></div>
+    <div class="stat"><div class="stat-label">This Month</div><div class="stat-val c-purple" id="stat-month">—</div></div>
+    <div class="stat"><div class="stat-label">All Time</div><div class="stat-val" id="stat-alltime">—</div></div>
+    <div class="stat"><div class="stat-label">🏆 Record</div><div class="stat-val c-green" id="stat-record">—</div></div>
+  </div>
+
+  <!-- Chart -->
+  <div class="form-card" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div class="form-card-title" style="margin-bottom:0;">Payout History</div>
+      <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px;">
+          <button class="stats-range-btn active" onclick="setStatsRange('week')">Week</button>
+          <button class="stats-range-btn" onclick="setStatsRange('month')">Month</button>
+          <button class="stats-range-btn" onclick="setStatsRange('year')">Year</button>
+        </div>
+        <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px;">
+          <button class="stats-type-btn active" onclick="setStatsType('bar')">Bar</button>
+          <button class="stats-type-btn" onclick="setStatsType('line')">Line</button>
+        </div>
+      </div>
+    </div>
+    <canvas id="stats-chart" height="100"></canvas>
+  </div>
+
+  <!-- Payout Log -->
+  <div class="form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="form-card-title" style="margin-bottom:0;">Payout Log</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddPayoutModal()">➕ Add Payout</button>
+    </div>
+    <div id="payout-log-list">
+      <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
+        <div style="font-size:48px;margin-bottom:12px;">💸</div>
+        <div style="font-weight:600;margin-bottom:6px;">No payouts yet</div>
+        <div style="font-size:13px;">Add your first payout to get started</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PAYOUT MODAL -->
+<div id="add-payout-overlay" class="modal-overlay" onclick="if(event.target===this)closeAddPayoutModal()">
+  <div class="modal-box">
+    <div style="font-size:22px;margin-bottom:6px;">💸</div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:16px;">Add Payout</div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Amount ($)</label>
+      <input id="payout-amount-input" type="number" placeholder="e.g. 8500" min="0" step="0.01" style="width:100%;">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Date</label>
+      <input id="payout-date-input" type="date" style="width:100%;">
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Note (optional)</label>
+      <input id="payout-note-input" type="text" placeholder="e.g. Week 22 payout" style="width:100%;">
+    </div>
+    <div class="err-box" id="payout-err"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-ghost" onclick="closeAddPayoutModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitPayout()">Save Payout</button>
+    </div>
+  </div>
+</div>
+      
       <!-- CLOCK -->
       <div class="panel active" id="panel-clock">
         <div class="page-title">Time Clock</div>
