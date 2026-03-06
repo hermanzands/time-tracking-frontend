@@ -368,16 +368,15 @@ function go(panel) {
 // ========================================================================
 
 async function loadClockStatus() {
-  // Toon meteen de gecachede status terwijl we wachten op de API
   const cached = localStorage.getItem('wt_clock_cache');
   if (cached) {
     const { clocked, clockIn } = JSON.parse(cached);
     if (clocked) setClocked(true, new Date(clockIn));
   }
-
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
     const d = await r.json();
+    console.log('API response:', d); // ← tijdelijk
     if (d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active') {
       const clockIn = d.entries[0].clock_in;
       localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));
@@ -386,8 +385,9 @@ async function loadClockStatus() {
       localStorage.removeItem('wt_clock_cache');
       setClocked(false);
     }
-  } catch(e) {}
-  console.log('loadClockStatus error:', e);
+  } catch(e) {
+    console.log('loadClockStatus error:', e); // ← binnen catch
+  }
 }
 
 function setClocked(on, since) {
