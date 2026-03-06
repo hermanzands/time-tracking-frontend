@@ -359,7 +359,7 @@ function go(panel) {
   if (panel === 'forum') loadForumPosts();
   if (panel === 'reimburse') loadReimbursements();
   if (panel === 'stats') loadFinanceStats();
-  if (panel === 'clock') { loadClockStatus(); loadStats(); 
+  if (panel === 'clock') { loadClockStatus(); loadStats(); }
 }
 
 
