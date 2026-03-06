@@ -2023,9 +2023,14 @@ function forumRowHTML(post) {
         · ${timeStr}
       </div>
     </div>
-    <div class="forum-row-stat">
+<div class="forum-row-stat">
       <span class="forum-row-stat-label">Replies</span>
       <span class="forum-row-stat-val">${replyCount}</span>
+    </div>
+    <div class="forum-row-stat forum-views-btn" data-post-id="${post.id}" style="position:relative;cursor:pointer;" onmouseenter="loadForumViewers(this)" onmouseleave="hideForumViewers(this)">
+      <span class="forum-row-stat-label">Gezien</span>
+      <span class="forum-row-stat-val">👁 ${post.view_count || 0}</span>
+      <div class="forum-viewers-tooltip" style="display:none;position:absolute;bottom:calc(100% + 8px);right:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;min-width:140px;max-width:220px;font-size:12px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap;"></div>
     </div>
     <div class="forum-row-stat" style="display:flex;flex-direction:row;align-items:center;gap:8px;">
       <div style="display:flex;flex-direction:column;align-items:center;">
@@ -2035,6 +2040,31 @@ function forumRowHTML(post) {
       ${dragHandle}
     </div>
   </div>`;
+}
+
+async function loadForumViewers(el) {
+  const tooltip = el.querySelector('.forum-viewers-tooltip');
+  const postId = el.dataset.postId;
+  tooltip.style.display = 'block';
+  tooltip.innerHTML = '<span style="color:var(--muted);">Loading...</span>';
+  try {
+    const r = await fetch(API + '/api/forum/' + postId + '/views', { headers: hdr() });
+    const d = await r.json();
+    if (d.success && d.viewers.length > 0) {
+      tooltip.innerHTML = d.viewers.map(v =>
+        '<div style="padding:2px 0;color:var(--text);">👤 ' + escapeHtml(v.display_name || v.nickname) + '</div>'
+      ).join('');
+    } else {
+      tooltip.innerHTML = '<span style="color:var(--muted);">Nog niemand</span>';
+    }
+  } catch(e) {
+    tooltip.innerHTML = '<span style="color:var(--muted);">Error</span>';
+  }
+}
+
+function hideForumViewers(el) {
+  const tooltip = el.querySelector('.forum-viewers-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
 }
 
 // Attach drag events + click after rendering forum rows
@@ -2122,6 +2152,7 @@ function toggleForumSection(section) {
 function openForumPost(postId) {
   const post = forumPosts.find(p => p.id === postId);
   if (!post) return;
+  fetch(API + '/api/forum/' + postId + '/view', { method: 'POST', headers: hdr() }).catch(() => {});
   document.getElementById('forum-index-view').style.display = 'none';
   document.getElementById('forum-new-view').style.display = 'none';
   document.getElementById('forum-detail-view').style.display = 'block';
