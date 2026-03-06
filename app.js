@@ -2703,7 +2703,7 @@ async function loadStats() {
 
 async function loadPayouts() {
   try {
-    const res = await fetch('/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
+    const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
     const data = await res.json();
     allPayouts = data.payouts || [];
     renderPayoutLog();
@@ -2903,13 +2903,13 @@ async function submitPayout() {
   if (!payout_date) { errEl.textContent = 'Select a date.'; return; }
 
   try {
-    const res = await fetch('/api/payouts', {
+    const res = await fetch(API + '/api/payouts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ amount, payout_date, note })
     });
     const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Failed to save.'; return; }
+    if (!res.ok || !data.success) { errEl.textContent = data.error || 'Failed to save.'; return; }
     closeAddPayoutModal();
     await loadPayouts();
     renderStatCards();
