@@ -360,6 +360,7 @@ function go(panel) {
   if (panel === 'profile') loadProfile();
   if (panel === 'forum') loadForumPosts();
   if (panel === 'reimburse') loadReimbursements();
+  if (panel === 'stats') loadStats();
 }
 
 
