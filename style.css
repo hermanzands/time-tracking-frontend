@@ -528,3 +528,20 @@ button:hover {
 button:active {
   transform: scale(0.96);
 }
+
+.stats-range-btn, .stats-type-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  transition: all .15s;
+}
+.stats-range-btn.active, .stats-type-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
