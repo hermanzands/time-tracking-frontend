@@ -400,7 +400,7 @@ function setClocked(on, since) {
 
 async function clockIn() {
   const btn = document.getElementById('btn-ci'); btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
-  try { const r = await fetch(API + '/api/time-entries/clock-in', {method:'POST',headers:hdr()}); const d = await r.json(); if (d.success) { setClocked(true, new Date()); toast('✅ Clocked in!'); loadStats(); } else { toast(d.error || 'Failed', 'err'); btn.disabled = false; } } catch(e) { toast('Connection error', 'err'); btn.disabled = false; }
+  try { const r = await fetch(API + '/api/time-entries/clock-in', {method:'POST',headers:hdr()}); const d = await r.json(); if (d.success) {    const clockIn = new Date().toISOString();   localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));   setClocked(true, new Date());    toast('✅ Clocked in!');    loadStats();  } else { toast(d.error || 'Failed', 'err'); btn.disabled = false; } } catch(e) { toast('Connection error', 'err'); btn.disabled = false; }
   btn.innerHTML = 'Clock In';
 }
 
