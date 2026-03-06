@@ -390,6 +390,7 @@ async function loadClockStatus() {
 }
 
 function setClocked(on, since) {
+  console.log('setClocked called:', on, since);
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
   const ci = document.getElementById('btn-ci'), co = document.getElementById('btn-co'), info = document.getElementById('clock-since');
   if (on) { pill.className = 'status-pill in'; dot.className = 'dot pulse'; txt.textContent = 'Currently clocked in'; ci.disabled = true; co.disabled = false; info.textContent = since ? 'Started at ' + since.toLocaleTimeString() : ''; }
