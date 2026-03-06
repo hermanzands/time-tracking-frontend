@@ -2685,3 +2685,253 @@ async function updateReimburseCounts() {
     if (pd) pd.textContent = dPaid.reimbursements?.length || 0;
   } catch(e) {}
 }
+
+// ============================================================
+// STATS & FINANCE
+// ============================================================
+let statsChart = null;
+let statsRange = 'month';
+let statsType = 'bar';
+let allPayouts = [];
+
+async function loadStats() {
+  await loadPayouts();
+  renderStatCards();
+  renderStatsChart();
+}
+
+async function loadPayouts() {
+  try {
+    const res = await fetch('/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
+    const data = await res.json();
+    allPayouts = data || [];
+    renderPayoutLog();
+  } catch (e) {
+    console.error('Failed to load payouts', e);
+  }
+}
+
+function renderStatCards() {
+  const now = new Date();
+
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const weekTotal = allPayouts
+    .filter(p => new Date(p.payout_date) >= weekStart)
+    .reduce((s, p) => s + parseFloat(p.amount), 0);
+
+  const monthTotal = allPayouts
+    .filter(p => new Date(p.payout_date) >= monthStart)
+    .reduce((s, p) => s + parseFloat(p.amount), 0);
+
+  const allTime = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
+
+  const record = allPayouts.length
+    ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
+    : 0;
+
+  document.getElementById('stat-week').textContent = '$' + weekTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('stat-month').textContent = '$' + monthTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('stat-alltime').textContent = '$' + allTime.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('stat-record').textContent = '$' + record.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function renderPayoutLog() {
+  const el = document.getElementById('payout-log-list');
+  if (!allPayouts.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
+      <div style="font-size:48px;margin-bottom:12px;">💸</div>
+      <div style="font-weight:600;margin-bottom:6px;">No payouts yet</div>
+      <div style="font-size:13px;">Add your first payout to get started</div>
+    </div>`;
+    return;
+  }
+
+  const sorted = [...allPayouts].sort((a, b) => new Date(b.payout_date) - new Date(a.payout_date));
+
+  el.innerHTML = sorted.map((p, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:13px;">#${sorted.length - i}</div>
+        <div>
+          <div style="font-weight:600;font-size:14px;">${p.note || 'Payout'}</div>
+          <div style="font-size:12px;color:var(--muted);">${new Date(p.payout_date).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'})}${p.creator_name ? ' · by ' + p.creator_name : ''}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${parseFloat(p.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</div>
+        <button onclick="deletePayout(${p.id})" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--danger);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStatsChart() {
+  const ctx = document.getElementById('stats-chart').getContext('2d');
+  const now = new Date();
+  let labels = [];
+  let values = [];
+
+  if (statsRange === 'week') {
+    // Last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const label = d.toLocaleDateString('en-US', {weekday:'short'});
+      const dayStr = d.toISOString().split('T')[0];
+      const total = allPayouts
+        .filter(p => p.payout_date.split('T')[0] === dayStr)
+        .reduce((s, p) => s + parseFloat(p.amount), 0);
+      labels.push(label);
+      values.push(total);
+    }
+  } else if (statsRange === 'month') {
+    // Last 8 weeks
+    for (let i = 7; i >= 0; i--) {
+      const wEnd = new Date(now);
+      wEnd.setDate(now.getDate() - i * 7);
+      const wStart = new Date(wEnd);
+      wStart.setDate(wEnd.getDate() - 6);
+      const label = wStart.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      const total = allPayouts
+        .filter(p => {
+          const d = new Date(p.payout_date);
+          return d >= wStart && d <= wEnd;
+        })
+        .reduce((s, p) => s + parseFloat(p.amount), 0);
+      labels.push(label);
+      values.push(total);
+    }
+  } else {
+    // Last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleDateString('en-US', {month:'short', year:'2-digit'});
+      const total = allPayouts
+        .filter(p => {
+          const pd = new Date(p.payout_date);
+          return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
+        })
+        .reduce((s, p) => s + parseFloat(p.amount), 0);
+      labels.push(label);
+      values.push(total);
+    }
+  }
+
+  if (statsChart) statsChart.destroy();
+
+  statsChart = new Chart(ctx, {
+    type: statsType,
+    data: {
+      labels,
+      datasets: [{
+        label: 'Payout ($)',
+        data: values,
+        backgroundColor: 'rgba(139,92,246,.35)',
+        borderColor: '#8b5cf6',
+        borderWidth: 2,
+        borderRadius: statsType === 'bar' ? 8 : 0,
+        pointBackgroundColor: '#8b5cf6',
+        tension: 0.4,
+        fill: statsType === 'line',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888' } },
+        y: {
+          grid: { color: 'rgba(255,255,255,.05)' },
+          ticks: {
+            color: '#888',
+            callback: v => '$' + v.toLocaleString()
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function setStatsRange(range) {
+  statsRange = range;
+  document.querySelectorAll('.stats-range-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderStatsChart();
+}
+
+function setStatsType(type) {
+  statsType = type;
+  document.querySelectorAll('.stats-type-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderStatsChart();
+}
+
+// --- Add Payout Modal ---
+function openAddPayoutModal() {
+  document.getElementById('payout-amount-input').value = '';
+  document.getElementById('payout-date-input').value = new Date().toISOString().split('T')[0];
+  document.getElementById('payout-note-input').value = '';
+  document.getElementById('payout-err').textContent = '';
+  document.getElementById('add-payout-overlay').style.display = 'flex';
+}
+
+function closeAddPayoutModal() {
+  document.getElementById('add-payout-overlay').style.display = 'none';
+}
+
+async function submitPayout() {
+  const amount = parseFloat(document.getElementById('payout-amount-input').value);
+  const payout_date = document.getElementById('payout-date-input').value;
+  const note = document.getElementById('payout-note-input').value.trim();
+  const errEl = document.getElementById('payout-err');
+
+  if (!amount || amount <= 0) { errEl.textContent = 'Enter a valid amount.'; return; }
+  if (!payout_date) { errEl.textContent = 'Select a date.'; return; }
+
+  try {
+    const res = await fetch('/api/payouts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ amount, payout_date, note })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Failed to save.'; return; }
+    closeAddPayoutModal();
+    await loadPayouts();
+    renderStatCards();
+    renderStatsChart();
+    showToast('Payout saved! 💸');
+  } catch (e) {
+    errEl.textContent = 'Server error.';
+  }
+}
+
+async function deletePayout(id) {
+  openConfirmModal('🗑️ Delete Payout', 'Are you sure you want to delete this payout?', async () => {
+    try {
+      await fetch('/api/payouts/' + id, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      await loadPayouts();
+      renderStatCards();
+      renderStatsChart();
+      showToast('Payout deleted.');
+    } catch (e) {
+      showToast('Failed to delete.');
+    }
+  });
+}
