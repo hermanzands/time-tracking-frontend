@@ -253,7 +253,6 @@ function showApp() {
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
   }
-loadStats();
 sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
 if (lastPanel && document.getElementById('panel-' + lastPanel)) go(lastPanel);
