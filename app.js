@@ -358,8 +358,8 @@ function go(panel) {
   if (panel === 'profile') loadProfile();
   if (panel === 'forum') loadForumPosts();
   if (panel === 'reimburse') loadReimbursements();
-  if (panel === 'stats') loadStats();
-  if (panel === 'clock') loadClockStatus();
+  if (panel === 'stats') loadFinanceStats();
+  if (panel === 'clock') { loadClockStatus(); loadStats(); 
 }
 
 
