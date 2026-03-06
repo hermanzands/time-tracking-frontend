@@ -361,6 +361,7 @@ function go(panel) {
   if (panel === 'forum') loadForumPosts();
   if (panel === 'reimburse') loadReimbursements();
   if (panel === 'stats') loadStats();
+  if (panel === 'clock') loadClockStatus();
 }
 
 
