@@ -2710,7 +2710,7 @@ let statsRange = 'month';
 let statsType = 'bar';
 let allPayouts = [];
 
-async function loadStats() {
+async function loadFinanceStats() {
   await loadPayouts();
   renderStatCards();
   renderStatsChart();
