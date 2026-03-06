@@ -387,6 +387,7 @@ async function loadClockStatus() {
       setClocked(false);
     }
   } catch(e) {}
+  console.log('loadClockStatus error:', e);
 }
 
 function setClocked(on, since) {
