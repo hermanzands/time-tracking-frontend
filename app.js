@@ -258,7 +258,6 @@ sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
 if (lastPanel && document.getElementById('panel-' + lastPanel)) go(lastPanel);
 else go('clock');
-loadClockStatus();
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
     if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
   }).catch(() => {});
