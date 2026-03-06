@@ -2705,7 +2705,7 @@ async function loadPayouts() {
   try {
     const res = await fetch('/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
     const data = await res.json();
-    allPayouts = data || [];
+    allPayouts = data.payouts || [];
     renderPayoutLog();
   } catch (e) {
     console.error('Failed to load payouts', e);
