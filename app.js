@@ -1380,11 +1380,11 @@ async function loadEmployees() {
 function renderEmployees(employees) {
   const grid = document.getElementById('employees-grid'); if (!grid) return;
   const roleOrder = {owner:0,manager:1,employee:2,farmer:3};
-  const sorted = [...employees].sort((a,b) => (roleOrder[a.role]||99)-(roleOrder[b.role]||99));
+  const sorted = [...employees].sort((a,b) => {   if (a.id === user.id) return -1;   if (b.id === user.id) return 1;   return (roleOrder[a.role]||99)-(roleOrder[b.role]||99); });
   let html = '';
   sorted.forEach(emp => {
     const initial = displayName(emp)[0].toUpperCase(), safeId = emp.id.replace(/[^a-zA-Z0-9]/g,'_');
-    html += '<div class="employee-card" onclick="openEmployeeModal(\'' + emp.id + '\')">';
+    const isMe = emp.id === user.id; html += '<div class="employee-card" onclick="' + (isMe ? 'openSelfEditModal()' : 'openEmployeeModal(\'' + emp.id + '\')') + '">';
     html += '<div class="employee-card-header"><div class="employee-avatar-large"><span class="avatar-letter">' + initial + '</span><img class="avatar-img emp-av-' + safeId + '"></div>';
     html += '<div class="employee-header-info"><div class="employee-name">' + displayName(emp) + '</div><span class="badge badge-' + emp.role + '">' + emp.role + '</span></div></div>';
     html += '<div class="employee-details">';
