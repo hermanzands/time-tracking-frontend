@@ -2951,3 +2951,102 @@ async function deletePayout(id) {
     }
   });
 }
+
+(function initCursor() {
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  const style = document.createElement('style');
+  style.textContent = '*, *:hover { cursor: none !important; }';
+  document.head.appendChild(style);
+
+  // Logo blue: #0BBFFF — between cyan and the graffiti blue
+  const COLOR_NORMAL = '#0BBFFF';
+  const COLOR_HOVER  = '#A855F7';
+
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99997;mix-blend-mode:screen;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const cc = document.createElement('canvas');
+  cc.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99999;';
+  document.body.appendChild(cc);
+  const cctx = cc.getContext('2d');
+
+  function resize() { canvas.width = cc.width = window.innerWidth; canvas.height = cc.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const TRAIL = 22;
+  const OFFSET_X = 4;
+  const OFFSET_Y = 10;
+
+  let mx = -200, my = -200;
+  let isHover = false;
+
+  const trail = Array(TRAIL).fill(null).map(() => ({ x: -200, y: -200 }));
+
+  const INTERACTIVE = 'button, a, input, select, textarea, [onclick], [contenteditable], .nav-item, .forum-row, .employee-card, .worker-card, .chip, label';
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+    // Check directly what's under the cursor
+    isHover = !!e.target.closest(INTERACTIVE);
+  });
+  document.addEventListener('mouseleave', () => { mx = -200; my = -200; isHover = false; });
+
+  function drawArrow(x, y) {
+    cctx.clearRect(0, 0, cc.width, cc.height);
+    if (x < 0) return;
+    const color = isHover ? COLOR_HOVER : COLOR_NORMAL;
+    cctx.save();
+    cctx.translate(x, y);
+    cctx.shadowBlur = 10;
+    cctx.shadowColor = color;
+    cctx.fillStyle = color;
+    cctx.beginPath();
+    cctx.moveTo(0, 0); cctx.lineTo(0, 18);
+    cctx.lineTo(4, 13); cctx.lineTo(8, 20);
+    cctx.lineTo(10.5, 18.5); cctx.lineTo(6.5, 11.5);
+    cctx.lineTo(12, 11.5); cctx.closePath();
+    cctx.fill();
+    cctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    cctx.lineWidth = 0.8;
+    cctx.stroke();
+    cctx.restore();
+  }
+
+  function animate() {
+    const ox = mx < 0 ? -200 : mx + OFFSET_X;
+    const oy = my < 0 ? -200 : my + OFFSET_Y;
+
+    for (let i = TRAIL - 1; i > 0; i--) {
+      trail[i].x += (trail[i-1].x - trail[i].x) * 0.4;
+      trail[i].y += (trail[i-1].y - trail[i].y) * 0.4;
+    }
+    trail[0].x = ox;
+    trail[0].y = oy;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < TRAIL; i++) {
+      const pos = trail[i];
+      if (pos.x < 0) continue;
+      const progress = i / TRAIL;
+      // Trail: logo-blue → purple
+      const r = Math.round(11  + (168 - 11)  * progress);
+      const g = Math.round(191 * (1 - progress));
+      const b = Math.round(255 * (1 - progress * 0.03) + 247 * progress * 0.03);
+      const alpha = (1 - progress) * 0.5;
+      const size = Math.max(1, 4.5 - i * 0.18);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fill();
+    }
+
+    drawArrow(mx, my);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
