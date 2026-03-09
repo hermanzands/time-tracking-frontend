@@ -571,7 +571,7 @@ function renderWorkers(d) {
       html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '"></div>';
       html += '</div><div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
-      ['employee','farmer','loa','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1) + '</option>'; });
+      ['employee','farmer','loa','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + role.charAt(0).toUpperCase()+role.slice(1) + '</option>'; });
       html += '</select>';
       if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
       html += '</div></div>';
