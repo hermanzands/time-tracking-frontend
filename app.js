@@ -571,7 +571,7 @@ function renderWorkers(d) {
       html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '"></div>';
       html += '</div><div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
-      ['employee','farmer','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + role.charAt(0).toUpperCase()+role.slice(1) + '</option>'; });
+      ['employee','farmer','loa','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + role.charAt(0).toUpperCase()+role.slice(1) + '</option>'; });
       html += '</select>';
       if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
       html += '</div></div>';
@@ -1297,7 +1297,7 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
-    ['employee','farmer','manager','owner'].forEach(r => {
+    ['employee','farmer','loa','manager','owner'].forEach(r => {
       html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
     });
     html += '</select></div>';
