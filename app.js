@@ -15,6 +15,7 @@ function cacheInvalidate(key) { delete _cache[key]; }
 
 // Track expanded persons in all-hours table
 const expandedPersons = new Set();
+const expandedWeeks = new Set();
 
 // All Hours panel state
 let allHoursTab = 'active';
@@ -32,10 +33,27 @@ function getWeekRange(offset) {
   return { start: monday, end: sunday };
 }
 
+function getISOWeekKey(date) {
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  return d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
+}
+
+function getWeekMondayFromKey(key) {
+  const [year, w] = key.split('-W');
+  const jan4 = new Date(parseInt(year), 0, 4);
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - (jan4.getDay() + 6) % 7 + (parseInt(w) - 1) * 7);
+  return monday;
+}
+
 function formatWeekLabel(offset) {
   const { start, end } = getWeekRange(offset);
-  if (offset === 0) return 'Deze week';
-  if (offset === -1) return 'Vorige week';
+  if (offset === 0) return 'This week';
+  if (offset === -1) return 'Last week';
   const fmt = d => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   return fmt(start) + ' – ' + fmt(end);
 }
@@ -46,12 +64,14 @@ function switchHoursTab(tab) {
   document.getElementById('ah-tab-history').classList.toggle('active', tab === 'history');
   const weekNav = document.getElementById('ah-week-nav');
   if (weekNav) weekNav.style.display = tab === 'history' ? 'none' : 'flex';
+  document.getElementById('ah-active-view').style.display = tab === 'active' ? '' : 'none';
+  document.getElementById('ah-history-view').style.display = tab === 'history' ? '' : 'none';
   loadAllEntries();
 }
 
 function changeHoursWeek(delta) {
   const newOffset = allHoursWeekOffset + delta;
-  if (newOffset > 0) return; // don't go into the future
+  if (newOffset > 0) return;
   allHoursWeekOffset = newOffset;
   document.getElementById('ah-week-next').style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
   loadAllEntries();
@@ -61,6 +81,17 @@ function resetHoursWeek() {
   allHoursWeekOffset = 0;
   document.getElementById('ah-week-next').style.opacity = '0.3';
   loadAllEntries();
+}
+
+function toggleHistoryWeek(wkey) {
+  const body = document.getElementById('hw-body-' + wkey);
+  const arr = document.getElementById('hw-arr-' + wkey);
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+  if (arr) arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+  if (isHidden) expandedWeeks.add(wkey);
+  else expandedWeeks.delete(wkey);
 }
 
 window.onload = () => {
@@ -666,73 +697,57 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
-async function clearAllHours() {
+async function archiveAllHours() {
   if (user.role !== 'owner') return;
   const confirmed = await showModal({
-    icon: '⚠️',
-    title: 'Clear All Hours?',
-    message: 'This will permanently delete ALL time entries for ALL employees. This cannot be undone.',
-    confirmText: 'Delete All',
-    danger: true
+    icon: '📦',
+    title: 'Archive All Hours?',
+    message: 'All current time entries will be archived and remain visible in the History tab. This cannot be undone.',
+    confirmText: 'Archive All',
+    danger: false
   });
   if (!confirmed) return;
   try {
     const r = await fetch(API + '/api/time-entries/all', {method: 'DELETE', headers: hdr()});
     const d = await r.json();
-    if (d.success) { toast('🗑️ All hours cleared'); ['active','history'].forEach(t => { for (let i = -52; i <= 0; i++) cacheInvalidate('allEntries_' + t + '_' + i); }); loadAllEntries(); }
-    else toast(d.error || 'Failed to clear', 'err');
+    if (d.success) {
+      toast('📦 All hours archived');
+      ['active','history'].forEach(t => { for (let i = -52; i <= 0; i++) cacheInvalidate('allEntries_' + t + '_' + i); });
+      loadAllEntries();
+    } else toast(d.error || 'Failed to archive', 'err');
   } catch(e) { toast('Connection error', 'err'); }
 }
 
 async function loadAllEntries() {
-  const tb = document.getElementById('all-entries-body');
-  const subtitle = document.getElementById('ah-subtitle');
   const weekLabel = document.getElementById('ah-week-label');
   const weekNextBtn = document.getElementById('ah-week-next');
-
-  // Update week label
   if (weekLabel) weekLabel.textContent = formatWeekLabel(allHoursWeekOffset);
   if (weekNextBtn) weekNextBtn.style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
 
-  // Set subtitle
-  if (subtitle) {
-    subtitle.textContent = allHoursTab === 'history'
-      ? 'Alle uren ooit geregistreerd'
-      : 'Uren van ' + formatWeekLabel(allHoursWeekOffset);
+  if (allHoursTab === 'active') {
+    await loadActiveEntries();
+  } else {
+    await loadHistoryEntries();
   }
+}
 
-  // Show cached data instantly if available
-  const cacheKey = 'allEntries_' + allHoursTab + '_' + allHoursWeekOffset;
-  const cached = cacheGet(cacheKey);
-  if (!cached) {
-    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
-  }
+async function loadActiveEntries() {
+  const tb = document.getElementById('all-entries-body');
+  const totalsBar = document.getElementById('ah-totals-bar');
+  const totalsText = document.getElementById('ah-totals-text');
+  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  if (totalsBar) totalsBar.style.display = 'none';
 
   try {
     const r = await fetch(API + '/api/time-entries?limit=500', {headers: hdr()});
     const d = await r.json();
-    if (!d.success || !d.entries || d.entries.length === 0) {
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
-      return;
-    }
+    if (!d.success || !d.entries) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
 
-    // Filter entries based on tab
-    let entries = d.entries;
-    if (allHoursTab === 'active') {
-      const { start, end } = getWeekRange(allHoursWeekOffset);
-      entries = entries.filter(e => {
-        const t = new Date(e.clock_in);
-        return t >= start && t <= end;
-      });
-    }
-
-    cacheSet(cacheKey, d);
+    const { start, end } = getWeekRange(allHoursWeekOffset);
+    const entries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= start && t <= end; });
 
     if (entries.length === 0) {
-      const msg = allHoursTab === 'active'
-        ? 'Geen uren voor ' + formatWeekLabel(allHoursWeekOffset)
-        : 'Geen uren gevonden';
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>' + msg + '</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries for ' + formatWeekLabel(allHoursWeekOffset) + '</p></div></td></tr>';
       return;
     }
 
@@ -742,21 +757,27 @@ async function loadAllEntries() {
       const key = e.display_name || e.nickname || e.user_id || 'Unknown';
       if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id};
       byPerson[key].entries.push(e);
+      allEntriesData[e.id] = e;
     });
+
     if (Object.keys(byPerson).length === 0) {
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>Geen afgeronde uren</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries</p></div></td></tr>';
       return;
     }
+
     let html = '';
+    let grandTotal = 0;
     Object.entries(byPerson).forEach(([name, data]) => {
-      const personEntries = data.entries, totalHrs = personEntries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
-      const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_'), safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-      personEntries.forEach(e => { allEntriesData[e.id] = e; });
+      const personEntries = data.entries;
+      const totalHrs = personEntries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
+      grandTotal += totalHrs;
+      const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_');
+      const safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
       html += '<td colspan="6" style="padding:14px 20px;"><div style="display:flex;align-items:center;justify-content:space-between;">';
       html += '<div style="display:flex;align-items:center;gap:12px;"><div class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:14px;"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
-      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + personEntries.length + ' entries · ' + toHm(totalHrs) + ' totaal</div></div></div>';
-      html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span></div></td></tr>';
+      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + personEntries.length + ' ' + (personEntries.length === 1 ? 'entry' : 'entries') + ' · ' + toHm(totalHrs) + ' total</div></div></div>';
+      html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block;transform:rotate(-90deg)">▼</span></div></td></tr>';
       personEntries.forEach(e => {
         const hrs = Number(e.total_hours);
         html += '<tr class="entry-row-' + pid + '" style="background:rgba(0,0,0,.15);display:none;">';
@@ -769,19 +790,112 @@ async function loadAllEntries() {
       });
     });
     tb.innerHTML = html;
-    Object.entries(byPerson).forEach(([name, data]) => { if (data.user_id) { const saved = localStorage.getItem('avatar_' + data.user_id); if (saved) { const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
+
+    // Totals bar
+    if (totalsBar && totalsText) {
+      const workerCount = Object.keys(byPerson).length;
+      totalsText.textContent = toHm(grandTotal) + ' across ' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '');
+      totalsBar.style.display = 'flex';
+    }
+
+    // Restore avatars
+    Object.entries(byPerson).forEach(([name, data]) => {
+      if (data.user_id) {
+        const saved = localStorage.getItem('avatar_' + data.user_id);
+        if (saved) { const sid = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + sid).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+      }
+    });
+
     // Restore expanded state
     expandedPersons.forEach(pid => {
       const rows = document.querySelectorAll('.entry-row-' + pid);
       const arr = document.getElementById('arr_' + pid);
-      if (rows.length) {
-        rows.forEach(row => { row.style.display = ''; });
-        if (arr) arr.style.transform = 'rotate(0deg)';
-      } else {
-        expandedPersons.delete(pid);
-      }
+      if (rows.length) { rows.forEach(row => { row.style.display = ''; }); if (arr) arr.style.transform = 'rotate(0deg)'; }
+      else expandedPersons.delete(pid);
     });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
+}
+
+async function loadHistoryEntries() {
+  const histBody = document.getElementById('ah-history-body');
+  histBody.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+
+  try {
+    const r = await fetch(API + '/api/time-entries?limit=2000', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.entries || d.entries.length === 0) {
+      histBody.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No history yet</p></div>';
+      return;
+    }
+
+    // Group by ISO week
+    const byWeek = {};
+    d.entries.forEach(e => {
+      if (!e.total_hours || Number(e.total_hours) === 0) return;
+      const wkey = getISOWeekKey(e.clock_in);
+      if (!byWeek[wkey]) byWeek[wkey] = {};
+      const name = e.display_name || e.nickname || 'Unknown';
+      if (!byWeek[wkey][name]) byWeek[wkey][name] = { hours: 0, userId: e.user_id };
+      byWeek[wkey][name].hours += Number(e.total_hours);
+    });
+
+    // Sort weeks newest first
+    const sortedWeeks = Object.keys(byWeek).sort((a, b) => b.localeCompare(a));
+
+    if (sortedWeeks.length === 0) {
+      histBody.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No history yet</p></div>';
+      return;
+    }
+
+    let html = '';
+    sortedWeeks.forEach((wkey, idx) => {
+      const monday = getWeekMondayFromKey(wkey);
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      const fmt = dt => dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const [year, wnum] = wkey.split('-W');
+      const weekTotal = Object.values(byWeek[wkey]).reduce((sum, p) => sum + p.hours, 0);
+      const workerCount = Object.keys(byWeek[wkey]).length;
+      const safeKey = wkey.replace('-', '_');
+      const isExpanded = expandedWeeks.has(wkey);
+
+      html += '<div style="border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;">';
+      // Week header row
+      html += '<div onclick="toggleHistoryWeek(\'' + wkey + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);cursor:pointer;">';
+      html += '<div style="display:flex;align-items:center;gap:14px;">';
+      html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;font-size:22px;color:var(--accent);min-width:32px;text-align:center;">' + parseInt(wnum) + '</div>';
+      html += '<div><div style="font-weight:600;font-size:14px;">Week ' + parseInt(wnum) + ' <span style="color:var(--muted);font-weight:400;font-size:12px;">· ' + fmt(monday) + ' – ' + fmt(sunday) + '</span></div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '') + ' · ' + toHm(weekTotal) + ' total</div></div>';
+      html += '</div>';
+      html += '<span id="hw-arr-' + wkey + '" style="color:var(--muted);font-size:16px;transition:transform .2s;display:inline-block;transform:' + (isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)') + '">▼</span>';
+      html += '</div>';
+
+      // Week body: persons
+      html += '<div id="hw-body-' + wkey + '" style="display:' + (isExpanded ? '' : 'none') + ';">';
+      Object.entries(byWeek[wkey])
+        .sort((a, b) => b[1].hours - a[1].hours)
+        .forEach(([name, pdata]) => {
+          const safeId = pdata.userId ? pdata.userId.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px 10px 58px;border-top:1px solid rgba(255,255,255,.04);">';
+          html += '<div style="display:flex;align-items:center;gap:10px;">';
+          html += '<div class="avatar" style="width:28px;height:28px;border-radius:8px;font-size:12px;"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
+          html += '<span style="font-size:14px;font-weight:500;">' + name + '</span></div>';
+          html += '<span style="font-family:\'Oxanium\',sans-serif;font-weight:600;font-size:14px;color:var(--accent);">' + toHm(pdata.hours) + '</span>';
+          html += '</div>';
+        });
+      html += '</div>';
+      html += '</div>';
+    });
+
+    histBody.innerHTML = html;
+
+    // Restore avatars
+    d.entries.forEach(e => {
+      if (e.user_id) {
+        const saved = localStorage.getItem('avatar_' + e.user_id);
+        if (saved) { const sid = e.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + sid).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+      }
+    });
+  } catch(e) { histBody.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>'; }
 }
 
 function togglePerson(pid) {
