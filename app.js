@@ -16,6 +16,53 @@ function cacheInvalidate(key) { delete _cache[key]; }
 // Track expanded persons in all-hours table
 const expandedPersons = new Set();
 
+// All Hours panel state
+let allHoursTab = 'active';
+let allHoursWeekOffset = 0;
+
+function getWeekRange(offset) {
+  const now = new Date();
+  const dow = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + offset * 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { start: monday, end: sunday };
+}
+
+function formatWeekLabel(offset) {
+  const { start, end } = getWeekRange(offset);
+  if (offset === 0) return 'Deze week';
+  if (offset === -1) return 'Vorige week';
+  const fmt = d => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return fmt(start) + ' – ' + fmt(end);
+}
+
+function switchHoursTab(tab) {
+  allHoursTab = tab;
+  document.getElementById('ah-tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('ah-tab-history').classList.toggle('active', tab === 'history');
+  const weekNav = document.getElementById('ah-week-nav');
+  if (weekNav) weekNav.style.display = tab === 'history' ? 'none' : 'flex';
+  loadAllEntries();
+}
+
+function changeHoursWeek(delta) {
+  const newOffset = allHoursWeekOffset + delta;
+  if (newOffset > 0) return; // don't go into the future
+  allHoursWeekOffset = newOffset;
+  document.getElementById('ah-week-next').style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
+  loadAllEntries();
+}
+
+function resetHoursWeek() {
+  allHoursWeekOffset = 0;
+  document.getElementById('ah-week-next').style.opacity = '0.3';
+  loadAllEntries();
+}
+
 window.onload = () => {
   tickClock();
   setInterval(tickClock, 1000);
@@ -247,6 +294,8 @@ function showApp() {
       const payCalcPanel = document.getElementById('panel-payments');
       if (payCalcBtn) payCalcBtn.style.display = 'none';
       if (payCalcPanel) payCalcPanel.style.display = 'none';
+      const clearBtn = document.getElementById('ah-clear-btn');
+      if (clearBtn) clearBtn.style.display = 'none';
     }
     initChat();
     loadPendingEmployees();
@@ -630,39 +679,85 @@ async function clearAllHours() {
   try {
     const r = await fetch(API + '/api/time-entries/all', {method: 'DELETE', headers: hdr()});
     const d = await r.json();
-    if (d.success) { toast('🗑️ All hours cleared'); cacheInvalidate('allEntries'); loadAllEntries(); }
+    if (d.success) { toast('🗑️ All hours cleared'); ['active','history'].forEach(t => { for (let i = -52; i <= 0; i++) cacheInvalidate('allEntries_' + t + '_' + i); }); loadAllEntries(); }
     else toast(d.error || 'Failed to clear', 'err');
   } catch(e) { toast('Connection error', 'err'); }
 }
 
 async function loadAllEntries() {
   const tb = document.getElementById('all-entries-body');
+  const subtitle = document.getElementById('ah-subtitle');
+  const weekLabel = document.getElementById('ah-week-label');
+  const weekNextBtn = document.getElementById('ah-week-next');
+
+  // Update week label
+  if (weekLabel) weekLabel.textContent = formatWeekLabel(allHoursWeekOffset);
+  if (weekNextBtn) weekNextBtn.style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
+
+  // Set subtitle
+  if (subtitle) {
+    subtitle.textContent = allHoursTab === 'history'
+      ? 'Alle uren ooit geregistreerd'
+      : 'Uren van ' + formatWeekLabel(allHoursWeekOffset);
+  }
 
   // Show cached data instantly if available
-  const cached = cacheGet('allEntries');
+  const cacheKey = 'allEntries_' + allHoursTab + '_' + allHoursWeekOffset;
+  const cached = cacheGet(cacheKey);
   if (!cached) {
     tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
   }
 
   try {
-    const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()});
+    const r = await fetch(API + '/api/time-entries?limit=500', {headers: hdr()});
     const d = await r.json();
-    if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
-    cacheSet('allEntries', d);
+    if (!d.success || !d.entries || d.entries.length === 0) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
+      return;
+    }
+
+    // Filter entries based on tab
+    let entries = d.entries;
+    if (allHoursTab === 'active') {
+      const { start, end } = getWeekRange(allHoursWeekOffset);
+      entries = entries.filter(e => {
+        const t = new Date(e.clock_in);
+        return t >= start && t <= end;
+      });
+    }
+
+    cacheSet(cacheKey, d);
+
+    if (entries.length === 0) {
+      const msg = allHoursTab === 'active'
+        ? 'Geen uren voor ' + formatWeekLabel(allHoursWeekOffset)
+        : 'Geen uren gevonden';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>' + msg + '</p></div></td></tr>';
+      return;
+    }
+
     const byPerson = {};
-    d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.display_name || e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
-    if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
+    entries.forEach(e => {
+      if (!e.total_hours || Number(e.total_hours) === 0) return;
+      const key = e.display_name || e.nickname || e.user_id || 'Unknown';
+      if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id};
+      byPerson[key].entries.push(e);
+    });
+    if (Object.keys(byPerson).length === 0) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>Geen afgeronde uren</p></div></td></tr>';
+      return;
+    }
     let html = '';
     Object.entries(byPerson).forEach(([name, data]) => {
-      const entries = data.entries, totalHrs = entries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
+      const personEntries = data.entries, totalHrs = personEntries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
       const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_'), safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-      entries.forEach(e => { allEntriesData[e.id] = e; });
+      personEntries.forEach(e => { allEntriesData[e.id] = e; });
       html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
       html += '<td colspan="6" style="padding:14px 20px;"><div style="display:flex;align-items:center;justify-content:space-between;">';
       html += '<div style="display:flex;align-items:center;gap:12px;"><div class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:14px;"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
-      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + entries.length + ' entries · ' + toHm(totalHrs) + ' total</div></div></div>';
+      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + personEntries.length + ' entries · ' + toHm(totalHrs) + ' totaal</div></div></div>';
       html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span></div></td></tr>';
-      entries.forEach(e => {
+      personEntries.forEach(e => {
         const hrs = Number(e.total_hours);
         html += '<tr class="entry-row-' + pid + '" style="background:rgba(0,0,0,.15);display:none;">';
         html += '<td style="padding-left:66px;color:var(--muted);font-size:13px">' + fmtDate(e.clock_in) + '</td>';
@@ -675,7 +770,7 @@ async function loadAllEntries() {
     });
     tb.innerHTML = html;
     Object.entries(byPerson).forEach(([name, data]) => { if (data.user_id) { const saved = localStorage.getItem('avatar_' + data.user_id); if (saved) { const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
-    // Restore expanded state from tracker
+    // Restore expanded state
     expandedPersons.forEach(pid => {
       const rows = document.querySelectorAll('.entry-row-' + pid);
       const arr = document.getElementById('arr_' + pid);
@@ -683,12 +778,13 @@ async function loadAllEntries() {
         rows.forEach(row => { row.style.display = ''; });
         if (arr) arr.style.transform = 'rotate(0deg)';
       } else {
-        // Person no longer exists, remove from tracker
         expandedPersons.delete(pid);
       }
     });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
 }
+  }
+
 
 function togglePerson(pid) {
   const entries = document.querySelectorAll('.entry-row-' + pid), arr = document.getElementById('arr_' + pid);
