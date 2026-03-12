@@ -634,7 +634,9 @@ function renderWorkers(d) {
       html += '<div class="avatar"><span class="avatar-letter">' + displayName(u)[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
       html += '<div class="worker-info"><div class="worker-name">' + displayName(u) + '</div></div>';
       const isOnline = onlineUsers.has(u.id);
-      html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '"></div>';
+      const dotClass = getInactivityDotClass(u.last_clock_in, isOnline);
+      const dotTitle = getInactivityLabel(u.last_clock_in, isOnline);
+      html += '<div class="online-dot ' + dotClass + '" title="' + dotTitle + '"></div>';
       html += '</div><div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
       ['employee','farmer','loa','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
@@ -1085,6 +1087,26 @@ async function deletePayment(paymentId) {
 // ========================================================================
 
 let chatOpen = false, onlineUsers = new Set(), lastMessageId = null, chatPollInterval = null;
+
+function getInactivityDotClass(lastClockIn, isOnline) {
+  if (isOnline) return 'on';
+  if (!lastClockIn) return 'danger'; // never clocked in
+  const daysSince = (Date.now() - new Date(lastClockIn).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince < 7) return 'on';
+  if (daysSince < 14) return 'warning';
+  return 'danger';
+}
+
+function getInactivityLabel(lastClockIn, isOnline) {
+  if (isOnline) return 'Currently active';
+  if (!lastClockIn) return 'Never clocked in';
+  const daysSince = Math.floor((Date.now() - new Date(lastClockIn).getTime()) / (1000 * 60 * 60 * 24));
+  if (daysSince === 0) return 'Clocked in today';
+  if (daysSince === 1) return 'Last seen yesterday';
+  if (daysSince < 7) return 'Last seen ' + daysSince + ' days ago';
+  if (daysSince < 14) return '⚠️ Inactive for ' + daysSince + ' days';
+  return '🔴 Inactive for ' + daysSince + ' days';
+}
 
 async function sendHeartbeat() {
   if (!token || !user) return;
