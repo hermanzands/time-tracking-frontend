@@ -720,7 +720,7 @@ async function loadActiveEntries() {
   if (totalsBar) totalsBar.style.display = 'none';
 
   try {
-    const r = await fetch(API + '/api/time-entries?limit=500', {headers: hdr()});
+    const r = await fetch(API + '/api/time-entries?limit=500&archived=false', {headers: hdr()});
     const d = await r.json();
     if (!d.success || !d.entries) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
 
@@ -802,7 +802,7 @@ async function loadHistoryEntries() {
   histBody.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
 
   try {
-    const r = await fetch(API + '/api/time-entries?limit=2000', {headers: hdr()});
+    const r = await fetch(API + '/api/time-entries?limit=2000&archived=true', {headers: hdr()});
     const d = await r.json();
     if (!d.success || !d.entries || d.entries.length === 0) {
       histBody.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No history yet</p></div>';
