@@ -69,20 +69,6 @@ function switchHoursTab(tab) {
   loadAllEntries();
 }
 
-function changeHoursWeek(delta) {
-  const newOffset = allHoursWeekOffset + delta;
-  if (newOffset > 0) return;
-  allHoursWeekOffset = newOffset;
-  document.getElementById('ah-week-next').style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
-  loadAllEntries();
-}
-
-function resetHoursWeek() {
-  allHoursWeekOffset = 0;
-  document.getElementById('ah-week-next').style.opacity = '0.3';
-  loadAllEntries();
-}
-
 function toggleHistoryWeek(wkey) {
   const body = document.getElementById('hw-body-' + wkey);
   const arr = document.getElementById('hw-arr-' + wkey);
@@ -719,11 +705,6 @@ async function archiveAllHours() {
 }
 
 async function loadAllEntries() {
-  const weekLabel = document.getElementById('ah-week-label');
-  const weekNextBtn = document.getElementById('ah-week-next');
-  if (weekLabel) weekLabel.textContent = formatWeekLabel(allHoursWeekOffset);
-  if (weekNextBtn) weekNextBtn.style.opacity = allHoursWeekOffset === 0 ? '0.3' : '1';
-
   if (allHoursTab === 'active') {
     await loadActiveEntries();
   } else {
@@ -743,11 +724,11 @@ async function loadActiveEntries() {
     const d = await r.json();
     if (!d.success || !d.entries) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
 
-    const { start, end } = getWeekRange(allHoursWeekOffset);
-    const entries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= start && t <= end; });
+    const { start, end } = getWeekRange(0);
+      const entries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= start && t <= end; });
 
     if (entries.length === 0) {
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries for ' + formatWeekLabel(allHoursWeekOffset) + '</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries this week yet</p></div></td></tr>';
       return;
     }
 
