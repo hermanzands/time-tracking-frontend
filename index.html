@@ -408,7 +408,23 @@
         <div class="page-title">All Hours</div>
         <div class="page-sub">Every team member's time entries</div>
         <div class="table-card">
-          <div class="table-hdr" style="display:flex;align-items:center;justify-content:space-between;"><div class="table-ttl">All Time Entries</div><div style="display:flex;gap:8px;"><button onclick="openAddHoursModal()" style="font-size:12px;padding:6px 14px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600;">➕ Add Hours</button><button onclick="clearAllHours()" style="font-size:12px;padding:6px 14px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;cursor:pointer;font-weight:600;">🗑️ Clear All</button></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <div style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;">
+              <button id="ah-tab-active" class="stock-tab active" onclick="switchHoursTab('active')">📅 Active</button>
+              <button id="ah-tab-history" class="stock-tab" onclick="switchHoursTab('history')">📜 History</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div id="ah-week-nav" style="display:flex;align-items:center;gap:4px;background:var(--surface2);border-radius:8px;padding:3px 8px;">
+                <button onclick="changeHoursWeek(-1)" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:18px;line-height:1;padding:0 4px;">‹</button>
+                <span id="ah-week-label" style="font-size:12px;color:var(--text);min-width:130px;text-align:center;font-weight:500;"></span>
+                <button onclick="changeHoursWeek(1)" id="ah-week-next" style="background:none;border:none;color:var(--text);cursor:pointer;font-size:18px;line-height:1;padding:0 4px;">›</button>
+                <button onclick="resetHoursWeek()" style="font-size:11px;padding:2px 8px;background:var(--surface);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:5px;color:var(--muted);cursor:pointer;">Now</button>
+              </div>
+              <button onclick="openAddHoursModal()" style="font-size:12px;padding:6px 14px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600;">➕ Add Hours</button>
+              <button id="ah-clear-btn" onclick="clearAllHours()" style="font-size:12px;padding:6px 14px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;cursor:pointer;font-weight:600;">🗑️ Clear All</button>
+            </div>
+          </div>
+          <div id="ah-subtitle" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
           <table><thead><tr><th>Worker</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="all-entries-body"><tr><td colspan="5"><div class="empty"><span class="spinner"></span></div></td></tr></tbody></table>
         </div>
