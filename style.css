@@ -138,6 +138,8 @@ tr:hover td{background:rgba(29,221,255,.03);}
 .worker-name{font-weight:500;font-size:15px;margin-bottom:4px;}
 .online-dot{width:10px;height:10px;border-radius:50%;background:var(--border);flex-shrink:0;}
 .online-dot.on{background:var(--green);}
+.online-dot.warning{background:#F59E0B;}
+.online-dot.danger{background:var(--danger);}
 .worker-actions{display:flex;align-items:center;gap:8px;width:100%;}
 .worker-actions select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
 .worker-actions select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,221,255,.1);}
@@ -440,7 +442,3 @@ button:active{transform:scale(0.96);}
 
 .stats-range-btn,.stats-type-btn{background:none;border:none;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .stats-range-btn.active,.stats-type-btn.active{background:var(--accent);color:#080810;font-weight:600;}
-
-.badge-loa {
-  text-transform: uppercase !important;
-}
