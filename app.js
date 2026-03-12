@@ -783,8 +783,6 @@ async function loadAllEntries() {
     });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
 }
-  }
-
 
 function togglePerson(pid) {
   const entries = document.querySelectorAll('.entry-row-' + pid), arr = document.getElementById('arr_' + pid);
