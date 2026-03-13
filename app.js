@@ -949,16 +949,9 @@ async function calcPayments() {
     const d = await r.json();
     if (d.success && d.distributions) {
       const workersRes = await fetch(API + '/api/users', {headers: hdr()}); const workersData = await workersRes.json();
-      const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
       const allManagers = workersData.success ? workersData.users.filter(u => u.role === 'manager') : [];
       const userMap = {};
       if (workersData.success) workersData.users.forEach(u => { userMap[u.id] = u; });
-
-      // Add farmers who didn't work (still get flat share)
-      allFarmers.forEach(farmer => {
-        const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id);
-        if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:50000,percentage:0});
-      });
 
       // Add managers who didn't work (still get flat 5% bonus share)
       allManagers.forEach(manager => {
