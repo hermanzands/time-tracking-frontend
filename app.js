@@ -1095,17 +1095,10 @@ async function sendHeartbeat() {
 
 async function updateOnlineUsers() {
   if (!token) return;
-  try { const r = await fetch(API + '/api/users/online', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.online_users) { onlineUsers = new Set(d.online_users.map(u => u.id)); updateWorkerOnlineStatus(); } } catch(e) {}
+  try { const r = await fetch(API + '/api/users/online', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.online_users) { onlineUsers = new Set(d.online_users.map(u => u.id)); } } catch(e) {}
 }
 
 setInterval(updateOnlineUsers, 3000);
-
-function updateWorkerOnlineStatus() {
-  document.querySelectorAll('.online-dot').forEach(dot => {
-    const card = dot.closest('.worker-card');
-    if (card) { const roleSelect = card.querySelector('select'); if (roleSelect) { const onchange = roleSelect.getAttribute('onchange'); const match = onchange?.match(/updateRole\('([^']+)'/); if (match) { const userId = match[1]; if (onlineUsers.has(userId)) dot.classList.add('on'); else dot.classList.remove('on'); } } }
-  });
-}
 
 function toggleChat() {
   const panel = document.getElementById('chat-panel'), arrow = document.getElementById('chat-arrow');
@@ -1489,7 +1482,7 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
     ['employee','farmer','loa','manager','owner'].forEach(r => {
-      html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+      html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + (r === 'loa' ? 'LOA' : r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
     });
     html += '</select></div>';
     html += '</div>';
