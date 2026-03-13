@@ -938,6 +938,21 @@ function setPayThisWeek() {
   document.getElementById('pay-end').value = fmt(sunday);
 }
 
+function setPayLastWeek() {
+  const now = new Date();
+  const dow = now.getDay();
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  thisMonday.setHours(0,0,0,0);
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(thisMonday.getDate() - 7);
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setDate(lastMonday.getDate() + 6);
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('pay-start').value = fmt(lastMonday);
+  document.getElementById('pay-end').value = fmt(lastSunday);
+}
+
 async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
