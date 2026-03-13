@@ -687,6 +687,25 @@ async function deleteWorker(userId, name) {
 
 async function archiveAllHours() {
   if (user.role !== 'owner') return;
+
+  // Check for active shifts first
+  try {
+    const activeRes = await fetch(API + '/api/time-entries/active', {headers: hdr()});
+    const activeData = await activeRes.json();
+    if (activeData.success && activeData.entries && activeData.entries.length > 0) {
+      const names = activeData.entries.map(e => e.nickname || 'Unknown').join(', ');
+      await showModal({
+        icon: '⚠️',
+        title: 'Active Shifts Running',
+        message: `Cannot archive while employees are clocked in: ${names}. Please clock them out first.`,
+        confirmText: 'OK',
+        danger: false,
+        hideCancel: true
+      });
+      return;
+    }
+  } catch(e) {}
+
   const confirmed = await showModal({
     icon: '📦',
     title: 'Archive All Hours?',
