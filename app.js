@@ -925,6 +925,19 @@ function setDefaultDates() {
   }
 }
 
+function setPayThisWeek() {
+  const now = new Date();
+  const dow = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('pay-start').value = fmt(monday);
+  document.getElementById('pay-end').value = fmt(sunday);
+}
+
 async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
