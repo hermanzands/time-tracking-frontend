@@ -38,6 +38,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(29,221,255,.12),0 0 20px rgba(29,221,255,.08);background:rgba(29,221,255,.03);}
 .field input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;cursor:pointer;}
 .field input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
+.field input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;cursor:pointer;}
+.field input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 .field select option{background:var(--surface2);}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:14px;cursor:none;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s;letter-spacing:.02em;}
 .btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
