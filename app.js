@@ -305,11 +305,12 @@ function showApp() {
   document.getElementById('nav-role').textContent = user.role;
   loadNotifications();
   if (['manager', 'owner'].includes(user.role)) {
-    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+    // Show all admin items
+    document.querySelectorAll('.admin-only').forEach(el => { el.classList.remove('hidden'); el.style.display = ''; });
+    // Hide owner-only items for managers
     if (user.role === 'manager') {
-      const payCalcBtn = document.getElementById('si-payments');
+      document.querySelectorAll('.owner-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
       const payCalcPanel = document.getElementById('panel-payments');
-      if (payCalcBtn) payCalcBtn.style.display = 'none';
       if (payCalcPanel) payCalcPanel.style.display = 'none';
       const clearBtn = document.getElementById('ah-clear-btn');
       if (clearBtn) clearBtn.style.display = 'none';
@@ -639,7 +640,7 @@ function renderWorkers(d) {
       html += '<div class="online-dot ' + dotClass + '" title="' + dotTitle + '"></div>';
       html += '</div><div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
-      ['employee','farmer','loa','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
+      (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
       html += '</select>';
       if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
       html += '</div></div>';
@@ -1521,7 +1522,7 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
-    ['employee','farmer','loa','manager','owner'].forEach(r => {
+    (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(r => {
       html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + (r === 'loa' ? 'LOA' : r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
     });
     html += '</select></div>';
