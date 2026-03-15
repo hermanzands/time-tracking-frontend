@@ -113,7 +113,7 @@
       <button class="nav-item admin-only hidden" id="si-workers" onclick="go('workers')"><span class="icon">👥</span>Workers</button>
       <button class="nav-item admin-only hidden" id="si-pending" onclick="go('pending')"><span class="icon">⏳</span>Pending Approvals</button>
       <button class="nav-item admin-only hidden" id="si-allhours" onclick="go('allhours')"><span class="icon">📊</span>All Hours</button>
-      <button class="nav-item admin-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
+      <button class="nav-item admin-only owner-only hidden" id="si-payments" onclick="go('payments')"><span class="icon">💰</span>Pay Calculator</button>
       <button class="nav-item admin-only hidden" id="si-stats" onclick="go('stats')"><span class="icon">📈</span>Stats & Finance</button>
     </aside>
 
@@ -714,7 +714,7 @@
     <button class="mobile-nav-item admin-only" id="mob-pending" onclick="go('pending')">
       <span class="mobile-nav-icon">⏳</span>Approvals
     </button>
-    <button class="mobile-nav-item admin-only" id="mob-payments" onclick="go('payments')">
+    <button class="mobile-nav-item admin-only owner-only" id="mob-payments" onclick="go('payments')">
       <span class="mobile-nav-icon">💳</span>Payroll
     </button>
     <button class="mobile-nav-item" id="mob-profile" onclick="go('profile')">
