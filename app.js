@@ -1089,7 +1089,7 @@ async function processPayments() {
   try {
     const r = await fetch(API + '/api/payments/process', {method:'POST',headers:hdr(),body:JSON.stringify({period_start:start,period_end:end,total_amount:total})});
     const d = await r.json();
-    if (d.success) { toast('✅ Payments processed! Workers have been notified.'); document.getElementById('pay-results').classList.add('hidden'); document.getElementById('btn-process').classList.add('hidden'); ['pay-start','pay-end','pay-total'].forEach(id => { document.getElementById(id).value = ''; }); setDefaultDates(); }
+    if (d.success) { toast('✅ Payments processed! Workers have been notified.'); document.getElementById('pay-results').classList.add('hidden'); document.getElementById('btn-process').classList.add('hidden'); ['pay-start','pay-end','pay-total'].forEach(id => { document.getElementById(id).value = ''; }); setDefaultDates(); loadFinanceStats(); }
     else { showErr(errEl, d.error || 'Failed to process payments'); btn.disabled = false; }
   } catch(e) { showErr(errEl, 'Connection error'); btn.disabled = false; }
   btn.innerHTML = 'Process & Send Payments';
@@ -2974,10 +2974,10 @@ function renderStatCards() {
     ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
     : 0;
 
-  document.getElementById('stat-week').textContent = '$' + weekTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-month').textContent = '$' + monthTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-alltime').textContent = '$' + allTime.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-record').textContent = '$' + record.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('stat-week').textContent = '$' + Math.round(weekTotal).toLocaleString('en-US');
+  document.getElementById('stat-month').textContent = '$' + Math.round(monthTotal).toLocaleString('en-US');
+  document.getElementById('stat-alltime').textContent = '$' + Math.round(allTime).toLocaleString('en-US');
+  document.getElementById('stat-record').textContent = '$' + Math.round(record).toLocaleString('en-US');
 }
 
 function renderPayoutLog() {
