@@ -307,6 +307,7 @@ function showApp() {
   if (['manager', 'owner'].includes(user.role)) {
     // Show all admin items
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.remove('hidden'); el.style.display = ''; });
+    document.querySelectorAll('.tab-bar').forEach(el => el.classList.remove('hidden'));
     // Hide owner-only items for managers
     if (user.role === 'manager') {
       document.querySelectorAll('.owner-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
@@ -319,6 +320,7 @@ function showApp() {
     loadPendingEmployees();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
+    document.querySelectorAll('.tab-bar').forEach(el => el.classList.add('hidden'));
   }
 sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
@@ -2975,21 +2977,6 @@ async function loadPayouts() {
     const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
     const data = await res.json();
     allPayouts = data.payouts || [];
-
-    // Also load from payments table for record calculation
-    const pr = await fetch(API + '/api/payments?limit=500', { headers: hdr() });
-    const pd = await pr.json();
-    if (pd.success && pd.payments && pd.payments.length > 0) {
-      // Group payments by period to get total per payout round
-      const byPeriod = {};
-      pd.payments.forEach(p => {
-        const key = p.period_start + '_' + p.period_end;
-        byPeriod[key] = (byPeriod[key] || 0) + parseFloat(p.amount || 0);
-      });
-      const periodTotals = Object.values(byPeriod);
-      window._paymentRecord = periodTotals.length ? Math.max(...periodTotals) : 0;
-    }
-
     renderPayoutLog();
   } catch (e) {
     console.error('Failed to load payouts', e);
@@ -3015,9 +3002,9 @@ function renderStatCards() {
 
   const allTime = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
 
-  const record = window._paymentRecord || (allPayouts.length
+  const record = allPayouts.length
     ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
-    : 0);
+    : 0;
 
   document.getElementById('stat-week').textContent = '$' + Math.round(weekTotal).toLocaleString('en-US');
   document.getElementById('stat-month').textContent = '$' + Math.round(monthTotal).toLocaleString('en-US');
@@ -3109,6 +3096,10 @@ function renderStatsChart() {
 
   if (statsChart) statsChart.destroy();
 
+  const maxVal = values.length ? Math.max(...values) : 0;
+  const bgColors = values.map(v => v === maxVal && v > 0 ? 'rgba(255,181,71,.6)' : 'rgba(139,92,246,.35)');
+  const borderColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
+
   statsChart = new Chart(ctx, {
     type: statsType,
     data: {
@@ -3116,8 +3107,8 @@ function renderStatsChart() {
       datasets: [{
         label: 'Payout ($)',
         data: values,
-        backgroundColor: 'rgba(139,92,246,.35)',
-        borderColor: '#8b5cf6',
+        backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
+        borderColor: statsType === 'bar' ? borderColors : '#8b5cf6',
         borderWidth: 2,
         borderRadius: statsType === 'bar' ? 8 : 0,
         pointBackgroundColor: '#8b5cf6',
