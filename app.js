@@ -479,18 +479,48 @@ async function clockOut() {
 
 async function loadStats() {
   try {
-    const r = await fetch(API + '/api/time-entries/my-entries?limit=200', {headers: hdr()});
+    const now = new Date(), todayStr = now.toDateString();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+    weekStart.setHours(0,0,0,0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const r = await fetch(API + '/api/time-entries/my-entries?limit=500', {headers: hdr()});
     const d = await r.json();
     if (!d.success) return;
     loadClockedInUsers();
-    const now = new Date(), todayStr = now.toDateString();
-    const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    let today = 0, week = 0, month = 0;
-    (d.entries || []).forEach(e => { if (!e.total_hours) return; const h = Number(e.total_hours); const dt = new Date(e.clock_in); if (dt.toDateString() === todayStr) today += h; if (dt >= weekStart) week += h; if (dt >= monthStart) month += h; });
+
+    let today = 0, week = 0, month = 0, total = 0;
+    (d.entries || []).forEach(e => {
+      if (!e.total_hours) return;
+      const h = Number(e.total_hours);
+      const dt = new Date(e.clock_in);
+      total += h;
+      if (dt.toDateString() === todayStr) today += h;
+      if (dt >= weekStart) week += h;
+      if (dt >= monthStart) month += h;
+    });
+
+    // Fetch archived entries for month and all-time
+    try {
+      const ar = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
+      const ad = await ar.json();
+      if (ad.success && ad.entries) {
+        ad.entries.forEach(e => {
+          if (!e.total_hours || e.user_id !== user.id) return;
+          const h = Number(e.total_hours);
+          const dt = new Date(e.clock_in);
+          total += h;
+          if (dt >= monthStart) month += h;
+        });
+      }
+    } catch(e) {}
+
     document.getElementById('st-today').textContent = toHm(today);
     document.getElementById('st-week').textContent = toHm(week);
     document.getElementById('st-month').textContent = toHm(month);
+    const totalEl = document.getElementById('st-total');
+    if (totalEl) totalEl.textContent = toHm(total);
   } catch(e) {}
 }
 
@@ -746,11 +776,10 @@ async function loadActiveEntries() {
     const d = await r.json();
     if (!d.success || !d.entries) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
 
-    const { start, end } = getWeekRange(0);
-      const entries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= start && t <= end; });
+    const entries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
 
     if (entries.length === 0) {
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries this week yet</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
       return;
     }
 
