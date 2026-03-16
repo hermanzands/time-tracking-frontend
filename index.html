@@ -128,7 +128,7 @@
     <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-green" id="stat-week">—</div></div>
     <div class="stat"><div class="stat-label">This Month</div><div class="stat-val c-purple" id="stat-month">—</div></div>
     <div class="stat"><div class="stat-label">All Time</div><div class="stat-val" id="stat-alltime">—</div></div>
-    <div class="stat"><div class="stat-label">🏆 Record</div><div class="stat-val c-green" id="stat-record">—</div></div>
+    <div class="stat"><div class="stat-label">🏆 Record</div><div class="stat-val" style="color:var(--amber);" id="stat-record">—</div></div>
   </div>
 
   <!-- Chart -->
@@ -388,7 +388,7 @@
             <div class="err-box" id="stock-err"></div>
           </div>
         </div>
-        <div class="admin-only hidden" id="stock-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+        <div class="admin-only hidden" id="stock-manager-tabs" style="display:flex;flex-wrap:nowrap;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
           <button class="stock-tab active" data-tab="pending" onclick="switchStockTab('pending')">Pending <span id="stock-pending-count" class="stock-tab-badge">0</span></button>
           <button class="stock-tab" data-tab="completed" onclick="switchStockTab('completed')">Completed <span id="stock-completed-count" class="stock-tab-badge">0</span></button>
         </div>
@@ -597,7 +597,7 @@
             <div class="err-box" id="reimburse-err"></div>
           </div>
         </div>
-        <div class="admin-only hidden" id="reimburse-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+        <div class="admin-only hidden" id="reimburse-manager-tabs" style="display:flex;flex-wrap:nowrap;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
           <button class="stock-tab active" data-tab="pending" onclick="switchReimburseTab('pending')">Pending <span id="reimburse-pending-count" class="stock-tab-badge">0</span></button>
           <button class="stock-tab" data-tab="paid" onclick="switchReimburseTab('paid')">Paid <span id="reimburse-paid-count" class="stock-tab-badge">0</span></button>
         </div>
