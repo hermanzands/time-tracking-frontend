@@ -2975,6 +2975,21 @@ async function loadPayouts() {
     const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
     const data = await res.json();
     allPayouts = data.payouts || [];
+
+    // Also load from payments table for record calculation
+    const pr = await fetch(API + '/api/payments?limit=500', { headers: hdr() });
+    const pd = await pr.json();
+    if (pd.success && pd.payments && pd.payments.length > 0) {
+      // Group payments by period to get total per payout round
+      const byPeriod = {};
+      pd.payments.forEach(p => {
+        const key = p.period_start + '_' + p.period_end;
+        byPeriod[key] = (byPeriod[key] || 0) + parseFloat(p.amount || 0);
+      });
+      const periodTotals = Object.values(byPeriod);
+      window._paymentRecord = periodTotals.length ? Math.max(...periodTotals) : 0;
+    }
+
     renderPayoutLog();
   } catch (e) {
     console.error('Failed to load payouts', e);
@@ -3000,9 +3015,9 @@ function renderStatCards() {
 
   const allTime = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
 
-  const record = allPayouts.length
+  const record = window._paymentRecord || (allPayouts.length
     ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
-    : 0;
+    : 0);
 
   document.getElementById('stat-week').textContent = '$' + Math.round(weekTotal).toLocaleString('en-US');
   document.getElementById('stat-month').textContent = '$' + Math.round(monthTotal).toLocaleString('en-US');
