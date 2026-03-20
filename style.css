@@ -102,11 +102,16 @@ nav{background:rgba(16,16,30,.92);backdrop-filter:blur(20px);border-bottom:1px s
 .clock-since{margin-top:20px;font-size:14px;color:var(--muted);}
 
 /* STATS */
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:24px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px;}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 20px;transition:border-color .2s,box-shadow .2s,transform .2s;}
 .stat:hover{border-color:rgba(29,221,255,.25);box-shadow:0 8px 32px rgba(29,221,255,.08);transform:translateY(-2px);}
 .stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
 .stat-val{font-family:'Oxanium',sans-serif;font-size:26px;font-weight:700;letter-spacing:1px;}
+.stat-delta{font-size:12px;font-weight:600;margin-top:6px;}
+.stat-delta.up{color:var(--green);}
+.stat-delta.down{color:var(--danger);}
+.stat-delta.neutral{color:var(--muted);}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:6px;}
 .c-green{color:var(--green);}.c-purple{color:var(--accent2);}.c-amber{color:var(--amber);}
 
 /* TABLE */
@@ -268,7 +273,7 @@ tr:hover td{background:rgba(29,221,255,.03);}
 .badge-restocked{background:rgba(0,229,160,.15);color:var(--green);border:1px solid rgba(0,229,160,.3);}
 .btn-restock{background:var(--green);color:#080810;padding:8px 16px;border-radius:10px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;transition:all .2s;}
 .btn-restock:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,229,160,.3);background:#00ffb3;}
-.stock-tab{padding:8px 16px;border:none;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;background:transparent;color:var(--muted);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;}
+.stock-tab{flex:1;padding:10px;border:none;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;background:transparent;color:var(--muted);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
 .stock-tab.active{background:linear-gradient(135deg,#0BBFFF,#A855F7);color:#080810;}
 .stock-tab-badge{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:6px;font-size:11px;}
 .stock-tab.active .stock-tab-badge{background:rgba(255,255,255,.3);}
