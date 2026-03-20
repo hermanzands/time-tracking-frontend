@@ -307,7 +307,6 @@ function showApp() {
   if (['manager', 'owner'].includes(user.role)) {
     // Show all admin items
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.remove('hidden'); el.style.display = ''; });
-    document.querySelectorAll('.tab-bar').forEach(el => el.classList.remove('hidden'));
     // Hide owner-only items for managers
     if (user.role === 'manager') {
       document.querySelectorAll('.owner-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
@@ -320,7 +319,6 @@ function showApp() {
     loadPendingEmployees();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
-    document.querySelectorAll('.tab-bar').forEach(el => el.classList.add('hidden'));
   }
 sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
@@ -2962,7 +2960,7 @@ async function updateReimburseCounts() {
 // STATS & FINANCE
 // ============================================================
 let statsChart = null;
-let statsRange = 'month';
+let statsRange = 'week';
 let statsType = 'bar';
 let allPayouts = [];
 
@@ -3099,6 +3097,8 @@ function renderStatsChart() {
   const maxVal = values.length ? Math.max(...values) : 0;
   const bgColors = values.map(v => v === maxVal && v > 0 ? 'rgba(255,181,71,.6)' : 'rgba(139,92,246,.35)');
   const borderColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
+  const pointColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
+  const pointRadius = values.map(v => v === maxVal && v > 0 ? 7 : 4);
 
   statsChart = new Chart(ctx, {
     type: statsType,
@@ -3108,10 +3108,12 @@ function renderStatsChart() {
         label: 'Payout ($)',
         data: values,
         backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
-        borderColor: statsType === 'bar' ? borderColors : '#8b5cf6',
+        borderColor: '#8b5cf6',
         borderWidth: 2,
         borderRadius: statsType === 'bar' ? 8 : 0,
-        pointBackgroundColor: '#8b5cf6',
+        pointBackgroundColor: pointColors,
+        pointBorderColor: pointColors,
+        pointRadius: statsType === 'line' ? pointRadius : undefined,
         tension: 0.4,
         fill: statsType === 'line',
       }]
