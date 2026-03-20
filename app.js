@@ -2962,6 +2962,7 @@ async function updateReimburseCounts() {
 let statsChart = null;
 let statsRange = 'week';
 let statsType = 'bar';
+let allPayouts = [];
 let statsData = null;
 
 async function loadFinanceStats() {
@@ -2970,6 +2971,7 @@ async function loadFinanceStats() {
     const d = await r.json();
     if (!d.success) return;
     statsData = d;
+    allPayouts = d.recentLog || [];
     renderStatCards();
     renderStatsChart();
     renderPayoutLog();
@@ -2987,23 +2989,30 @@ function renderStatCards() {
 
 function renderPayoutLog() {
   const el = document.getElementById('payout-log-list');
-  if (!statsData || !statsData.recentLog || !statsData.recentLog.length) {
+  if (!allPayouts.length) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
       <div style="font-size:48px;margin-bottom:12px;">💸</div>
       <div style="font-weight:600;margin-bottom:6px;">No payouts yet</div>
-      <div style="font-size:13px;">Process payments to see history here</div>
+      <div style="font-size:13px;">Add your first payout to get started</div>
     </div>`;
     return;
   }
-  el.innerHTML = statsData.recentLog.map((p, i) => `
+
+  const sorted = [...allPayouts].sort((a, b) => new Date(b.payout_date) - new Date(a.payout_date));
+
+  el.innerHTML = sorted.map((p, i) => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:32px;height:32px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:13px;">#${statsData.recentLog.length - i}</div>
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:13px;">#${sorted.length - i}</div>
         <div>
-          <div style="font-weight:600;font-size:14px;">${new Date(p.period_start).toLocaleDateString('en-US', {month:'short',day:'numeric'})} – ${new Date(p.period_end).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}</div>
+          <div style="font-weight:600;font-size:14px;">${p.note || 'Payout'}</div>
+          <div style="font-size:12px;color:var(--muted);">${new Date(p.payout_date).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'})}${p.creator_name ? ' · by ' + p.creator_name : ''}</div>
         </div>
       </div>
-      <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${Math.round(p.amount).toLocaleString('en-US')}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${parseFloat(p.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</div>
+        <button onclick="deletePayout(${p.id})" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--danger);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button>
+      </div>
     </div>
   `).join('');
 }
@@ -3051,7 +3060,7 @@ function renderStatsChart() {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => '$' + Math.round(ctx.parsed.y).toLocaleString('en-US')
+            label: ctx => '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
           }
         }
       },
@@ -3059,7 +3068,10 @@ function renderStatsChart() {
         x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888' } },
         y: {
           grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: { color: '#888', callback: v => '$' + Math.round(v).toLocaleString() },
+          ticks: {
+            color: '#888',
+            callback: v => '$' + v.toLocaleString()
+          },
           beginAtZero: true
         }
       }
