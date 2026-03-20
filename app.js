@@ -2962,158 +2962,63 @@ async function updateReimburseCounts() {
 let statsChart = null;
 let statsRange = 'week';
 let statsType = 'bar';
-let allPayouts = [];
+let statsData = null;
 
 async function loadFinanceStats() {
-  await loadPayouts();
-  renderStatCards();
-  renderStatsChart();
-}
-
-async function loadPayouts() {
   try {
-    const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
-    const data = await res.json();
-    allPayouts = data.payouts || [];
-
-    // Load payments table for chart and record (grouped by period)
-    try {
-      const pr = await fetch(API + '/api/payments?limit=1000', { headers: hdr() });
-      const pd = await pr.json();
-      if (pd.success && pd.payments && pd.payments.length > 0) {
-        // Group by period_end date to create virtual payout entries
-        const byPeriod = {};
-        pd.payments.forEach(p => {
-          const key = p.period_end ? p.period_end.split('T')[0] : p.period_start.split('T')[0];
-          if (!byPeriod[key]) byPeriod[key] = 0;
-          byPeriod[key] += parseFloat(p.amount || 0);
-        });
-        // Convert to payout-like objects for the chart
-        window._paymentPayouts = Object.entries(byPeriod).map(([date, amount]) => ({
-          payout_date: date,
-          amount: amount
-        }));
-        const totals = Object.values(byPeriod);
-        window._paymentRecord = totals.length ? Math.max(...totals) : 0;
-      }
-    } catch(e) {}
-
+    const r = await fetch(API + '/api/stats', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) return;
+    statsData = d;
+    renderStatCards();
+    renderStatsChart();
     renderPayoutLog();
-  } catch (e) {
-    console.error('Failed to load payouts', e);
-  }
+  } catch(e) { console.error('Stats error:', e); }
 }
 
 function renderStatCards() {
-  const now = new Date();
-
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  weekStart.setHours(0,0,0,0);
-
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const chartData = window._paymentPayouts || allPayouts;
-
-  const weekTotal = chartData
-    .filter(p => new Date(p.payout_date) >= weekStart)
-    .reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const monthTotal = chartData
-    .filter(p => new Date(p.payout_date) >= monthStart)
-    .reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const allTime = chartData.reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const record = window._paymentRecord || (chartData.length
-    ? Math.max(...chartData.map(p => parseFloat(p.amount)))
-    : 0);
-
-  document.getElementById('stat-week').textContent = '$' + Math.round(weekTotal).toLocaleString('en-US');
-  document.getElementById('stat-month').textContent = '$' + Math.round(monthTotal).toLocaleString('en-US');
-  document.getElementById('stat-alltime').textContent = '$' + Math.round(allTime).toLocaleString('en-US');
-  document.getElementById('stat-record').textContent = '$' + Math.round(record).toLocaleString('en-US');
+  if (!statsData) return;
+  const c = statsData.cards;
+  document.getElementById('stat-week').textContent = '$' + Math.round(c.thisWeek).toLocaleString('en-US');
+  document.getElementById('stat-month').textContent = '$' + Math.round(c.thisMonth).toLocaleString('en-US');
+  document.getElementById('stat-alltime').textContent = '$' + Math.round(c.allTime).toLocaleString('en-US');
+  document.getElementById('stat-record').textContent = '$' + Math.round(c.record).toLocaleString('en-US');
 }
 
 function renderPayoutLog() {
   const el = document.getElementById('payout-log-list');
-  if (!allPayouts.length) {
+  if (!statsData || !statsData.recentLog || !statsData.recentLog.length) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;">
       <div style="font-size:48px;margin-bottom:12px;">💸</div>
       <div style="font-weight:600;margin-bottom:6px;">No payouts yet</div>
-      <div style="font-size:13px;">Add your first payout to get started</div>
+      <div style="font-size:13px;">Process payments to see history here</div>
     </div>`;
     return;
   }
-
-  const sorted = [...allPayouts].sort((a, b) => new Date(b.payout_date) - new Date(a.payout_date));
-
-  el.innerHTML = sorted.map((p, i) => `
+  el.innerHTML = statsData.recentLog.map((p, i) => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:32px;height:32px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:13px;">#${sorted.length - i}</div>
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:13px;">#${statsData.recentLog.length - i}</div>
         <div>
-          <div style="font-weight:600;font-size:14px;">${p.note || 'Payout'}</div>
-          <div style="font-size:12px;color:var(--muted);">${new Date(p.payout_date).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'})}${p.creator_name ? ' · by ' + p.creator_name : ''}</div>
+          <div style="font-weight:600;font-size:14px;">${new Date(p.period_start).toLocaleDateString('en-US', {month:'short',day:'numeric'})} – ${new Date(p.period_end).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${parseFloat(p.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</div>
-        <button onclick="deletePayout(${p.id})" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--danger);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button>
-      </div>
+      <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${Math.round(p.amount).toLocaleString('en-US')}</div>
     </div>
   `).join('');
 }
 
 function renderStatsChart() {
+  if (!statsData) return;
   const ctx = document.getElementById('stats-chart').getContext('2d');
-  const now = new Date();
-  let labels = [];
-  let values = [];
-  const chartData = window._paymentPayouts || allPayouts;
 
-  if (statsRange === 'week') {
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const label = d.toLocaleDateString('en-US', {weekday:'short'});
-      const dayStr = d.toISOString().split('T')[0];
-      const total = chartData
-        .filter(p => p.payout_date.split('T')[0] === dayStr)
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  } else if (statsRange === 'month') {
-    for (let i = 7; i >= 0; i--) {
-      const wEnd = new Date(now);
-      wEnd.setDate(now.getDate() - i * 7);
-      const wStart = new Date(wEnd);
-      wStart.setDate(wEnd.getDate() - 6);
-      const label = wStart.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-      const total = chartData
-        .filter(p => {
-          const d = new Date(p.payout_date);
-          return d >= wStart && d <= wEnd;
-        })
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  } else {
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = d.toLocaleDateString('en-US', {month:'short', year:'2-digit'});
-      const total = chartData
-        .filter(p => {
-          const pd = new Date(p.payout_date);
-          return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
-        })
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  }
+  let chartPoints;
+  if (statsRange === 'week') chartPoints = statsData.charts.daily;
+  else if (statsRange === 'month') chartPoints = statsData.charts.weekly;
+  else chartPoints = statsData.charts.monthly;
+
+  const labels = chartPoints.map(p => p.label);
+  const values = chartPoints.map(p => p.total);
 
   if (statsChart) statsChart.destroy();
 
@@ -3146,7 +3051,7 @@ function renderStatsChart() {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
+            label: ctx => '$' + Math.round(ctx.parsed.y).toLocaleString('en-US')
           }
         }
       },
@@ -3154,10 +3059,7 @@ function renderStatsChart() {
         x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888' } },
         y: {
           grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: {
-            color: '#888',
-            callback: v => '$' + v.toLocaleString()
-          },
+          ticks: { color: '#888', callback: v => '$' + Math.round(v).toLocaleString() },
           beginAtZero: true
         }
       }
