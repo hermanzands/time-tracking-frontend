@@ -2975,6 +2975,29 @@ async function loadPayouts() {
     const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
     const data = await res.json();
     allPayouts = data.payouts || [];
+
+    // Load payments table for chart and record (grouped by period)
+    try {
+      const pr = await fetch(API + '/api/payments?limit=1000', { headers: hdr() });
+      const pd = await pr.json();
+      if (pd.success && pd.payments && pd.payments.length > 0) {
+        // Group by period_end date to create virtual payout entries
+        const byPeriod = {};
+        pd.payments.forEach(p => {
+          const key = p.period_end ? p.period_end.split('T')[0] : p.period_start.split('T')[0];
+          if (!byPeriod[key]) byPeriod[key] = 0;
+          byPeriod[key] += parseFloat(p.amount || 0);
+        });
+        // Convert to payout-like objects for the chart
+        window._paymentPayouts = Object.entries(byPeriod).map(([date, amount]) => ({
+          payout_date: date,
+          amount: amount
+        }));
+        const totals = Object.values(byPeriod);
+        window._paymentRecord = totals.length ? Math.max(...totals) : 0;
+      }
+    } catch(e) {}
+
     renderPayoutLog();
   } catch (e) {
     console.error('Failed to load payouts', e);
@@ -2990,19 +3013,21 @@ function renderStatCards() {
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const weekTotal = allPayouts
+  const chartData = window._paymentPayouts || allPayouts;
+
+  const weekTotal = chartData
     .filter(p => new Date(p.payout_date) >= weekStart)
     .reduce((s, p) => s + parseFloat(p.amount), 0);
 
-  const monthTotal = allPayouts
+  const monthTotal = chartData
     .filter(p => new Date(p.payout_date) >= monthStart)
     .reduce((s, p) => s + parseFloat(p.amount), 0);
 
-  const allTime = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
+  const allTime = chartData.reduce((s, p) => s + parseFloat(p.amount), 0);
 
-  const record = allPayouts.length
-    ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
-    : 0;
+  const record = window._paymentRecord || (chartData.length
+    ? Math.max(...chartData.map(p => parseFloat(p.amount)))
+    : 0);
 
   document.getElementById('stat-week').textContent = '$' + Math.round(weekTotal).toLocaleString('en-US');
   document.getElementById('stat-month').textContent = '$' + Math.round(monthTotal).toLocaleString('en-US');
@@ -3045,29 +3070,28 @@ function renderStatsChart() {
   const now = new Date();
   let labels = [];
   let values = [];
+  const chartData = window._paymentPayouts || allPayouts;
 
   if (statsRange === 'week') {
-    // Last 7 days
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const label = d.toLocaleDateString('en-US', {weekday:'short'});
       const dayStr = d.toISOString().split('T')[0];
-      const total = allPayouts
+      const total = chartData
         .filter(p => p.payout_date.split('T')[0] === dayStr)
         .reduce((s, p) => s + parseFloat(p.amount), 0);
       labels.push(label);
       values.push(total);
     }
   } else if (statsRange === 'month') {
-    // Last 8 weeks
     for (let i = 7; i >= 0; i--) {
       const wEnd = new Date(now);
       wEnd.setDate(now.getDate() - i * 7);
       const wStart = new Date(wEnd);
       wStart.setDate(wEnd.getDate() - 6);
       const label = wStart.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-      const total = allPayouts
+      const total = chartData
         .filter(p => {
           const d = new Date(p.payout_date);
           return d >= wStart && d <= wEnd;
@@ -3077,11 +3101,10 @@ function renderStatsChart() {
       values.push(total);
     }
   } else {
-    // Last 12 months
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const label = d.toLocaleDateString('en-US', {month:'short', year:'2-digit'});
-      const total = allPayouts
+      const total = chartData
         .filter(p => {
           const pd = new Date(p.payout_date);
           return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
@@ -3095,10 +3118,9 @@ function renderStatsChart() {
   if (statsChart) statsChart.destroy();
 
   const maxVal = values.length ? Math.max(...values) : 0;
-  const bgColors = values.map(v => v === maxVal && v > 0 ? 'rgba(255,181,71,.6)' : 'rgba(139,92,246,.35)');
-  const borderColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
+  const bgColors = values.map(v => v === maxVal && v > 0 ? 'rgba(255,181,71,.7)' : 'rgba(139,92,246,.35)');
   const pointColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
-  const pointRadius = values.map(v => v === maxVal && v > 0 ? 7 : 4);
+  const pointRadii = values.map(v => v === maxVal && v > 0 ? 8 : 4);
 
   statsChart = new Chart(ctx, {
     type: statsType,
@@ -3108,12 +3130,12 @@ function renderStatsChart() {
         label: 'Payout ($)',
         data: values,
         backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
-        borderColor: '#8b5cf6',
-        borderWidth: 2,
+        borderColor: statsType === 'line' ? '#8b5cf6' : bgColors,
+        borderWidth: statsType === 'line' ? 2 : 0,
         borderRadius: statsType === 'bar' ? 8 : 0,
         pointBackgroundColor: pointColors,
         pointBorderColor: pointColors,
-        pointRadius: statsType === 'line' ? pointRadius : undefined,
+        pointRadius: statsType === 'line' ? pointRadii : undefined,
         tension: 0.4,
         fill: statsType === 'line',
       }]
