@@ -103,7 +103,7 @@ function toast(msg, type = 'ok') {
 
 function hdr() { return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}; }
 function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
-function toHm(h) { const hrs = Math.floor(h); const mins = Math.round((h - hrs) * 60); if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
+function toHm(h) { let hrs = Math.floor(h); let mins = Math.round((h - hrs) * 60); if (mins === 60) { hrs += 1; mins = 0; } if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
 function displayName(u) { return u.display_name || u.nickname || 'Unknown'; }
 function fmtDate(s) { return new Date(s).toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'}); }
 function fmtTime(s) { return new Date(s).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}); }
@@ -2981,31 +2981,10 @@ async function loadFinanceStats() {
 function renderStatCards() {
   if (!statsData) return;
   const c = statsData.cards;
-
   document.getElementById('stat-week').textContent = '$' + Math.round(c.thisWeek).toLocaleString('en-US');
   document.getElementById('stat-month').textContent = '$' + Math.round(c.thisMonth).toLocaleString('en-US');
   document.getElementById('stat-alltime').textContent = '$' + Math.round(c.allTime).toLocaleString('en-US');
   document.getElementById('stat-record').textContent = '$' + Math.round(c.record).toLocaleString('en-US');
-
-  // Deltas
-  function setDelta(elId, current, previous) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    if (previous === 0) { el.textContent = ''; return; }
-    const pct = ((current - previous) / previous) * 100;
-    const sign = pct >= 0 ? '↑' : '↓';
-    el.textContent = sign + ' ' + Math.abs(Math.round(pct)) + '% vs last period';
-    el.className = 'stat-delta ' + (pct >= 0 ? 'up' : 'down');
-  }
-  setDelta('stat-week-delta', c.thisWeek, c.prevWeek);
-  setDelta('stat-month-delta', c.thisMonth, c.prevMonth);
-
-  // Sub info
-  const subAll = document.getElementById('stat-alltime-sub');
-  if (subAll) subAll.textContent = c.count + ' payouts · avg $' + Math.round(c.avg).toLocaleString('en-US');
-
-  const subRec = document.getElementById('stat-record-sub');
-  if (subRec && c.recordDate) subRec.textContent = new Date(c.recordDate).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 
 function renderPayoutLog() {
@@ -3057,40 +3036,23 @@ function renderStatsChart() {
   const pointColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
   const pointRadii = values.map(v => v === maxVal && v > 0 ? 8 : 4);
 
-  const notes = chartPoints.map(p => p.notes || '');
-  const recordVal = statsData?.cards?.record || 0;
-
   statsChart = new Chart(ctx, {
     type: statsType,
     data: {
       labels,
-      datasets: [
-        {
-          label: 'Payout ($)',
-          data: values,
-          backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
-          borderColor: statsType === 'line' ? '#8b5cf6' : bgColors,
-          borderWidth: statsType === 'line' ? 2 : 0,
-          borderRadius: statsType === 'bar' ? 8 : 0,
-          pointBackgroundColor: pointColors,
-          pointBorderColor: pointColors,
-          pointRadius: statsType === 'line' ? pointRadii : undefined,
-          tension: 0.4,
-          fill: statsType === 'line',
-        },
-        // Record annotation line
-        ...(recordVal > 0 ? [{
-          label: 'Record',
-          data: Array(labels.length).fill(recordVal),
-          type: 'line',
-          borderColor: 'rgba(255,181,71,.4)',
-          borderWidth: 1.5,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          fill: false,
-          tension: 0,
-        }] : [])
-      ]
+      datasets: [{
+        label: 'Payout ($)',
+        data: values,
+        backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
+        borderColor: statsType === 'line' ? '#8b5cf6' : bgColors,
+        borderWidth: statsType === 'line' ? 2 : 0,
+        borderRadius: statsType === 'bar' ? 8 : 0,
+        pointBackgroundColor: pointColors,
+        pointBorderColor: pointColors,
+        pointRadius: statsType === 'line' ? pointRadii : undefined,
+        tension: 0.4,
+        fill: statsType === 'line',
+      }]
     },
     options: {
       responsive: true,
@@ -3098,23 +3060,18 @@ function renderStatsChart() {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            title: (items) => {
-              const idx = items[0].dataIndex;
-              return notes[idx] ? notes[idx] : labels[idx];
-            },
-            label: ctx => {
-              if (ctx.dataset.label === 'Record') return null;
-              return '$' + Math.round(ctx.parsed.y).toLocaleString('en-US');
-            }
-          },
-          filter: item => item.dataset.label !== 'Record'
+            label: ctx => '$' + ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})
+          }
         }
       },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888' } },
         y: {
           grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: { color: '#888', callback: v => '$' + Math.round(v).toLocaleString() },
+          ticks: {
+            color: '#888',
+            callback: v => '$' + v.toLocaleString()
+          },
           beginAtZero: true
         }
       }
