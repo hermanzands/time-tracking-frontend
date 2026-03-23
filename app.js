@@ -307,6 +307,7 @@ function showApp() {
   if (['manager', 'owner'].includes(user.role)) {
     // Show all admin items
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.remove('hidden'); el.style.display = ''; });
+    document.querySelectorAll('.tab-bar').forEach(el => { el.classList.remove('hidden'); });
     // Hide owner-only items for managers
     if (user.role === 'manager') {
       document.querySelectorAll('.owner-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
@@ -319,6 +320,7 @@ function showApp() {
     loadPendingEmployees();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
+    document.querySelectorAll('.tab-bar').forEach(el => { el.classList.add('hidden'); });
   }
 sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
@@ -716,6 +718,35 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
+async function unarchiveWeek(wkey) {
+  const confirmed = await showModal({
+    icon: '↩',
+    title: 'Restore Week?',
+    message: 'All entries from this week will be moved back to Active. Are you sure?',
+    confirmText: 'Restore',
+    danger: false
+  });
+  if (!confirmed) return;
+  try {
+    // Get all archived entries for this week
+    const r = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) { toast('Failed to load entries', 'err'); return; }
+    const monday = getWeekMondayFromKey(wkey);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+    const weekEntries = d.entries.filter(e => {
+      const t = new Date(e.clock_in);
+      return t >= monday && t <= sunday;
+    });
+    if (weekEntries.length === 0) { toast('No entries found for this week', 'err'); return; }
+    await Promise.all(weekEntries.map(e =>
+      fetch(API + '/api/time-entries/' + e.id + '/unarchive', {method: 'PATCH', headers: hdr()})
+    ));
+    toast('✅ Week restored to Active');
+    loadAllEntries();
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function archiveAllHours() {
   if (user.role !== 'owner') return;
 
@@ -898,8 +929,10 @@ async function loadHistoryEntries() {
       html += '<div><div style="font-weight:600;font-size:14px;">Week ' + parseInt(wnum) + ' <span style="color:var(--muted);font-weight:400;font-size:12px;">· ' + fmt(monday) + ' – ' + fmt(sunday) + '</span></div>';
       html += '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '') + ' · ' + toHm(weekTotal) + ' total</div></div>';
       html += '</div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;">';
+      if (user.role === 'owner') html += '<button onclick="event.stopPropagation();unarchiveWeek(\'' + wkey + '\')" style="font-size:11px;padding:4px 10px;background:rgba(11,191,255,.1);border:1px solid rgba(11,191,255,.3);border-radius:6px;color:var(--accent);cursor:pointer;">↩ Restore</button>';
       html += '<span id="hw-arr-' + wkey + '" style="color:var(--muted);font-size:16px;transition:transform .2s;display:inline-block;transform:' + (isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)') + '">▼</span>';
-      html += '</div>';
+      html += '</div></div>';
 
       // Week body: persons
       html += '<div id="hw-body-' + wkey + '" style="display:' + (isExpanded ? '' : 'none') + ';">';
@@ -983,6 +1016,14 @@ function setPayLastWeek() {
   document.getElementById('pay-end').value = fmt(lastSunday);
 }
 
+function togglePaidItem(safeId, paid) {
+  const item = document.getElementById('pay-item-' + safeId);
+  const amt = document.getElementById('pay-amt-' + safeId);
+  if (!item) return;
+  item.style.opacity = paid ? '0.4' : '1';
+  if (amt) amt.style.textDecoration = paid ? 'line-through' : '';
+}
+
 async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
@@ -1012,16 +1053,19 @@ async function calcPayments() {
       });
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
-      let html = '';
+      let html = '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">✓ Check off each person after paying them</div>';
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
         const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
         const sid = userMap[p.user_id]?.sid;
-        const sidTag = sid ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ${escapeHtml(sid)}</div>` : '';
-        html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.display_name||p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-       html += '<div><div style="font-weight:500">' + (p.display_name||p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
-        html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
+        const sidTag = sid ? '<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ' + escapeHtml(sid) + '</div>' : '';
+        const cbId = 'cb-' + safeId;
+        html += '<div class="pay-result-item" id="pay-item-' + safeId + '" style="transition:opacity .2s;">';
+        html += '<input type="checkbox" data-sid="' + safeId + '" onchange="togglePaidItem(this.dataset.sid,this.checked)" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer;margin-right:12px;">';
+        html += '<div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.display_name||p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
+        html += '<div><div style="font-weight:500">' + (p.display_name||p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
+        html += '<div class="pay-amount" id="pay-amt-' + safeId + '">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
       d.distributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
@@ -3134,20 +3178,14 @@ async function submitPayout() {
 }
 
 async function deletePayout(id) {
-  openConfirmModal('🗑️ Delete Payout', 'Are you sure you want to delete this payout?', async () => {
-    try {
-      await fetch('/api/payouts/' + id, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      await loadPayouts();
-      renderStatCards();
-      renderStatsChart();
-      showToast('Payout deleted.');
-    } catch (e) {
-      showToast('Failed to delete.');
-    }
-  });
+  const confirmed = await showModal({ icon: '🗑️', title: 'Delete Payout', message: 'Are you sure you want to delete this payout? This cannot be undone.', confirmText: 'Delete', danger: true });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/payouts/' + id, { method: 'DELETE', headers: hdr() });
+    const d = await r.json();
+    if (d.success) { toast('🗑️ Payout deleted'); loadFinanceStats(); }
+    else toast(d.error || 'Failed to delete', 'err');
+  } catch(e) { toast('Connection error', 'err'); }
 }
 
 (function initCursor() {
