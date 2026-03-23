@@ -2987,6 +2987,24 @@ function renderStatCards() {
   document.getElementById('stat-month').textContent = '$' + Math.round(c.thisMonth).toLocaleString('en-US');
   document.getElementById('stat-alltime').textContent = '$' + Math.round(c.allTime).toLocaleString('en-US');
   document.getElementById('stat-record').textContent = '$' + Math.round(c.record).toLocaleString('en-US');
+
+  function setDelta(elId, current, previous) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!previous) { el.textContent = ''; return; }
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct >= 0 ? '↑' : '↓';
+    el.textContent = sign + ' ' + Math.abs(Math.round(pct)) + '% vs last period';
+    el.className = 'stat-delta ' + (pct >= 0 ? 'up' : 'down');
+  }
+  setDelta('stat-week-delta', c.thisWeek, c.prevWeek);
+  setDelta('stat-month-delta', c.thisMonth, c.prevMonth);
+
+  const subAll = document.getElementById('stat-alltime-sub');
+  if (subAll) subAll.textContent = c.count + ' payouts · avg $' + Math.round(c.avg).toLocaleString('en-US');
+
+  const subRec = document.getElementById('stat-record-sub');
+  if (subRec && c.recordDate) subRec.textContent = new Date(c.recordDate).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 
 function renderPayoutLog() {
