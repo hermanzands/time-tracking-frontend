@@ -722,26 +722,20 @@ async function unarchiveWeek(wkey) {
   const confirmed = await showModal({
     icon: '↩',
     title: 'Restore Week?',
-    message: 'All entries from this week will be moved back to Active. Are you sure?',
+    message: 'All entries from this week will be moved back to Active.',
     confirmText: 'Restore',
     danger: false
   });
   if (!confirmed) return;
   try {
-    // Get all archived entries for this week
     const r = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
     const d = await r.json();
     if (!d.success) { toast('Failed to load entries', 'err'); return; }
     const monday = getWeekMondayFromKey(wkey);
     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
-    const weekEntries = d.entries.filter(e => {
-      const t = new Date(e.clock_in);
-      return t >= monday && t <= sunday;
-    });
-    if (weekEntries.length === 0) { toast('No entries found for this week', 'err'); return; }
-    await Promise.all(weekEntries.map(e =>
-      fetch(API + '/api/time-entries/' + e.id + '/unarchive', {method: 'PATCH', headers: hdr()})
-    ));
+    const weekEntries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= monday && t <= sunday; });
+    if (weekEntries.length === 0) { toast('No entries found', 'err'); return; }
+    await Promise.all(weekEntries.map(e => fetch(API + '/api/time-entries/' + e.id + '/unarchive', {method:'PATCH', headers:hdr()})));
     toast('✅ Week restored to Active');
     loadAllEntries();
   } catch(e) { toast('Connection error', 'err'); }
@@ -1020,7 +1014,7 @@ function togglePaidItem(safeId, paid) {
   const item = document.getElementById('pay-item-' + safeId);
   const amt = document.getElementById('pay-amt-' + safeId);
   if (!item) return;
-  item.style.opacity = paid ? '0.4' : '1';
+  item.style.opacity = paid ? '0.35' : '1';
   if (amt) amt.style.textDecoration = paid ? 'line-through' : '';
 }
 
@@ -1060,11 +1054,13 @@ async function calcPayments() {
         const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
         const sid = userMap[p.user_id]?.sid;
         const sidTag = sid ? '<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ' + escapeHtml(sid) + '</div>' : '';
-        const cbId = 'cb-' + safeId;
+        const name = p.display_name || p.nickname || 'Unknown';
         html += '<div class="pay-result-item" id="pay-item-' + safeId + '" style="transition:opacity .2s;">';
-        html += '<input type="checkbox" data-sid="' + safeId + '" onchange="togglePaidItem(this.dataset.sid,this.checked)" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer;margin-right:12px;">';
-        html += '<div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.display_name||p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-        html += '<div><div style="font-weight:500">' + (p.display_name||p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
+        html += '<div style="display:flex;align-items:center;gap:12px;flex:1;">';
+        html += '<input type="checkbox" data-sid="' + safeId + '" onchange="togglePaidItem(this.dataset.sid,this.checked)" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer;">';
+        html += '<div class="avatar avatar-sm"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
+        html += '<div><div style="font-weight:500">' + name + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div>';
+        html += '</div>';
         html += '<div class="pay-amount" id="pay-amt-' + safeId + '">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
@@ -3178,7 +3174,7 @@ async function submitPayout() {
 }
 
 async function deletePayout(id) {
-  const confirmed = await showModal({ icon: '🗑️', title: 'Delete Payout', message: 'Are you sure you want to delete this payout? This cannot be undone.', confirmText: 'Delete', danger: true });
+  const confirmed = await showModal({ icon: '🗑️', title: 'Delete Payout', message: 'Are you sure? This cannot be undone.', confirmText: 'Delete', danger: true });
   if (!confirmed) return;
   try {
     const r = await fetch(API + '/api/payouts/' + id, { method: 'DELETE', headers: hdr() });
