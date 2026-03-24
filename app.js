@@ -445,7 +445,6 @@ async function loadClockStatus() {
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
     const d = await r.json();
-    console.log('API response:', d); // ← tijdelijk
     if (d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active') {
       const clockIn = d.entries[0].clock_in;
       localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));
@@ -455,22 +454,24 @@ async function loadClockStatus() {
       setClocked(false);
     }
   } catch(e) {
-    console.log('loadClockStatus error:', e); // ← binnen catch
   }
 }
 
 function setClocked(on, since) {
-  console.log('setClocked called:', on, since);
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
   const ci = document.getElementById('btn-ci'), co = document.getElementById('btn-co'), info = document.getElementById('clock-since');
   if (on) { pill.className = 'status-pill in'; dot.className = 'dot pulse'; txt.textContent = 'Currently clocked in'; ci.disabled = true; co.disabled = false; info.textContent = since ? 'Started at ' + since.toLocaleTimeString() : ''; }
   else { pill.className = 'status-pill out'; dot.className = 'dot'; txt.textContent = 'Not clocked in'; ci.disabled = false; co.disabled = true; info.textContent = ''; }
 }
 
+let _clockingIn = false;
 async function clockIn() {
+  if (_clockingIn) return;
+  _clockingIn = true;
   const btn = document.getElementById('btn-ci'); btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try { const r = await fetch(API + '/api/time-entries/clock-in', {method:'POST',headers:hdr()}); const d = await r.json(); if (d.success) {    const clockIn = new Date().toISOString();   localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));   setClocked(true, new Date());    toast('✅ Clocked in!');    loadStats();  } else { toast(d.error || 'Failed', 'err'); btn.disabled = false; } } catch(e) { toast('Connection error', 'err'); btn.disabled = false; }
   btn.innerHTML = 'Clock In';
+  _clockingIn = false;
 }
 
 async function clockOut() {
