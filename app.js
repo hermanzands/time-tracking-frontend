@@ -327,7 +327,13 @@ const lastPanel = localStorage.getItem('wt_last_panel');
 if (lastPanel && document.getElementById('panel-' + lastPanel)) go(lastPanel);
 else go('clock');
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
-    if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
+    if (d.success && d.users) {
+      allEmployees = d.users.filter(u => u.is_active);
+      // Cache avatars from DB for all users
+      d.users.forEach(u => {
+        if (u.avatar) localStorage.setItem('avatar_' + u.id, u.avatar);
+      });
+    }
   }).catch(() => {});
   // Register push notifications
   initPushNotifications();
@@ -676,11 +682,14 @@ function renderWorkers(d) {
       (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
       html += '</select>';
       if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
-      html += '<button onclick="resetWorkerPassword(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="font-size:11px;padding:5px 10px;" title="Reset password">🔑</button>';
       html += '</div></div>';
     });
     grid.innerHTML = html;
-    activeUsers.forEach(u => { const saved = localStorage.getItem('avatar_' + u.id); if (saved) { const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } });
+    activeUsers.forEach(u => {
+      if (u.avatar) localStorage.setItem('avatar_' + u.id, u.avatar);
+      const saved = localStorage.getItem('avatar_' + u.id);
+      if (saved) { const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+    });
 }
 
 async function registerWorker() {
@@ -706,26 +715,6 @@ async function registerWorker() {
 async function updateRole(userId, newRole) {
   cacheInvalidate('workers');
   try { const r = await fetch(API + '/api/users/' + userId, {method:'PATCH',headers:hdr(),body:JSON.stringify({role:newRole})}); const d = await r.json(); if (d.success) toast('✅ Role updated!'); else { toast(d.error || 'Failed to update role', 'err'); loadWorkers(); } } catch(e) { toast('Connection error', 'err'); loadWorkers(); }
-}
-
-async function resetWorkerPassword(userId, name) {
-  const newPwd = await showInputModal({
-    icon: '🔑',
-    title: 'Reset password for ' + name,
-    placeholder: 'New password (min. 4 characters)',
-    confirmText: 'Reset'
-  });
-  if (!newPwd) return;
-  if (newPwd.length < 4) { toast('Password must be at least 4 characters', 'err'); return; }
-  try {
-    const r = await fetch(API + '/api/auth/admin-reset-password', {
-      method: 'POST', headers: hdr(),
-      body: JSON.stringify({ user_id: userId, new_password: newPwd })
-    });
-    const d = await r.json();
-    if (d.success) toast('✅ Password reset for ' + name);
-    else toast(d.error || 'Failed to reset', 'err');
-  } catch(e) { toast('Connection error', 'err'); }
 }
 
 async function deleteWorker(userId, name) {
@@ -1242,26 +1231,6 @@ function initChat() {
 }
 
 let modalResolve = null;
-
-function showInputModal({ icon, title, placeholder, confirmText }) {
-  return new Promise(resolve => {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = `
-      <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:18px;padding:24px;width:320px;max-width:90vw;">
-        <div style="font-size:22px;margin-bottom:8px;">${icon}</div>
-        <div style="font-size:17px;font-weight:700;font-family:'Syne',sans-serif;margin-bottom:16px;">${title}</div>
-        <input id="_input_modal_val" type="password" placeholder="${placeholder}" style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;">
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button onclick="this.closest('div[style*=fixed]').remove();window._inputModalCb(null)" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;">Cancel</button>
-          <button onclick="const v=document.getElementById('_input_modal_val').value.trim();this.closest('div[style*=fixed]').remove();window._inputModalCb(v||null)" style="padding:10px 18px;border-radius:10px;background:var(--accent);border:none;color:#000;font-weight:600;cursor:pointer;">${confirmText}</button>
-        </div>
-      </div>`;
-    window._inputModalCb = resolve;
-    document.body.appendChild(overlay);
-    setTimeout(() => document.getElementById('_input_modal_val')?.focus(), 50);
-  });
-}
 
 function showModal(options) {
   return new Promise((resolve) => {
