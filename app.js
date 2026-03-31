@@ -681,8 +681,8 @@ function renderWorkers(d) {
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
       (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
       html += '</select>';
-      if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
-      html += '<button onclick="resetWorkerPassword(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="font-size:11px;padding:5px 10px;" title="Reset password">🔑</button>';
+      if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 10px;font-size:13px;">🗑️</button>'; }
+      html += '<button onclick="resetWorkerPassword(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="padding:6px 10px;font-size:13px;" title="Reset password">🔑</button>';
       html += '</div></div>';
     });
     grid.innerHTML = html;
