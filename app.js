@@ -750,6 +750,29 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
+async function unarchiveWeek(wkey) {
+  const confirmed = await showModal({
+    icon: '↩',
+    title: 'Restore Week?',
+    message: 'All entries from this week will be moved back to Active.',
+    confirmText: 'Restore',
+    danger: false
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) { toast('Failed to load entries', 'err'); return; }
+    const monday = getWeekMondayFromKey(wkey);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+    const weekEntries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= monday && t <= sunday; });
+    if (weekEntries.length === 0) { toast('No entries found', 'err'); return; }
+    await Promise.all(weekEntries.map(e => fetch(API + '/api/time-entries/' + e.id + '/unarchive', {method:'PATCH', headers:hdr()})));
+    toast('✅ Week restored to Active');
+    loadAllEntries();
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function archiveAllHours() {
   if (user.role !== 'owner') return;
 
@@ -932,8 +955,10 @@ async function loadHistoryEntries() {
       html += '<div><div style="font-weight:600;font-size:14px;">Week ' + parseInt(wnum) + ' <span style="color:var(--muted);font-weight:400;font-size:12px;">· ' + fmt(monday) + ' – ' + fmt(sunday) + '</span></div>';
       html += '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '') + ' · ' + toHm(weekTotal) + ' total</div></div>';
       html += '</div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;">';
+      if (user.role === 'owner') html += '<button onclick="event.stopPropagation();unarchiveWeek(\'' + wkey + '\')" style="font-size:11px;padding:4px 10px;background:rgba(11,191,255,.1);border:1px solid rgba(11,191,255,.3);border-radius:6px;color:var(--accent);cursor:pointer;">↩ Restore</button>';
       html += '<span id="hw-arr-' + wkey + '" style="color:var(--muted);font-size:16px;transition:transform .2s;display:inline-block;transform:' + (isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)') + '">▼</span>';
-      html += '</div>';
+      html += '</div></div>';
 
       // Week body: persons
       html += '<div id="hw-body-' + wkey + '" style="display:' + (isExpanded ? '' : 'none') + ';">';
