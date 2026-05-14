@@ -450,4 +450,4 @@ button:hover{opacity:.85;}
 button:active{transform:scale(0.96);}
 
 .stats-range-btn,.stats-type-btn{background:none;border:none;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.stats-range-btn.active,.stats-type-btn.active{background:var(--accent);color:#080810;font-weight:600;}
+.stats-range-btn.active,.stats-type-btn.active{background:var(--accent);color:#080810;font-weight:600;}@media(max-width:700px){.desktop-only{display:none;}}
