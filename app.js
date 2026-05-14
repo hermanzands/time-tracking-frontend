@@ -15,6 +15,70 @@ function cacheInvalidate(key) { delete _cache[key]; }
 
 // Track expanded persons in all-hours table
 const expandedPersons = new Set();
+const expandedWeeks = new Set();
+
+// All Hours panel state
+let allHoursTab = 'active';
+let allHoursWeekOffset = 0;
+
+function getWeekRange(offset) {
+  const now = new Date();
+  const dow = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + offset * 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { start: monday, end: sunday };
+}
+
+function getISOWeekKey(date) {
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  return d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
+}
+
+function getWeekMondayFromKey(key) {
+  const [year, w] = key.split('-W');
+  const jan4 = new Date(parseInt(year), 0, 4);
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - (jan4.getDay() + 6) % 7 + (parseInt(w) - 1) * 7);
+  return monday;
+}
+
+function formatWeekLabel(offset) {
+  const { start, end } = getWeekRange(offset);
+  if (offset === 0) return 'This week';
+  if (offset === -1) return 'Last week';
+  const fmt = d => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return fmt(start) + ' – ' + fmt(end);
+}
+
+function switchHoursTab(tab) {
+  allHoursTab = tab;
+  document.getElementById('ah-tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('ah-tab-history').classList.toggle('active', tab === 'history');
+  const weekNav = document.getElementById('ah-week-nav');
+  if (weekNav) weekNav.style.display = tab === 'history' ? 'none' : 'flex';
+  document.getElementById('ah-active-view').style.display = tab === 'active' ? '' : 'none';
+  document.getElementById('ah-history-view').style.display = tab === 'history' ? '' : 'none';
+  loadAllEntries();
+}
+
+function toggleHistoryWeek(wkey) {
+  const body = document.getElementById('hw-body-' + wkey);
+  const arr = document.getElementById('hw-arr-' + wkey);
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+  if (arr) arr.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+  if (isHidden) expandedWeeks.add(wkey);
+  else expandedWeeks.delete(wkey);
+}
 
 window.onload = () => {
   tickClock();
@@ -39,7 +103,7 @@ function toast(msg, type = 'ok') {
 
 function hdr() { return {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}; }
 function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
-function toHm(h) { const hrs = Math.floor(h); const mins = Math.round((h - hrs) * 60); if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
+function toHm(h) { let hrs = Math.floor(h); let mins = Math.round((h - hrs) * 60); if (mins === 60) { hrs += 1; mins = 0; } if (hrs === 0) return mins + 'm'; if (mins === 0) return hrs + 'h'; return hrs + 'h ' + mins + 'm'; }
 function displayName(u) { return u.display_name || u.nickname || 'Unknown'; }
 function fmtDate(s) { return new Date(s).toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'}); }
 function fmtTime(s) { return new Date(s).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}); }
@@ -241,24 +305,35 @@ function showApp() {
   document.getElementById('nav-role').textContent = user.role;
   loadNotifications();
   if (['manager', 'owner'].includes(user.role)) {
-    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+    // Show all admin items
+    document.querySelectorAll('.admin-only').forEach(el => { el.classList.remove('hidden'); el.style.display = ''; });
+    document.querySelectorAll('.tab-bar').forEach(el => { el.classList.remove('hidden'); });
+    // Hide owner-only items for managers
     if (user.role === 'manager') {
-      const payCalcBtn = document.getElementById('si-payments');
+      document.querySelectorAll('.owner-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
       const payCalcPanel = document.getElementById('panel-payments');
-      if (payCalcBtn) payCalcBtn.style.display = 'none';
       if (payCalcPanel) payCalcPanel.style.display = 'none';
+      const clearBtn = document.getElementById('ah-clear-btn');
+      if (clearBtn) clearBtn.style.display = 'none';
     }
     initChat();
     loadPendingEmployees();
   } else {
     document.querySelectorAll('.admin-only').forEach(el => { el.classList.add('hidden'); el.style.display = 'none'; });
+    document.querySelectorAll('.tab-bar').forEach(el => { el.classList.add('hidden'); });
   }
 sendHeartbeat();
 const lastPanel = localStorage.getItem('wt_last_panel');
 if (lastPanel && document.getElementById('panel-' + lastPanel)) go(lastPanel);
 else go('clock');
   fetch(API + '/api/users', {headers: hdr()}).then(r => r.json()).then(d => {
-    if (d.success && d.users) allEmployees = d.users.filter(u => u.is_active);
+    if (d.success && d.users) {
+      allEmployees = d.users.filter(u => u.is_active);
+      // Cache avatars from DB for all users
+      d.users.forEach(u => {
+        if (u.avatar) localStorage.setItem('avatar_' + u.id, u.avatar);
+      });
+    }
   }).catch(() => {});
   // Register push notifications
   initPushNotifications();
@@ -376,7 +451,6 @@ async function loadClockStatus() {
   try {
     const r = await fetch(API + '/api/time-entries/my-entries?status=active&limit=1', {headers: hdr()});
     const d = await r.json();
-    console.log('API response:', d); // ← tijdelijk
     if (d.success && d.entries && d.entries.length > 0 && d.entries[0].status === 'active') {
       const clockIn = d.entries[0].clock_in;
       localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));
@@ -386,22 +460,24 @@ async function loadClockStatus() {
       setClocked(false);
     }
   } catch(e) {
-    console.log('loadClockStatus error:', e); // ← binnen catch
   }
 }
 
 function setClocked(on, since) {
-  console.log('setClocked called:', on, since);
   const pill = document.getElementById('status-pill'), dot = document.getElementById('status-dot'), txt = document.getElementById('status-txt');
   const ci = document.getElementById('btn-ci'), co = document.getElementById('btn-co'), info = document.getElementById('clock-since');
   if (on) { pill.className = 'status-pill in'; dot.className = 'dot pulse'; txt.textContent = 'Currently clocked in'; ci.disabled = true; co.disabled = false; info.textContent = since ? 'Started at ' + since.toLocaleTimeString() : ''; }
   else { pill.className = 'status-pill out'; dot.className = 'dot'; txt.textContent = 'Not clocked in'; ci.disabled = false; co.disabled = true; info.textContent = ''; }
 }
 
+let _clockingIn = false;
 async function clockIn() {
+  if (_clockingIn) return;
+  _clockingIn = true;
   const btn = document.getElementById('btn-ci'); btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try { const r = await fetch(API + '/api/time-entries/clock-in', {method:'POST',headers:hdr()}); const d = await r.json(); if (d.success) {    const clockIn = new Date().toISOString();   localStorage.setItem('wt_clock_cache', JSON.stringify({ clocked: true, clockIn }));   setClocked(true, new Date());    toast('✅ Clocked in!');    loadStats();  } else { toast(d.error || 'Failed', 'err'); btn.disabled = false; } } catch(e) { toast('Connection error', 'err'); btn.disabled = false; }
   btn.innerHTML = 'Clock In';
+  _clockingIn = false;
 }
 
 async function clockOut() {
@@ -412,18 +488,48 @@ async function clockOut() {
 
 async function loadStats() {
   try {
-    const r = await fetch(API + '/api/time-entries/my-entries?limit=200', {headers: hdr()});
+    const now = new Date(), todayStr = now.toDateString();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+    weekStart.setHours(0,0,0,0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const r = await fetch(API + '/api/time-entries/my-entries?limit=500', {headers: hdr()});
     const d = await r.json();
     if (!d.success) return;
     loadClockedInUsers();
-    const now = new Date(), todayStr = now.toDateString();
-    const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    let today = 0, week = 0, month = 0;
-    (d.entries || []).forEach(e => { if (!e.total_hours) return; const h = Number(e.total_hours); const dt = new Date(e.clock_in); if (dt.toDateString() === todayStr) today += h; if (dt >= weekStart) week += h; if (dt >= monthStart) month += h; });
+
+    let today = 0, week = 0, month = 0, total = 0;
+    (d.entries || []).forEach(e => {
+      if (!e.total_hours) return;
+      const h = Number(e.total_hours);
+      const dt = new Date(e.clock_in);
+      total += h;
+      if (dt.toDateString() === todayStr) today += h;
+      if (dt >= weekStart) week += h;
+      if (dt >= monthStart) month += h;
+    });
+
+    // Fetch archived entries for month and all-time
+    try {
+      const ar = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
+      const ad = await ar.json();
+      if (ad.success && ad.entries) {
+        ad.entries.forEach(e => {
+          if (!e.total_hours || e.user_id !== user.id) return;
+          const h = Number(e.total_hours);
+          const dt = new Date(e.clock_in);
+          total += h;
+          if (dt >= monthStart) month += h;
+        });
+      }
+    } catch(e) {}
+
     document.getElementById('st-today').textContent = toHm(today);
     document.getElementById('st-week').textContent = toHm(week);
     document.getElementById('st-month').textContent = toHm(month);
+    const totalEl = document.getElementById('st-total');
+    if (totalEl) totalEl.textContent = toHm(total);
   } catch(e) {}
 }
 
@@ -568,16 +674,23 @@ function renderWorkers(d) {
       html += '<div class="avatar"><span class="avatar-letter">' + displayName(u)[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
       html += '<div class="worker-info"><div class="worker-name">' + displayName(u) + '</div></div>';
       const isOnline = onlineUsers.has(u.id);
-      html += '<div class="online-dot ' + (isOnline ? 'on' : '') + '"></div>';
+      const dotClass = getInactivityDotClass(u.last_clock_in, isOnline);
+      const dotTitle = getInactivityLabel(u.last_clock_in, isOnline);
+      html += '<div class="online-dot ' + dotClass + '" title="' + dotTitle + '"></div>';
       html += '</div><div class="worker-actions">';
       html += '<select onchange="updateRole(\'' + u.id + '\', this.value)">';
-      ['employee','farmer','manager','owner'].forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + role.charAt(0).toUpperCase()+role.slice(1) + '</option>'; });
+      (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(role => { html += '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + (role === 'loa' ? 'LOA' : role.charAt(0).toUpperCase()+role.slice(1)) + '</option>'; });
       html += '</select>';
-      if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);">🗑️</button>'; }
+      if (u.id !== user.id) { html += '<button onclick="deleteWorker(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="background:rgba(255,85,102,.15);border-color:rgba(255,85,102,.3);color:var(--danger);padding:6px 10px;font-size:13px;">🗑️</button>'; }
+      html += '<button onclick="resetWorkerPassword(\'' + u.id + '\', \'' + safeName + '\')" class="btn-ghost" style="padding:6px 10px;font-size:13px;" title="Reset password">🔑</button>';
       html += '</div></div>';
     });
     grid.innerHTML = html;
-    activeUsers.forEach(u => { const saved = localStorage.getItem('avatar_' + u.id); if (saved) { const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } });
+    activeUsers.forEach(u => {
+      if (u.avatar) localStorage.setItem('avatar_' + u.id, u.avatar);
+      const saved = localStorage.getItem('avatar_' + u.id);
+      if (saved) { const safeId = u.id.replace(/[^a-zA-Z0-9]/g, '_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+    });
 }
 
 async function registerWorker() {
@@ -605,6 +718,26 @@ async function updateRole(userId, newRole) {
   try { const r = await fetch(API + '/api/users/' + userId, {method:'PATCH',headers:hdr(),body:JSON.stringify({role:newRole})}); const d = await r.json(); if (d.success) toast('✅ Role updated!'); else { toast(d.error || 'Failed to update role', 'err'); loadWorkers(); } } catch(e) { toast('Connection error', 'err'); loadWorkers(); }
 }
 
+async function resetWorkerPassword(userId, name) {
+  const newPwd = await showInputModal({
+    icon: '🔑',
+    title: 'Reset password for ' + name,
+    placeholder: 'New password (min. 4 characters)',
+    confirmText: 'Reset'
+  });
+  if (!newPwd) return;
+  if (newPwd.length < 4) { toast('Password must be at least 4 characters', 'err'); return; }
+  try {
+    const r = await fetch(API + '/api/auth/admin-reset-password', {
+      method: 'POST', headers: hdr(),
+      body: JSON.stringify({ user_id: userId, new_password: newPwd })
+    });
+    const d = await r.json();
+    if (d.success) toast('✅ Password reset for ' + name);
+    else toast(d.error || 'Failed to reset', 'err');
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
 async function deleteWorker(userId, name) {
   const confirmed = await showModal({icon:'🗑️',title:'Delete Worker?',message:'This will permanently delete ' + name + ' and all their data. This action cannot be undone.',confirmText:'Delete',danger:true});
   if (!confirmed) return;
@@ -617,52 +750,124 @@ async function deleteWorker(userId, name) {
   } catch(e) { toast('Failed to delete worker', 'err'); }
 }
 
-async function clearAllHours() {
-  if (user.role !== 'owner') return;
+async function unarchiveWeek(wkey) {
   const confirmed = await showModal({
-    icon: '⚠️',
-    title: 'Clear All Hours?',
-    message: 'This will permanently delete ALL time entries for ALL employees. This cannot be undone.',
-    confirmText: 'Delete All',
-    danger: true
+    icon: '↩',
+    title: 'Restore Week?',
+    message: 'All entries from this week will be moved back to Active.',
+    confirmText: 'Restore',
+    danger: false
+  });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/time-entries?archived=true&limit=2000', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) { toast('Failed to load entries', 'err'); return; }
+    const monday = getWeekMondayFromKey(wkey);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+    const weekEntries = d.entries.filter(e => { const t = new Date(e.clock_in); return t >= monday && t <= sunday; });
+    if (weekEntries.length === 0) { toast('No entries found', 'err'); return; }
+    await Promise.all(weekEntries.map(e => fetch(API + '/api/time-entries/' + e.id + '/unarchive', {method:'PATCH', headers:hdr()})));
+    toast('✅ Week restored to Active');
+    loadAllEntries();
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
+async function archiveAllHours() {
+  if (user.role !== 'owner') return;
+
+  // Check for active shifts first
+  try {
+    const activeRes = await fetch(API + '/api/time-entries/active', {headers: hdr()});
+    const activeData = await activeRes.json();
+    if (activeData.success && activeData.entries && activeData.entries.length > 0) {
+      const names = activeData.entries.map(e => e.nickname || 'Unknown').join(', ');
+      await showModal({
+        icon: '⚠️',
+        title: 'Active Shifts Running',
+        message: `Cannot archive while employees are clocked in: ${names}. Please clock them out first.`,
+        confirmText: 'OK',
+        danger: false,
+        hideCancel: true
+      });
+      return;
+    }
+  } catch(e) {}
+
+  const confirmed = await showModal({
+    icon: '📦',
+    title: 'Archive All Hours?',
+    message: 'All current time entries will be archived and remain visible in the History tab. This cannot be undone.',
+    confirmText: 'Archive All',
+    danger: false
   });
   if (!confirmed) return;
   try {
     const r = await fetch(API + '/api/time-entries/all', {method: 'DELETE', headers: hdr()});
     const d = await r.json();
-    if (d.success) { toast('🗑️ All hours cleared'); cacheInvalidate('allEntries'); loadAllEntries(); }
-    else toast(d.error || 'Failed to clear', 'err');
+    if (d.success) {
+      toast('📦 All hours archived');
+      ['active','history'].forEach(t => { for (let i = -52; i <= 0; i++) cacheInvalidate('allEntries_' + t + '_' + i); });
+      loadAllEntries();
+    } else toast(d.error || 'Failed to archive', 'err');
   } catch(e) { toast('Connection error', 'err'); }
 }
 
 async function loadAllEntries() {
-  const tb = document.getElementById('all-entries-body');
-
-  // Show cached data instantly if available
-  const cached = cacheGet('allEntries');
-  if (!cached) {
-    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  if (allHoursTab === 'active') {
+    await loadActiveEntries();
+  } else {
+    await loadHistoryEntries();
   }
+}
+
+async function loadActiveEntries() {
+  const tb = document.getElementById('all-entries-body');
+  const totalsBar = document.getElementById('ah-totals-bar');
+  const totalsText = document.getElementById('ah-totals-text');
+  tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)"><span class="spinner"></span></td></tr>';
+  if (totalsBar) totalsBar.style.display = 'none';
 
   try {
-    const r = await fetch(API + '/api/time-entries?limit=200', {headers: hdr()});
+    const r = await fetch(API + '/api/time-entries?limit=500&archived=false', {headers: hdr()});
     const d = await r.json();
-    if (!d.success || !d.entries || d.entries.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
-    cacheSet('allEntries', d);
+    if (!d.success || !d.entries) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>'; return; }
+
+    const entries = d.entries.filter(e => e.total_hours && Number(e.total_hours) > 0);
+
+    if (entries.length === 0) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No entries yet</p></div></td></tr>';
+      return;
+    }
+
     const byPerson = {};
-    d.entries.forEach(e => { if (!e.total_hours || Number(e.total_hours) === 0) return; const key = e.display_name || e.nickname || e.user_id || 'Unknown'; if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id}; byPerson[key].entries.push(e); });
-    if (Object.keys(byPerson).length === 0) { tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries yet</p></div></td></tr>'; return; }
+    entries.forEach(e => {
+      if (!e.total_hours || Number(e.total_hours) === 0) return;
+      const key = e.display_name || e.nickname || e.user_id || 'Unknown';
+      if (!byPerson[key]) byPerson[key] = {entries:[], user_id:e.user_id};
+      byPerson[key].entries.push(e);
+      allEntriesData[e.id] = e;
+    });
+
+    if (Object.keys(byPerson).length === 0) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><p>No completed entries</p></div></td></tr>';
+      return;
+    }
+
     let html = '';
+    let grandTotal = 0;
     Object.entries(byPerson).forEach(([name, data]) => {
-      const entries = data.entries, totalHrs = entries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
-      const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_'), safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-      entries.forEach(e => { allEntriesData[e.id] = e; });
+      const personEntries = data.entries;
+      const totalHrs = personEntries.reduce((sum, e) => sum + (Number(e.total_hours)||0), 0);
+      grandTotal += totalHrs;
+      const pid = 'p_' + name.replace(/[^a-z0-9]/gi, '_');
+      const safeId = data.user_id ? data.user_id.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       html += '<tr style="background:var(--surface2);cursor:pointer;" onclick="togglePerson(\'' + pid + '\')">';
       html += '<td colspan="6" style="padding:14px 20px;"><div style="display:flex;align-items:center;justify-content:space-between;">';
       html += '<div style="display:flex;align-items:center;gap:12px;"><div class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:14px;"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
-      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + entries.length + ' entries · ' + toHm(totalHrs) + ' total</div></div></div>';
-      html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block">▼</span></div></td></tr>';
-      entries.forEach(e => {
+      html += '<div><div style="font-weight:600;font-size:15px">' + name + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + personEntries.length + ' ' + (personEntries.length === 1 ? 'entry' : 'entries') + ' · ' + toHm(totalHrs) + ' total</div></div></div>';
+      html += '<span id="arr_' + pid + '" style="color:var(--muted);font-size:18px;transition:transform .2s;display:inline-block;transform:rotate(-90deg)">▼</span></div></td></tr>';
+      personEntries.forEach(e => {
         const hrs = Number(e.total_hours);
         html += '<tr class="entry-row-' + pid + '" style="background:rgba(0,0,0,.15);display:none;">';
         html += '<td style="padding-left:66px;color:var(--muted);font-size:13px">' + fmtDate(e.clock_in) + '</td>';
@@ -674,20 +879,114 @@ async function loadAllEntries() {
       });
     });
     tb.innerHTML = html;
-    Object.entries(byPerson).forEach(([name, data]) => { if (data.user_id) { const saved = localStorage.getItem('avatar_' + data.user_id); if (saved) { const safeId = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
-    // Restore expanded state from tracker
+
+    // Totals bar
+    if (totalsBar && totalsText) {
+      const workerCount = Object.keys(byPerson).length;
+      totalsText.textContent = toHm(grandTotal) + ' across ' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '');
+      totalsBar.style.display = 'flex';
+    }
+
+    // Restore avatars
+    Object.entries(byPerson).forEach(([name, data]) => {
+      if (data.user_id) {
+        const saved = localStorage.getItem('avatar_' + data.user_id);
+        if (saved) { const sid = data.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + sid).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+      }
+    });
+
+    // Restore expanded state
     expandedPersons.forEach(pid => {
       const rows = document.querySelectorAll('.entry-row-' + pid);
       const arr = document.getElementById('arr_' + pid);
-      if (rows.length) {
-        rows.forEach(row => { row.style.display = ''; });
-        if (arr) arr.style.transform = 'rotate(0deg)';
-      } else {
-        // Person no longer exists, remove from tracker
-        expandedPersons.delete(pid);
-      }
+      if (rows.length) { rows.forEach(row => { row.style.display = ''; }); if (arr) arr.style.transform = 'rotate(0deg)'; }
+      else expandedPersons.delete(pid);
     });
   } catch(e) { tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div></td></tr>'; }
+}
+
+async function loadHistoryEntries() {
+  const histBody = document.getElementById('ah-history-body');
+  histBody.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+
+  try {
+    const r = await fetch(API + '/api/time-entries?limit=2000&archived=true', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success || !d.entries || d.entries.length === 0) {
+      histBody.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No history yet</p></div>';
+      return;
+    }
+
+    // Group by ISO week
+    const byWeek = {};
+    d.entries.forEach(e => {
+      if (!e.total_hours || Number(e.total_hours) === 0) return;
+      const wkey = getISOWeekKey(e.clock_in);
+      if (!byWeek[wkey]) byWeek[wkey] = {};
+      const name = e.display_name || e.nickname || 'Unknown';
+      if (!byWeek[wkey][name]) byWeek[wkey][name] = { hours: 0, userId: e.user_id };
+      byWeek[wkey][name].hours += Number(e.total_hours);
+    });
+
+    // Sort weeks newest first
+    const sortedWeeks = Object.keys(byWeek).sort((a, b) => b.localeCompare(a));
+
+    if (sortedWeeks.length === 0) {
+      histBody.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No history yet</p></div>';
+      return;
+    }
+
+    let html = '';
+    sortedWeeks.forEach((wkey, idx) => {
+      const monday = getWeekMondayFromKey(wkey);
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      const fmt = dt => dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const [year, wnum] = wkey.split('-W');
+      const weekTotal = Object.values(byWeek[wkey]).reduce((sum, p) => sum + p.hours, 0);
+      const workerCount = Object.keys(byWeek[wkey]).length;
+      const safeKey = wkey.replace('-', '_');
+      const isExpanded = expandedWeeks.has(wkey);
+
+      html += '<div style="border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;">';
+      // Week header row
+      html += '<div onclick="toggleHistoryWeek(\'' + wkey + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);cursor:pointer;">';
+      html += '<div style="display:flex;align-items:center;gap:14px;">';
+      html += '<div style="font-family:\'Oxanium\',sans-serif;font-weight:700;font-size:22px;color:var(--accent);min-width:32px;text-align:center;">' + parseInt(wnum) + '</div>';
+      html += '<div><div style="font-weight:600;font-size:14px;">Week ' + parseInt(wnum) + ' <span style="color:var(--muted);font-weight:400;font-size:12px;">· ' + fmt(monday) + ' – ' + fmt(sunday) + '</span></div>';
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + workerCount + ' worker' + (workerCount !== 1 ? 's' : '') + ' · ' + toHm(weekTotal) + ' total</div></div>';
+      html += '</div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;">';
+      if (user.role === 'owner') html += '<button onclick="event.stopPropagation();unarchiveWeek(\'' + wkey + '\')" style="font-size:11px;padding:4px 10px;background:rgba(11,191,255,.1);border:1px solid rgba(11,191,255,.3);border-radius:6px;color:var(--accent);cursor:pointer;">↩ Restore</button>';
+      html += '<span id="hw-arr-' + wkey + '" style="color:var(--muted);font-size:16px;transition:transform .2s;display:inline-block;transform:' + (isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)') + '">▼</span>';
+      html += '</div></div>';
+
+      // Week body: persons
+      html += '<div id="hw-body-' + wkey + '" style="display:' + (isExpanded ? '' : 'none') + ';">';
+      Object.entries(byWeek[wkey])
+        .sort((a, b) => b[1].hours - a[1].hours)
+        .forEach(([name, pdata]) => {
+          const safeId = pdata.userId ? pdata.userId.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px 10px 58px;border-top:1px solid rgba(255,255,255,.04);">';
+          html += '<div style="display:flex;align-items:center;gap:10px;">';
+          html += '<div class="avatar" style="width:28px;height:28px;border-radius:8px;font-size:12px;"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img av-' + safeId + '"></div>';
+          html += '<span style="font-size:14px;font-weight:500;">' + name + '</span></div>';
+          html += '<span style="font-family:\'Oxanium\',sans-serif;font-weight:600;font-size:14px;color:var(--accent);">' + toHm(pdata.hours) + '</span>';
+          html += '</div>';
+        });
+      html += '</div>';
+      html += '</div>';
+    });
+
+    histBody.innerHTML = html;
+
+    // Restore avatars
+    d.entries.forEach(e => {
+      if (e.user_id) {
+        const saved = localStorage.getItem('avatar_' + e.user_id);
+        if (saved) { const sid = e.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.av-' + sid).forEach(img => { img.src = saved; img.style.display = 'block'; }); }
+      }
+    });
+  } catch(e) { histBody.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Failed to load</p></div>'; }
 }
 
 function togglePerson(pid) {
@@ -715,6 +1014,42 @@ function setDefaultDates() {
   }
 }
 
+function setPayThisWeek() {
+  const now = new Date();
+  const dow = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('pay-start').value = fmt(monday);
+  document.getElementById('pay-end').value = fmt(sunday);
+}
+
+function setPayLastWeek() {
+  const now = new Date();
+  const dow = now.getDay();
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  thisMonday.setHours(0,0,0,0);
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(thisMonday.getDate() - 7);
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setDate(lastMonday.getDate() + 6);
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('pay-start').value = fmt(lastMonday);
+  document.getElementById('pay-end').value = fmt(lastSunday);
+}
+
+function togglePaidItem(safeId, paid) {
+  const item = document.getElementById('pay-item-' + safeId);
+  const amt = document.getElementById('pay-amt-' + safeId);
+  if (!item) return;
+  item.style.opacity = paid ? '0.35' : '1';
+  if (amt) amt.style.textDecoration = paid ? 'line-through' : '';
+}
+
 async function calcPayments() {
   const start = document.getElementById('pay-start').value, end = document.getElementById('pay-end').value, total = parseFloat(document.getElementById('pay-total').value);
   const errEl = document.getElementById('pay-err'), btn = document.getElementById('btn-calc');
@@ -726,61 +1061,39 @@ async function calcPayments() {
     const d = await r.json();
     if (d.success && d.distributions) {
       const workersRes = await fetch(API + '/api/users', {headers: hdr()}); const workersData = await workersRes.json();
-      const allFarmers = workersData.success ? workersData.users.filter(u => u.role === 'farmer') : [];
       const allManagers = workersData.success ? workersData.users.filter(u => u.role === 'manager') : [];
       const userMap = {};
       if (workersData.success) workersData.users.forEach(u => { userMap[u.id] = u; });
 
-      // Add farmers who didn't work (still get flat share)
-      const farmerPool = 50000;
-      allFarmers.forEach(farmer => {
-        const alreadyIncluded = d.distributions.find(p => p.user_id === farmer.id);
-        if (!alreadyIncluded) d.distributions.push({user_id:farmer.id,nickname:farmer.nickname,role:'farmer',total_hours:0,amount:0,percentage:0});
+      // Add managers who didn't work (still get flat 5% bonus share)
+      allManagers.forEach(manager => {
+        const alreadyIncluded = d.distributions.find(p => p.user_id === manager.id);
+        if (!alreadyIncluded) d.distributions.push({user_id:manager.id,nickname:manager.display_name||manager.nickname,role:'manager',total_hours:0,amount:0,percentage:0});
       });
 
-const farmerFlat = 50000;
-const remaining = Math.max(0, total - farmerFlat);
-const ownerPool = remaining * 0.20;
-const managerBonusPool = remaining * 0.05;
-const hoursPool = remaining - ownerPool - managerBonusPool;
-const managerCount = allManagers.length;
-const workedEntries = d.distributions.filter(p => !['owner','farmer'].includes(p.role) && Number(p.total_hours) > 0);
-const totalWorkedHours = workedEntries.reduce((sum, p) => sum + Number(p.total_hours), 0);
-
-      // Reset all non-owner/non-farmer amounts
-const ownerCount = d.distributions.filter(p => p.role === 'owner').length;
-
-d.distributions.forEach(p => {
-  if (p.role === 'owner') {
-    p.amount = ownerCount > 0 ? Math.round(ownerPool / ownerCount) : 0;
-    p.percentage = ownerCount > 0 ? (0.20 / ownerCount) * 100 : 0;
-  } else if (p.role === 'farmer') {
-    p.amount = 50000;
-    p.percentage = 0;
-  } else {
-    const hours = Number(p.total_hours) || 0;
-    const hoursShare = totalWorkedHours > 0 ? (hours / totalWorkedHours) * hoursPool : 0;
-    p.amount = Math.round(hoursShare);
-    p._hoursAmount = Math.round(hoursShare);
-    if (p.role === 'manager' && managerCount > 0) {
-      const bonus = Math.round(managerBonusPool / managerCount);
-      p.amount = Math.round(hoursShare) + bonus;
-      p._managerBonus = bonus;
-    }
-  }
-});
+      // Use backend amounts directly — no frontend recalculation
+      d.distributions.forEach(p => {
+        if (p.role === 'manager' && p._managerBonus === undefined) {
+          p._managerBonus = true; // just flag for the +5% bonus tag display
+        }
+      });
       const list = document.getElementById('pay-list'), wrap = document.getElementById('pay-results');
       wrap.classList.remove('hidden');
-      let html = '';
+      let html = '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">✓ Check off each person after paying them</div>';
       d.distributions.forEach(p => {
         const safeId = p.user_id ? p.user_id.replace(/[^a-zA-Z0-9]/g,'_') : 'unknown';
         const pct = p.percentage ? ' · ' + (Number(p.percentage)||0).toFixed(1) + '%' : '';
         const bonusTag = p._managerBonus ? ' · <span style="color:var(--green);font-size:11px;">+5% bonus</span>' : '';
         const sid = userMap[p.user_id]?.sid;
-        const sidTag = sid ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ${escapeHtml(sid)}</div>` : '';
-        html += '<div class="pay-result-item"><div class="pay-worker"><div class="avatar avatar-sm"><span class="avatar-letter">' + (p.display_name||p.nickname||'?')[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
-       html += '<div><div style="font-weight:500">' + (p.display_name||p.nickname||'Unknown') + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div></div>';
-        html += '<div class="pay-amount">$' + Math.round(Number(p.amount)||0) + '</div></div>';
+        const sidTag = sid ? '<div style="font-size:11px;color:var(--muted);margin-top:1px;">ID: ' + escapeHtml(sid) + '</div>' : '';
+        const name = p.display_name || p.nickname || 'Unknown';
+        html += '<div class="pay-result-item" id="pay-item-' + safeId + '" style="transition:opacity .2s;">';
+        html += '<div style="display:flex;align-items:center;gap:12px;flex:1;">';
+        html += '<input type="checkbox" data-sid="' + safeId + '" onchange="togglePaidItem(this.dataset.sid,this.checked)" style="width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer;">';
+        html += '<div class="avatar avatar-sm"><span class="avatar-letter">' + name[0].toUpperCase() + '</span><img class="avatar-img pay-av-' + safeId + '"></div>';
+        html += '<div><div style="font-weight:500">' + name + '</div>' + sidTag + '<div class="pay-meta">' + Number(p.total_hours||0).toFixed(1) + 'h · <span class="badge badge-' + p.role + '">' + p.role + '</span>' + pct + bonusTag + '</div></div>';
+        html += '</div>';
+        html += '<div class="pay-amount" id="pay-amt-' + safeId + '">$' + Math.round(Number(p.amount)||0) + '</div></div>';
       });
       list.innerHTML = html;
       d.distributions.forEach(p => { if (p.user_id) { const saved = localStorage.getItem('avatar_' + p.user_id); if (saved) { const safeId = p.user_id.replace(/[^a-zA-Z0-9]/g,'_'); document.querySelectorAll('.pay-av-' + safeId).forEach(img => { img.src = saved; img.style.display = 'block'; }); } } });
@@ -878,7 +1191,7 @@ async function processPayments() {
   try {
     const r = await fetch(API + '/api/payments/process', {method:'POST',headers:hdr(),body:JSON.stringify({period_start:start,period_end:end,total_amount:total})});
     const d = await r.json();
-    if (d.success) { toast('✅ Payments processed! Workers have been notified.'); document.getElementById('pay-results').classList.add('hidden'); document.getElementById('btn-process').classList.add('hidden'); ['pay-start','pay-end','pay-total'].forEach(id => { document.getElementById(id).value = ''; }); setDefaultDates(); }
+    if (d.success) { toast('✅ Payments processed! Workers have been notified.'); document.getElementById('pay-results').classList.add('hidden'); document.getElementById('btn-process').classList.add('hidden'); ['pay-start','pay-end','pay-total'].forEach(id => { document.getElementById(id).value = ''; }); setDefaultDates(); loadFinanceStats(); }
     else { showErr(errEl, d.error || 'Failed to process payments'); btn.disabled = false; }
   } catch(e) { showErr(errEl, 'Connection error'); btn.disabled = false; }
   btn.innerHTML = 'Process & Send Payments';
@@ -897,6 +1210,26 @@ async function deletePayment(paymentId) {
 
 let chatOpen = false, onlineUsers = new Set(), lastMessageId = null, chatPollInterval = null;
 
+function getInactivityDotClass(lastClockIn, isOnline) {
+  if (isOnline) return 'on';
+  if (!lastClockIn) return 'danger'; // never clocked in
+  const daysSince = (Date.now() - new Date(lastClockIn).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince < 7) return 'on';
+  if (daysSince < 14) return 'warning';
+  return 'danger';
+}
+
+function getInactivityLabel(lastClockIn, isOnline) {
+  if (isOnline) return 'Currently active';
+  if (!lastClockIn) return 'Never clocked in';
+  const daysSince = Math.floor((Date.now() - new Date(lastClockIn).getTime()) / (1000 * 60 * 60 * 24));
+  if (daysSince === 0) return 'Clocked in today';
+  if (daysSince === 1) return 'Last seen yesterday';
+  if (daysSince < 7) return 'Last seen ' + daysSince + ' days ago';
+  if (daysSince < 14) return '⚠️ Inactive for ' + daysSince + ' days';
+  return '🔴 Inactive for ' + daysSince + ' days';
+}
+
 async function sendHeartbeat() {
   if (!token || !user) return;
   try { const r = await fetch(API + '/api/users/heartbeat', {method:'POST',headers:hdr()}); if (!r.ok && r.status === 401) { logout(); return; } updateOnlineUsers(); } catch(e) {}
@@ -904,17 +1237,10 @@ async function sendHeartbeat() {
 
 async function updateOnlineUsers() {
   if (!token) return;
-  try { const r = await fetch(API + '/api/users/online', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.online_users) { onlineUsers = new Set(d.online_users.map(u => u.id)); updateWorkerOnlineStatus(); } } catch(e) {}
+  try { const r = await fetch(API + '/api/users/online', {headers:hdr()}); if (!r.ok) return; const d = await r.json(); if (d.success && d.online_users) { onlineUsers = new Set(d.online_users.map(u => u.id)); } } catch(e) {}
 }
 
 setInterval(updateOnlineUsers, 3000);
-
-function updateWorkerOnlineStatus() {
-  document.querySelectorAll('.online-dot').forEach(dot => {
-    const card = dot.closest('.worker-card');
-    if (card) { const roleSelect = card.querySelector('select'); if (roleSelect) { const onchange = roleSelect.getAttribute('onchange'); const match = onchange?.match(/updateRole\('([^']+)'/); if (match) { const userId = match[1]; if (onlineUsers.has(userId)) dot.classList.add('on'); else dot.classList.remove('on'); } } }
-  });
-}
 
 function toggleChat() {
   const panel = document.getElementById('chat-panel'), arrow = document.getElementById('chat-arrow');
@@ -951,6 +1277,26 @@ function initChat() {
 }
 
 let modalResolve = null;
+
+function showInputModal({ icon, title, placeholder, confirmText }) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:18px;padding:24px;width:320px;max-width:90vw;">
+        <div style="font-size:22px;margin-bottom:8px;">${icon}</div>
+        <div style="font-size:17px;font-weight:700;font-family:'Syne',sans-serif;margin-bottom:16px;">${title}</div>
+        <input id="_input_modal_val" type="password" placeholder="${placeholder}" style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;">
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button onclick="this.closest('div[style*=fixed]').remove();window._inputModalCb(null)" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;">Cancel</button>
+          <button onclick="const v=document.getElementById('_input_modal_val').value.trim();this.closest('div[style*=fixed]').remove();window._inputModalCb(v||null)" style="padding:10px 18px;border-radius:10px;background:var(--accent);border:none;color:#000;font-weight:600;cursor:pointer;">${confirmText}</button>
+        </div>
+      </div>`;
+    window._inputModalCb = resolve;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('_input_modal_val')?.focus(), 50);
+  });
+}
 
 function showModal(options) {
   return new Promise((resolve) => {
@@ -1297,8 +1643,8 @@ function showEmployeeEditModal(emp) {
     html += '<div class="field"><label>Employee ID / SID</label><input id="emp-edit-sid" type="text" placeholder="e.g. EMP001" value="' + escapeHtml(emp.sid || '') + '"></div>';
     html += '<div class="field"><label>Phone Number</label><input id="emp-edit-phone" type="tel" placeholder="e.g. +31 6 12345678" value="' + escapeHtml(emp.phone || '') + '"></div>';
     html += '<div class="field"><label>Role</label><select id="emp-edit-role">';
-    ['employee','farmer','manager','owner'].forEach(r => {
-      html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+    (['employee','farmer','loa','manager'].concat(user.role === 'owner' ? ['owner'] : [])).forEach(r => {
+      html += '<option value="' + r + '"' + (emp.role === r ? ' selected' : '') + '>' + (r === 'loa' ? 'LOA' : r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
     });
     html += '</select></div>';
     html += '</div>';
@@ -2706,54 +3052,49 @@ async function updateReimburseCounts() {
 // STATS & FINANCE
 // ============================================================
 let statsChart = null;
-let statsRange = 'month';
+let statsRange = 'week';
 let statsType = 'bar';
 let allPayouts = [];
+let statsData = null;
 
 async function loadFinanceStats() {
-  await loadPayouts();
-  renderStatCards();
-  renderStatsChart();
-}
-
-async function loadPayouts() {
   try {
-    const res = await fetch(API + '/api/payouts', { headers: { Authorization: 'Bearer ' + token } });
-    const data = await res.json();
-    allPayouts = data.payouts || [];
+    const r = await fetch(API + '/api/stats', {headers: hdr()});
+    const d = await r.json();
+    if (!d.success) return;
+    statsData = d;
+    allPayouts = d.recentLog || [];
+    renderStatCards();
+    renderStatsChart();
     renderPayoutLog();
-  } catch (e) {
-    console.error('Failed to load payouts', e);
-  }
+  } catch(e) { console.error('Stats error:', e); }
 }
 
 function renderStatCards() {
-  const now = new Date();
+  if (!statsData) return;
+  const c = statsData.cards;
+  document.getElementById('stat-week').textContent = '$' + Math.round(c.thisWeek).toLocaleString('en-US');
+  document.getElementById('stat-month').textContent = '$' + Math.round(c.thisMonth).toLocaleString('en-US');
+  document.getElementById('stat-alltime').textContent = '$' + Math.round(c.allTime).toLocaleString('en-US');
+  document.getElementById('stat-record').textContent = '$' + Math.round(c.record).toLocaleString('en-US');
 
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  weekStart.setHours(0,0,0,0);
+  function setDelta(elId, current, previous) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!previous) { el.textContent = ''; return; }
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct >= 0 ? '↑' : '↓';
+    el.textContent = sign + ' ' + Math.abs(Math.round(pct)) + '% vs last period';
+    el.className = 'stat-delta ' + (pct >= 0 ? 'up' : 'down');
+  }
+  setDelta('stat-week-delta', c.thisWeek, c.prevWeek);
+  setDelta('stat-month-delta', c.thisMonth, c.prevMonth);
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const subAll = document.getElementById('stat-alltime-sub');
+  if (subAll) subAll.textContent = c.count + ' payouts · avg $' + Math.round(c.avg).toLocaleString('en-US');
 
-  const weekTotal = allPayouts
-    .filter(p => new Date(p.payout_date) >= weekStart)
-    .reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const monthTotal = allPayouts
-    .filter(p => new Date(p.payout_date) >= monthStart)
-    .reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const allTime = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
-
-  const record = allPayouts.length
-    ? Math.max(...allPayouts.map(p => parseFloat(p.amount)))
-    : 0;
-
-  document.getElementById('stat-week').textContent = '$' + weekTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-month').textContent = '$' + monthTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-alltime').textContent = '$' + allTime.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-record').textContent = '$' + record.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const subRec = document.getElementById('stat-record-sub');
+  if (subRec && c.recordDate) subRec.textContent = new Date(c.recordDate).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 
 function renderPayoutLog() {
@@ -2780,65 +3121,30 @@ function renderPayoutLog() {
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:16px;color:var(--green);">$${parseFloat(p.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</div>
-        <button onclick="deletePayout(${p.id})" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--danger);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button>
+        <button onclick="deletePayout('${p.id}')" style="background:rgba(255,85,102,.1);border:1px solid rgba(255,85,102,.2);color:var(--danger);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button>
       </div>
     </div>
   `).join('');
 }
 
 function renderStatsChart() {
+  if (!statsData) return;
   const ctx = document.getElementById('stats-chart').getContext('2d');
-  const now = new Date();
-  let labels = [];
-  let values = [];
 
-  if (statsRange === 'week') {
-    // Last 7 days
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const label = d.toLocaleDateString('en-US', {weekday:'short'});
-      const dayStr = d.toISOString().split('T')[0];
-      const total = allPayouts
-        .filter(p => p.payout_date.split('T')[0] === dayStr)
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  } else if (statsRange === 'month') {
-    // Last 8 weeks
-    for (let i = 7; i >= 0; i--) {
-      const wEnd = new Date(now);
-      wEnd.setDate(now.getDate() - i * 7);
-      const wStart = new Date(wEnd);
-      wStart.setDate(wEnd.getDate() - 6);
-      const label = wStart.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-      const total = allPayouts
-        .filter(p => {
-          const d = new Date(p.payout_date);
-          return d >= wStart && d <= wEnd;
-        })
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  } else {
-    // Last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = d.toLocaleDateString('en-US', {month:'short', year:'2-digit'});
-      const total = allPayouts
-        .filter(p => {
-          const pd = new Date(p.payout_date);
-          return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
-        })
-        .reduce((s, p) => s + parseFloat(p.amount), 0);
-      labels.push(label);
-      values.push(total);
-    }
-  }
+  let chartPoints;
+  if (statsRange === 'week') chartPoints = statsData.charts.daily;
+  else if (statsRange === 'month') chartPoints = statsData.charts.weekly;
+  else chartPoints = statsData.charts.monthly;
+
+  const labels = chartPoints.map(p => p.label);
+  const values = chartPoints.map(p => p.total);
 
   if (statsChart) statsChart.destroy();
+
+  const maxVal = values.length ? Math.max(...values) : 0;
+  const bgColors = values.map(v => v === maxVal && v > 0 ? 'rgba(255,181,71,.7)' : 'rgba(139,92,246,.35)');
+  const pointColors = values.map(v => v === maxVal && v > 0 ? '#ffb547' : '#8b5cf6');
+  const pointRadii = values.map(v => v === maxVal && v > 0 ? 8 : 4);
 
   statsChart = new Chart(ctx, {
     type: statsType,
@@ -2847,11 +3153,13 @@ function renderStatsChart() {
       datasets: [{
         label: 'Payout ($)',
         data: values,
-        backgroundColor: 'rgba(139,92,246,.35)',
-        borderColor: '#8b5cf6',
-        borderWidth: 2,
+        backgroundColor: statsType === 'bar' ? bgColors : 'rgba(139,92,246,.35)',
+        borderColor: statsType === 'line' ? '#8b5cf6' : bgColors,
+        borderWidth: statsType === 'line' ? 2 : 0,
         borderRadius: statsType === 'bar' ? 8 : 0,
-        pointBackgroundColor: '#8b5cf6',
+        pointBackgroundColor: pointColors,
+        pointBorderColor: pointColors,
+        pointRadius: statsType === 'line' ? pointRadii : undefined,
         tension: 0.4,
         fill: statsType === 'line',
       }]
@@ -2936,18 +3244,111 @@ async function submitPayout() {
 }
 
 async function deletePayout(id) {
-  openConfirmModal('🗑️ Delete Payout', 'Are you sure you want to delete this payout?', async () => {
-    try {
-      await fetch('/api/payouts/' + id, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      await loadPayouts();
-      renderStatCards();
-      renderStatsChart();
-      showToast('Payout deleted.');
-    } catch (e) {
-      showToast('Failed to delete.');
-    }
-  });
+  const confirmed = await showModal({ icon: '🗑️', title: 'Delete Payout', message: 'Are you sure? This cannot be undone.', confirmText: 'Delete', danger: true });
+  if (!confirmed) return;
+  try {
+    const r = await fetch(API + '/api/payouts/' + id, { method: 'DELETE', headers: hdr() });
+    const d = await r.json();
+    if (d.success) { toast('🗑️ Payout deleted'); loadFinanceStats(); }
+    else toast(d.error || 'Failed to delete', 'err');
+  } catch(e) { toast('Connection error', 'err'); }
 }
+
+(function initCursor() {
+  if (window.matchMedia('(hover: none)').matches) return;
+
+  const style = document.createElement('style');
+  style.textContent = '*, *:hover { cursor: none !important; }';
+  document.head.appendChild(style);
+
+  // Logo blue: #0BBFFF — between cyan and the graffiti blue
+  const COLOR_NORMAL = '#0BBFFF';
+  const COLOR_HOVER  = '#A855F7';
+
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99997;mix-blend-mode:screen;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const cc = document.createElement('canvas');
+  cc.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99999;';
+  document.body.appendChild(cc);
+  const cctx = cc.getContext('2d');
+
+  function resize() { canvas.width = cc.width = window.innerWidth; canvas.height = cc.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const TRAIL = 22;
+  const OFFSET_X = 4;
+  const OFFSET_Y = 10;
+
+  let mx = -200, my = -200;
+  let isHover = false;
+
+  const trail = Array(TRAIL).fill(null).map(() => ({ x: -200, y: -200 }));
+
+  const INTERACTIVE = 'button, a, input, select, textarea, [onclick], [contenteditable], .nav-item, .forum-row, .employee-card, .worker-card, .chip, label';
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+    // Check directly what's under the cursor
+    isHover = !!e.target.closest(INTERACTIVE);
+  });
+  document.addEventListener('mouseleave', () => { mx = -200; my = -200; isHover = false; });
+
+  function drawArrow(x, y) {
+    cctx.clearRect(0, 0, cc.width, cc.height);
+    if (x < 0) return;
+    const color = isHover ? COLOR_HOVER : COLOR_NORMAL;
+    cctx.save();
+    cctx.translate(x, y);
+    cctx.shadowBlur = 10;
+    cctx.shadowColor = color;
+    cctx.fillStyle = color;
+    cctx.beginPath();
+    cctx.moveTo(0, 0); cctx.lineTo(0, 18);
+    cctx.lineTo(4, 13); cctx.lineTo(8, 20);
+    cctx.lineTo(10.5, 18.5); cctx.lineTo(6.5, 11.5);
+    cctx.lineTo(12, 11.5); cctx.closePath();
+    cctx.fill();
+    cctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    cctx.lineWidth = 0.8;
+    cctx.stroke();
+    cctx.restore();
+  }
+
+  function animate() {
+    const ox = mx < 0 ? -200 : mx + OFFSET_X;
+    const oy = my < 0 ? -200 : my + OFFSET_Y;
+
+    for (let i = TRAIL - 1; i > 0; i--) {
+      trail[i].x += (trail[i-1].x - trail[i].x) * 0.4;
+      trail[i].y += (trail[i-1].y - trail[i].y) * 0.4;
+    }
+    trail[0].x = ox;
+    trail[0].y = oy;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < TRAIL; i++) {
+      const pos = trail[i];
+      if (pos.x < 0) continue;
+      const progress = i / TRAIL;
+      // Trail: logo-blue → purple
+      const r = Math.round(11  + (168 - 11)  * progress);
+      const g = Math.round(191 * (1 - progress));
+      const b = Math.round(255 * (1 - progress * 0.03) + 247 * progress * 0.03);
+      const alpha = (1 - progress) * 0.5;
+      const size = Math.max(1, 4.5 - i * 0.18);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fill();
+    }
+
+    drawArrow(mx, my);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();

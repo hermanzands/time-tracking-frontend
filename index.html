@@ -125,10 +125,10 @@
 
   <!-- Stat Cards -->
   <div class="stats-row" id="stats-cards">
-    <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-green" id="stat-week">—</div></div>
-    <div class="stat"><div class="stat-label">This Month</div><div class="stat-val c-purple" id="stat-month">—</div></div>
-    <div class="stat"><div class="stat-label">All Time</div><div class="stat-val" id="stat-alltime">—</div></div>
-    <div class="stat"><div class="stat-label">🏆 Record</div><div class="stat-val c-green" id="stat-record">—</div></div>
+    <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-green" id="stat-week">—</div><div class="stat-delta" id="stat-week-delta"></div></div>
+    <div class="stat"><div class="stat-label">This Month</div><div class="stat-val c-purple" id="stat-month">—</div><div class="stat-delta" id="stat-month-delta"></div></div>
+    <div class="stat"><div class="stat-label">All Time</div><div class="stat-val" id="stat-alltime">—</div><div class="stat-sub" id="stat-alltime-sub"></div></div>
+    <div class="stat"><div class="stat-label">🏆 Record</div><div class="stat-val" style="color:var(--amber);" id="stat-record">—</div><div class="stat-sub" id="stat-record-sub"></div></div>
   </div>
 
   <!-- Chart -->
@@ -221,6 +221,7 @@
           <div class="stat"><div class="stat-label">Today</div><div class="stat-val c-green" id="st-today">—</div></div>
           <div class="stat"><div class="stat-label">This Week</div><div class="stat-val c-purple" id="st-week">—</div></div>
           <div class="stat"><div class="stat-label">This Month</div><div class="stat-val" id="st-month">—</div></div>
+          <div class="stat"><div class="stat-label">All Time</div><div class="stat-val" id="st-total">—</div></div>
         </div>
       </div>
 
@@ -317,6 +318,7 @@
                 <option value="employee">Employee</option>
                 <option value="farmer">Farmer</option>
                 <option value="manager">Manager</option>
+                <option value="loa">LOA</option>
               </select>
             </div>
           </div>
@@ -386,7 +388,7 @@
             <div class="err-box" id="stock-err"></div>
           </div>
         </div>
-        <div class="admin-only hidden" id="stock-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+        <div class="tab-bar hidden" id="stock-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
           <button class="stock-tab active" data-tab="pending" onclick="switchStockTab('pending')">Pending <span id="stock-pending-count" class="stock-tab-badge">0</span></button>
           <button class="stock-tab" data-tab="completed" onclick="switchStockTab('completed')">Completed <span id="stock-completed-count" class="stock-tab-badge">0</span></button>
         </div>
@@ -407,9 +409,33 @@
         <div class="page-title">All Hours</div>
         <div class="page-sub">Every team member's time entries</div>
         <div class="table-card">
-          <div class="table-hdr" style="display:flex;align-items:center;justify-content:space-between;"><div class="table-ttl">All Time Entries</div><div style="display:flex;gap:8px;"><button onclick="openAddHoursModal()" style="font-size:12px;padding:6px 14px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600;">➕ Add Hours</button><button onclick="clearAllHours()" style="font-size:12px;padding:6px 14px;background:rgba(255,85,102,.15);border:1px solid rgba(255,85,102,.3);color:var(--danger);border-radius:8px;cursor:pointer;font-weight:600;">🗑️ Clear All</button></div></div>
-          <table><thead><tr><th>Worker</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="all-entries-body"><tr><td colspan="5"><div class="empty"><span class="spinner"></span></div></td></tr></tbody></table>
+          <!-- Top bar: tabs + actions -->
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+            <div style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;">
+              <button id="ah-tab-active" class="stock-tab active" onclick="switchHoursTab('active')">📅 Active</button>
+              <button id="ah-tab-history" class="stock-tab" onclick="switchHoursTab('history')">📜 History</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button onclick="openAddHoursModal()" style="font-size:12px;padding:6px 14px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600;">➕ Add Hours</button>
+              <button id="ah-clear-btn" onclick="archiveAllHours()" style="font-size:12px;padding:6px 14px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3);color:#A855F7;border-radius:8px;cursor:pointer;font-weight:600;">📦 Archive All</button>
+            </div>
+          </div>
+
+          <!-- Active tab: table with entries -->
+          <div id="ah-active-view">
+            <table><thead><tr><th>Worker</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="all-entries-body"><tr><td colspan="6"><div class="empty"><span class="spinner"></span></div></td></tr></tbody></table>
+            <!-- Totals bar -->
+            <div id="ah-totals-bar" style="display:none;margin-top:12px;padding:12px 16px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:13px;color:var(--muted);">Week total</span>
+              <span id="ah-totals-text" style="font-family:'Oxanium',sans-serif;font-weight:700;font-size:15px;color:var(--accent);"></span>
+            </div>
+          </div>
+
+          <!-- History tab: week accordions -->
+          <div id="ah-history-view" style="display:none;">
+            <div id="ah-history-body"><div class="empty"><span class="spinner"></span></div></div>
+          </div>
         </div>
       </div>
 
@@ -424,9 +450,11 @@
             <div class="field"><label>Period End</label><input id="pay-end" type="date"></div>
             <div class="field"><label>Total Amount ($)</label><input id="pay-total" type="number" placeholder="e.g. 10000" min="0"></div>
           </div>
-          <div style="display:flex;gap:12px;">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" id="btn-calc" onclick="calcPayments()">Calculate</button>
             <button class="btn btn-primary btn-sm hidden" id="btn-process" onclick="processPayments()" style="background:var(--green);">Process & Send Payments</button>
+            <button onclick="setPayThisWeek()" style="font-size:12px;padding:6px 14px;background:var(--surface2);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--muted);cursor:pointer;">📅 This Week</button>
+            <button onclick="setPayLastWeek()" style="font-size:12px;padding:6px 14px;background:var(--surface2);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--muted);cursor:pointer;">📅 Last Week</button>
           </div>
           <div class="err-box" id="pay-err"></div>
           <div class="pay-results hidden" id="pay-results">
@@ -569,7 +597,7 @@
             <div class="err-box" id="reimburse-err"></div>
           </div>
         </div>
-        <div class="admin-only hidden" id="reimburse-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
+        <div class="tab-bar hidden" id="reimburse-manager-tabs" style="display:flex;gap:8px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:20px;">
           <button class="stock-tab active" data-tab="pending" onclick="switchReimburseTab('pending')">Pending <span id="reimburse-pending-count" class="stock-tab-badge">0</span></button>
           <button class="stock-tab" data-tab="paid" onclick="switchReimburseTab('paid')">Paid <span id="reimburse-paid-count" class="stock-tab-badge">0</span></button>
         </div>
